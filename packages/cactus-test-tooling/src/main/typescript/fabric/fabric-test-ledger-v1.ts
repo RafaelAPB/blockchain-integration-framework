@@ -36,6 +36,7 @@ export interface IFabricTestLedgerV1ConstructorOptions {
   envVars?: Map<string, string>;
   logLevel?: LogLevelDesc;
   emitContainerLogs?: boolean;
+  stateDatabase?: string;
 }
 
 /*
@@ -45,6 +46,7 @@ const DEFAULT_OPTS = Object.freeze({
   imageVersion: "2021-01-05-3400c06",
   imageName: "hyperledger/cactus-fabric-all-in-one",
   envVars: new Map([["FABRIC_VERSION", "1.4.8"]]),
+  stateDatabase: "leveldb",
 });
 export const FABRIC_TEST_LEDGER_DEFAULT_OPTIONS = DEFAULT_OPTS;
 
@@ -74,6 +76,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
   public readonly publishAllPorts: boolean;
   public readonly emitContainerLogs: boolean;
   public readonly envVars: Map<string, string>;
+  public readonly stateDatabase: string;
 
   private readonly log: Logger;
 
@@ -105,6 +108,7 @@ export class FabricTestLedgerV1 implements ITestLedger {
         `This version of Fabric ${this.getFabricVersion()} is unsupported`,
       );
 
+    this.stateDatabase = options.stateDatabase || DEFAULT_OPTS.stateDatabase;
     this.validateConstructorOptions();
   }
 
@@ -321,6 +325,126 @@ export class FabricTestLedgerV1 implements ITestLedger {
       // }
     }
     return ccp;
+  }
+  public async getConnectionProfileOrgX(OrgId: string): Promise<any> {
+    const cInfo = await this.getContainerInfo();
+    const container = this.getContainer();
+    const CCP_JSON_PATH_FABRIC_V1 =
+      "/fabric-samples/first-network/connection-org" + OrgId + ".json";
+    const CCP_JSON_PATH_FABRIC_V2 =
+      "/fabric-samples/test-network/organizations/peerOrganizations/org" +
+      OrgId +
+      ".example.com/connection-org" +
+      OrgId +
+      ".json";
+    const ccpJsonPath = compareVersions.compare(
+      this.getFabricVersion(),
+      "2.0",
+      "<",
+    )
+      ? CCP_JSON_PATH_FABRIC_V1
+      : CCP_JSON_PATH_FABRIC_V2;
+    try {
+      const ccpJson = await Containers.pullFile(container, ccpJsonPath);
+      const ccp = JSON.parse(ccpJson);
+
+      {
+        // peer0.org1.example.com
+        const privatePort = 7051;
+        const hostPort = await Containers.getPublicPort(privatePort, cInfo);
+        ccp.peers[
+          "peer0.org" + OrgId + ".example.com"
+        ].url = `grpcs://localhost:${hostPort}`;
+      }
+      if (ccp.peers["peer1.org" + OrgId + ".example.com"]) {
+        // peer1.org1.example.com
+        const privatePort = 8051;
+        const hostPort = await Containers.getPublicPort(privatePort, cInfo);
+        ccp.peers[
+          "peer1.org" + OrgId + ".example.com"
+        ].url = `grpcs://localhost:${hostPort}`;
+      }
+      {
+        // ca_peerOrg1
+        const privatePort = 7054;
+        const hostPort = await Containers.getPublicPort(privatePort, cInfo);
+        const { certificateAuthorities: cas } = ccp;
+        cas[
+          "ca.org" + OrgId + ".example.com"
+        ].url = `https://localhost:${hostPort}`;
+      }
+
+      // FIXME - this still doesn't work. At this moment the only successful tests
+      // we could run was with host ports bound to the matching ports of the internal
+      // containers and with discovery enabled.
+      // When discovery is disabled, it just doesn't yet work and these changes
+      // below are my attempts so far at making the connection profile work without
+      // discovery being turned on (which we cannot use when the ports are randomized
+      // on the host for the parent container)
+      if (this.publishAllPorts) {
+        // orderer.example.com
+
+        const privatePort = 7050;
+        const hostPort = await Containers.getPublicPort(privatePort, cInfo);
+        const url = `grpcs://localhost:${hostPort}`;
+        const ORDERER_PEM_PATH_FABRIC_V1 =
+          "/fabric-samples/first-network/crypto-config/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem";
+        const ORDERER_PEM_PATH_FABRIC_V2 =
+          "/fabric-samples/test-network/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem";
+        const ordererPemPath = compareVersions.compare(
+          this.getFabricVersion(),
+          "2.0",
+          "<",
+        )
+          ? ORDERER_PEM_PATH_FABRIC_V1
+          : ORDERER_PEM_PATH_FABRIC_V2;
+        const pem = await Containers.pullFile(container, ordererPemPath);
+        ccp.orderers = {
+          "orderer.example.com": {
+            url,
+            grpcOptions: {
+              "ssl-target-name-override": "orderer.example.com",
+            },
+            tlsCACerts: {
+              pem,
+            },
+          },
+        };
+        const specificPeer = "peer0.org" + OrgId + ".example.com";
+
+        ccp.channels = {
+          mychannel: {
+            orderers: ["orderer.example.com"],
+            peers: {},
+          },
+        };
+
+        ccp.channels["mychannel"]["peers"][specificPeer] = {
+          endorsingPeer: true,
+          chaincodeQuery: true,
+          ledgerQuery: true,
+          eventSource: true,
+          discover: true,
+        };
+
+        // FIXME: Still have no idea if we can use these options to make it work
+        // with discovery
+        // {
+        //   const { grpcOptions } = ccp.peers["peer0.org1.example.com"];
+        //   grpcOptions.hostnameOverride = `localhost`;
+        // }
+        // {
+        //   const { grpcOptions } = ccp.peers["peer1.org1.example.com"];
+        //   grpcOptions.hostnameOverride = `localhost`;
+        // }
+      }
+      return ccp;
+    } catch (error) {
+      throw new Error(
+        "Could not obtain file necessary for constructing the connection profile: " +
+          error,
+      );
+    }
   }
 
   public async getSshConfig(): Promise<SshConfig> {
