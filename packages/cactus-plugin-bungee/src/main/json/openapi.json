@@ -1,0 +1,35 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Hyperledger BUNGEE BLP",
+        "description": "Contains/describes the core API types for Cactus. Does not describe actual endpoints on its own as this is left to the implementing plugins who can import and re-use commonLy needed type definitions from this specification. One example of said commonly used type definitons would be the types related to consortium management, cactus nodes, ledgers, etc..",
+        "version": "0.0.1",
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "servers": [
+        {
+            "url": "https://www.cactus.stream/{basePath}",
+            "description": "Public test instance",
+            "variables": {
+                "basePath": {
+                    "default": ""
+                }
+            }
+        },
+        {
+            "url": "http://localhost:4000/{basePath}",
+            "description": "Local test instance",
+            "variables": {
+                "basePath": {
+                    "default": ""
+                }
+            }
+        }
+    ],
+    "components": {
+    },
+    "paths": {}
+}
