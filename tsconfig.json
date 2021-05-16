@@ -168,6 +168,9 @@
     },
     {
       "path": "./packages/cactus-plugin-persistence-fabric/tsconfig.json"
+    },
+    {
+      "path": "./packages/cactus-plugin-bungee/tsconfig.json"
     }
   ],
   "compilerOptions": {
