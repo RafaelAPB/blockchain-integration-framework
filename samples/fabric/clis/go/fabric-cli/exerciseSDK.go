@@ -16,10 +16,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/hyperledger-labs/weaver-dlt-interoperability/sdks/fabric/go-cli/helpers"
-	"github.com/hyperledger-labs/weaver-dlt-interoperability/sdks/fabric/go-cli/helpers/interopsetup"
 	"github.com/hyperledger-labs/weaver-dlt-interoperability/sdks/fabric/go-sdk/interoperablehelper"
 	"github.com/hyperledger-labs/weaver-dlt-interoperability/sdks/fabric/go-sdk/types"
+	"github.com/weaver-dlt-interoperability/samples/fabric/clis/go/fabric-cli/cmd"
+	"github.com/weaver-dlt-interoperability/samples/fabric/clis/go/fabric-cli/helpers"
+	"github.com/weaver-dlt-interoperability/samples/fabric/clis/go/fabric-cli/helpers/interopsetup"
 )
 
 func connectSimpleStateWithSDK() {
@@ -700,7 +701,10 @@ func interop(key string, localNetwork string, requestingOrg string, address stri
 
 func main() {
 
-	interop("a", "network1", "Org1MSP", "localhost:9080/network1/mychannel:simplestate:Read:a")
+	//interop("a", "network1", "Org1MSP", "localhost:9080/network1/mychannel:simplestate:Read:a")
+
+	args := []string{".set_env"}
+	cmd.SetFile(args)
 
 	//configureNetwork("network1")
 	//fetchAccessControlPolicy("network1")
