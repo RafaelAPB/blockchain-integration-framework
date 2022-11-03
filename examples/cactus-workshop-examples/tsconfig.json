@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist/lib/",
+    "declarationDir": "dist/lib",
+    "rootDir": "../cactus-workshop-examples/src",
+    "tsBuildInfoFile": "../../.build-cache/examples/cactus-workshop-examples.tsbuildinfo"
+  },
+  "include": [
+    "../cactus-workshop-examples/src",
+    "../cactus-workshop-examples/src/**/*.json"
+  ],
+  "references": [
+    {
+      "path": "../../packages/cactus-common/tsconfig.json"
+    },
+    {
+      "path": "../../packages/cactus-core/tsconfig.json"
+    },
+    {
+      "path": "../../packages/cactus-test-tooling/tsconfig.json"
+    }
+  ]
+}
