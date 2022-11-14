@@ -1,7 +1,7 @@
 {
-  "name": "@hyperledger/cactus-workshop-examples",
-  "version": "1.1.0",
-  "description": "Cacti workshop - hello world",
+  "name": "@hyperledger/cactus-workshop-examples-2022-11-14",
+  "version": "1.1.2",
+  "description": "Cacti Workshop Examples",
   "keywords": [
     "Hyperledger",
     "Cactus",
@@ -32,11 +32,15 @@
     {
       "name": "Rafael Belchior",
       "email": "rbelchior@blockdaemon.com"
+    },
+    {
+      "name": "Mónica Gomez",
+      "email": "monica.gomez@tecnico.ulisboa.pt"
     }
   ],
   "main": "dist/lib/main/typescript/index.js",
   "module": "dist/lib/main/typescript/index.js",
-  "browser": "dist/cactus-workshop-examples.web.umd.js",
+  "browser": "dist/cactus-workshop-examples-2022-11-14.web.umd.js",
   "types": "dist/lib/main/typescript/index.d.ts",
   "files": [
     "dist/*"
@@ -51,9 +55,8 @@
   "dependencies": {
     "@hyperledger/cactus-common": "1.1.2",
     "@hyperledger/cactus-core": "1.1.2",
-    "@hyperledger/cactus-test-tooling": "1.1.2",
-    "typescript-optional": "2.0.1",
-    "uuid": "8.3.2"
+    "@hyperledger/cactus-test-tooling": "1.0.0",
+    "typescript-optional": "2.0.1"
   },
   "devDependencies": {
   },
@@ -64,7 +67,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "browserMinified": "dist/cactus-workshop-examples.web.umd.min.js",
-  "mainMinified": "dist/cactus-workshop-examples.node.umd.min.js",
+  "browserMinified": "dist/cactus-workshop-examples-2022-11-14.web.umd.min.js",
+  "mainMinified": "dist/cactus-workshop-examples-2022-11-14.node.umd.min.js",
   "watch": {}
 }
