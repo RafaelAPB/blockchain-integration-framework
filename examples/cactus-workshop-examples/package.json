@@ -18,21 +18,10 @@
     "url": "git+https://github.com/hyperledger/cactus.git"
   },
   "license": "Apache-2.0",
-  "author": {
-    "name": "Hyperledger Cactus Contributors",
-    "email": "cactus@lists.hyperledger.org",
-    "url": "https://www.hyperledger.org/use/cactus"
-  },
+  "author": "Hyperledger Cactus Contributors <cactus@lists.hyperledger.org> (https://www.hyperledger.org/use/cactus)",
   "contributors": [
-    {
-      "name": "Please add yourself to the list of contributors",
-      "email": "your.name@example.com",
-      "url": "https://example.com"
-    },
-    {
-      "name": "Rafael Belchior",
-      "email": "rbelchior@blockdaemon.com"
-    }
+    "Please add yourself to the list of contributors <your.name@example.com> (https://example.com)",
+    "Rafael Belchior <rbelchior@blockdaemon.com>"
   ],
   "main": "dist/lib/main/typescript/index.js",
   "module": "dist/lib/main/typescript/index.js",
@@ -52,10 +41,10 @@
     "@hyperledger/cactus-common": "1.1.2",
     "@hyperledger/cactus-core": "1.1.2",
     "@hyperledger/cactus-test-tooling": "1.1.2",
+    "express": "^4.18.2",
     "typescript-optional": "2.0.1",
-    "uuid": "8.3.2"
-  },
-  "devDependencies": {
+    "uuid": "8.3.2",
+    "uuid4": "^2.0.3"
   },
   "engines": {
     "node": ">=10",
@@ -66,5 +55,15 @@
   },
   "browserMinified": "dist/cactus-workshop-examples.web.umd.min.js",
   "mainMinified": "dist/cactus-workshop-examples.node.umd.min.js",
-  "watch": {}
+  "watch": {},
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.14",
+    "@types/node": "^18.11.9",
+    "@types/uuid4": "^2.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.4"
+  }
 }
