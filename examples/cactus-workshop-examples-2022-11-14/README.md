@@ -7,39 +7,36 @@ WARNING: This code IS NOT production-ready nor secure! Namely, cross-site script
 
 ``src/main/typescript/hello-world.ts``
 
-Creates an APIServer and a Keychain Memory client. The server interacts with the key pairs in the Keychain Memory.
+Creates an APIServer listening on port 3001 that exposes the endpoints of the ingested plugins - for demonstration purposes we use only one plugin, the cactus-plugin-object-store-ipfs. This plugin interacts with an underlying IPFS network (a simple key-value store).
 
-Runs with the following command ``npx ts-node src/main/typescript/hello-world.ts``
+Run the file with the following command ``npx ts-node src/main/typescript/hello-world.ts``
 
-The implemented interactions are:
-- POST "/set-kcm", which sets a new key-value pair.
+To interact with the IPFS connector through the APIServer follow the next commands:
+- POST `/api/v1/plugins/@hyperledger/cactus-plugin-object-store-ipfs/set-object`, which sets a new key-value pair.
     ```
     curl --header "Content-Type: application/json" \
         --request POST \
         --data '{"key":"1234","value":"xyz"}' \
-        http://localhost:8000/set-kcm
+        http://localhost:3001/api/v1/plugins/@hyperledger/cactus-plugin-object-store-ipfs/set-object
     ```
-- GET "/get-kcm/:key", which gets a key-value pair.
-    ```
-    curl --header "Content-Type: application/json" \
-        --request GET \
-        --data '{"key":"1234"}' \
-        http://localhost:8000/get-kcm/1234
-    ```
-- DELETE "/delete/:key", which deletes a key-value pair.
+
+- POST `/api/v1/plugins/@hyperledger/cactus-plugin-object-store-ipfs/get-object`, which gets a key-value pair.
     ```
     curl --header "Content-Type: application/json" \
-        --request POST \
+        --request POST  \
         --data '{"key":"1234"}' \
-        http://localhost:8000/delete-kcm/1234
+        http://localhost:3001/api/v1/plugins/@hyperledger/cactus-plugin-object-store-ipfs/get-object
     ```
+
 - GET "/has-key/:key", which checks if a key-value pair exits in the client.
     ```
     curl --header "Content-Type: application/json" \
-        --request GET \
+        --request POST  \
         --data '{"key":"1234"}' \
-        http://localhost:8000/has-key/1234
+        http://localhost:3001/api/v1/plugins/@hyperledger/cactus-plugin-object-store-ipfs/has-object
     ```
+
+*NOTE: other carachters might appear in the output of the commands since we should insert the values in base64. For demo purposes we don't make the conversion.*
 
 ## Hyperledger Cacti Workshop Examples - Simple Consortium
 
@@ -65,3 +62,4 @@ This example package works with version 1.0.0 of ``@hyperledger/cactus-test-tool
 - Rafael Belchior
 - Mónica Gomez
 - Abhinav Srivastava
+- André Augusto
