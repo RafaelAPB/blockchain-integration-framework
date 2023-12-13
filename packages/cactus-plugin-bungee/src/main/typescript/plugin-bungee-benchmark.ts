@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-/* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-empty-function */
 import { Server } from "http";
 
 import { Server as SecureServer } from "https";
@@ -33,11 +30,11 @@ import {
   FabricContractInvocationType,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import { Utils } from "./utils";
-import { Transaction } from "./viewCreation/transaction";
-import { Proof } from "./viewCreation/proof";
-import { State } from "./viewCreation/state";
-import { View } from "./viewCreation/view";
-import { Snapshot } from "./viewCreation/snapshot";
+import { Transaction } from "./view-creation/transaction";
+import { Proof } from "./view-creation/proof";
+import { State } from "./view-creation/state";
+import { View } from "./view-creation/view";
+import { Snapshot } from "./view-creation/snapshot";
 import path from "path";
 
 export interface IPluginBUNGEEOptions extends ICactusPluginOptions{

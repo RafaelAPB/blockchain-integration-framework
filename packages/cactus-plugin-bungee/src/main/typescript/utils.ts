@@ -1,4 +1,4 @@
-import { Transaction } from "./viewCreation/transaction";
+import { Transaction } from "./view-creation/transaction";
 
 export class Utils {
   static bufArray2HexStr(array: Uint8Array): string {

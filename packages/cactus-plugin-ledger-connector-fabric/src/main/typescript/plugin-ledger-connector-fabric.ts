@@ -706,6 +706,7 @@ export class PluginLedgerConnectorFabric
 
     try {
       const { privateData, channelName, peerAddress, tlsRootCertFile } = req;
+      let response: SSHExecCommandResponse;
       let { snapshotHeight } = req;
       if (privateData) {
         throw new Error("snapshots with private data not yet supported");
@@ -733,18 +734,19 @@ export class PluginLedgerConnectorFabric
         ` --env GO111MODULE=on` +
         ` --workdir=${remoteDirPath}` +
         ` cli `;
+
       {
         if (!snapshotHeight) {
           const cmd = `${dockerBuildCmd} peer channel getinfo -c ${channelName}`;
           const label = "obtain channel name";
-          const response = await this.sshExec(cmd, label, ssh, sshCmdOptions);
+          response = await this.sshExec(cmd, label, ssh, sshCmdOptions);
           snapshotHeight = JSON.parse(response.stdout).height;
         }
       }
       {
         const cmd = `${dockerBuildCmd} peer snapshot submitrequest -c ${channelName} -b ${snapshotHeight} --peerAddress ${peerAddress} --tlsRootCertFile ${tlsRootCertFile}`;
         const label = "create snapshot";
-        const response = await this.sshExec(cmd, label, ssh, sshCmdOptions);
+        response = await this.sshExec(cmd, label, ssh, sshCmdOptions);
         log.debug(response);
       }
       // Obtain snapshot

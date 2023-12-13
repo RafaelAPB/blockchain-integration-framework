@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Hyperledger Cactus Plugin - BUNGEE
- * Can perform basic tasks on a fabric ledger
+ * Can create blockchain views of a fabric ledger
  *
  * The version of the OpenAPI document: 0.0.1
  * 

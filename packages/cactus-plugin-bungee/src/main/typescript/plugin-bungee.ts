@@ -1,20 +1,20 @@
-/* eslint-disable prefer-const */
-/* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-empty-function */
 import { Server } from "http";
-
+import { Optional } from "typescript-optional";
+import { v4 as uuidV4 } from "uuid";
 import { Server as SecureServer } from "https";
-
-import { v4 as uuidv4 } from "uuid";
-
-import { PluginRegistry } from "@hyperledger/cactus-core";
+import OAS from "../json/openapi.json";
+import type { Express } from "express";
 
 import {
   Configuration,
+  ICactusPlugin,
   ICactusPluginOptions,
+  IPluginWebService,
+  IWebServiceEndpoint,
 } from "@hyperledger/cactus-core-api";
 
 import {
+  Checks,
   IJsObjectSignerOptions,
   JsObjectSigner,
   Logger,
@@ -22,9 +22,10 @@ import {
   LogLevelDesc,
 } from "@hyperledger/cactus-common";
 
-import { ICactusApiServerOptions } from "@hyperledger/cactus-cmd-api-server";
-
-import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
+import {
+  CreateViewRequest,
+  CreateViewResponse,
+} from "./generated/openapi/typescript-axios";
 
 import {
   DefaultApi as FabricApi,
@@ -32,18 +33,18 @@ import {
   FabricSigningCredential,
   FabricContractInvocationType,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
+
 import { Utils } from "./utils";
-import { Transaction } from "./viewCreation/transaction";
-import { Proof } from "./viewCreation/proof";
-import { State } from "./viewCreation/state";
-import { View } from "./viewCreation/view";
-import { Snapshot } from "./viewCreation/snapshot";
+import { Transaction } from "./view-creation/transaction";
+import { Proof } from "./view-creation/proof";
+import { State } from "./view-creation/state";
+import { View } from "./view-creation/view";
+import { Snapshot } from "./view-creation/snapshot";
 import path from "path";
+import { ClientEndpointV1 } from "./web-services/client-endpoint";
 
-export interface IPluginBUNGEEOptions extends ICactusPluginOptions{
-  instanceId: string;
+export interface IPluginBUNGEEOptions extends ICactusPluginOptions {
   participant: string;
-
   fabricPath?: string;
   fabricSigningCredential?: FabricSigningCredential;
   fabricChannelName?: string;
@@ -54,14 +55,15 @@ export interface IPluginBUNGEEOptions extends ICactusPluginOptions{
   fabricApi?: FabricApi;
 
   logLevel?: LogLevelDesc;
-  keychainId?: string;
-  keychain?: PluginKeychainMemory;
-  apiServerOptions?: ICactusApiServerOptions;
-  httpApi?: Server | SecureServer;
   disableSignalHandlers?: true;
 }
 
-export class PluginBUNGEE {
+export class PluginBUNGEE implements 
+  ICactusPlugin, IPluginWebService
+{
+  public static readonly CLASS_NAME = "PluginBUNGEE";
+  private log: Logger;
+  
   private bungeeSigner: JsObjectSigner;
   private privKeyBungee: string;
   private pubKeyBungee: string;
@@ -82,18 +84,21 @@ export class PluginBUNGEE {
   public fabricAssetSize?: string;
   
   private readonly instanceId: string;
-  private readonly className: string;
   private level: LogLevelDesc;
-  private logger: Logger;
-  public pluginRegistry: PluginRegistry;
+  private endpoints: IWebServiceEndpoint[] | undefined;
 
   constructor(public readonly options: IPluginBUNGEEOptions) {
-    this.className = "pluginBUNGEE";
-    this.level = options.logLevel || "INFO";
-    const label = this.getClassName();
-    const level = this.level;
-    this.logger = LoggerProvider.getOrCreate({ label, level });
+    const fnTag = `${this.className}#constructor()`;
+    Checks.truthy(options, `${fnTag} arg options`);
+    Checks.truthy(options.instanceId, `${fnTag} options.instanceId`);
     
+    this.level = options.logLevel || "INFO";
+    const label = this.className;
+    const level = this.level;
+    this.log = LoggerProvider.getOrCreate({ label, level });
+    
+    this.instanceId = options.instanceId;
+
     const keysRelPath ="../keys/";
     const pubKeyPath = path.join(__dirname, keysRelPath, "./bungee_pub.pem");
     const privKeyPath = path.join(__dirname, keysRelPath, "./bungee_priv.pem");
@@ -106,7 +111,6 @@ export class PluginBUNGEE {
     };
     this.bungeeSigner = new JsObjectSigner(bungeeSignerOptions);
 
-    this.instanceId = uuidv4();
     this.participant = options.participant;
         
     this.ledgerAssetsKey = [];
@@ -115,31 +119,63 @@ export class PluginBUNGEE {
     this.tI = "";
     this.tF = "";
 
-    this.pluginRegistry = new PluginRegistry();
     this.fabricApi = options.fabricApi;
 
     if (options.fabricPath != undefined) this.defineFabricConnection(options);
   }
 
-  public getInstanceId(): string {
-    return this.instanceId;
+  public get className(): string {
+    return PluginBUNGEE.CLASS_NAME;
+  }
+
+  public getOpenApiSpec(): unknown {
+    return OAS;
+  }
+
+  public async shutdown(): Promise<void> {
+    this.log.info(`Shutting down ${this.className}...`);
+
   }
 
   public getPackageName(): string {
     return `@hyperledger/cactus-plugin-bungee`;
   }
 
-  public getClassName(): string {
-    return this.className;
-  }
-
   public async onPluginInit(): Promise<unknown> {
     return;
   }
 
+  async registerWebServices(app: Express): Promise<IWebServiceEndpoint[]> {
+    const webServices = await this.getOrCreateWebServices();
+    await Promise.all(webServices.map((ws) => ws.registerExpress(app)));
+    return webServices;
+  }
+
+  public async getOrCreateWebServices(): Promise<IWebServiceEndpoint[]> {
+    if (Array.isArray(this.endpoints)) {
+      return this.endpoints;
+    }
+
+    const clientEndpoint = new ClientEndpointV1({
+      bungee: this,
+    });
+
+    this.endpoints = [
+      clientEndpoint,
+    ];
+    return this.endpoints;
+  }
+
+  public getHttpServer(): Optional<Server | SecureServer> {
+    return Optional.empty();
+  }
+
+  public getInstanceId(): string {
+    return this.instanceId;
+  }
+
   private defineFabricConnection(options: IPluginBUNGEEOptions): void {
-    
-    this.logger.info(`OPTIONS:: ${options}`);
+    this.log.info(`OPTIONS:: ${options}`);
     const fnTag = `${this.className}#defineFabricConnection()`;
 
     const config = new Configuration({ basePath: options.fabricPath });
@@ -164,13 +200,20 @@ export class PluginBUNGEE {
       : "1";
   }
 
-  
+  async onCreateView(request: CreateViewRequest): Promise<CreateViewResponse>  {
+    //const fnTag = `${this.className}#onCreateView()`;
+    const response = this.generateView(this.generateSnapshot());
+    return {
+      y: response,
+    };
+  }
+
   /**
    * 
    * @abstract Create ledger state. Get all keys, iterate every key and get the respective transactions. For each transaction get the receipt
    * */
   public async generateLedgerStates(): Promise<string> {
-    this.logger.info(`Generating ledger snapshot`);
+   this.log.info(`Generating ledger snapshot`);
     
     const assetsKey = await this.getAllAssetsKey();
     this.ledgerAssetsKey = assetsKey.split(",");
@@ -180,7 +223,7 @@ export class PluginBUNGEE {
       let assetValues: string[] = [];
       let txWithTimeS: Transaction[] = [];
 
-      this.logger.info(assetKey);
+     this.log.info(assetKey);
       const txs = await this.getAllTxByKey(assetKey);
 
       //For each tx get receipt
@@ -213,12 +256,12 @@ export class PluginBUNGEE {
       console.log(keyId, state);
       const assetState = this.ledgerStates.get(keyId);
       if(assetState != undefined) {
-        this.logger.info(assetState);
-        this.logger.info(JSON.parse(assetState.getStateJson()));
+       this.log.info(assetState);
+       this.log.info(JSON.parse(assetState.getStateJson()));
         
       }
-    }); 
-
+    });
+    
     // TESTS ONLY -> next receive ti tf
     const car2 = this.ledgerStates.get("CAR2");
 
@@ -236,7 +279,7 @@ export class PluginBUNGEE {
    * @abstract Returns Snapshot
    * */
   public generateSnapshot(): Snapshot {
-    const snapShotId = uuidv4();
+    const snapShotId = uuidV4();
     const snapshot = new Snapshot(snapShotId, this.participant, this.states);
     return snapshot;
   }
@@ -251,15 +294,15 @@ export class PluginBUNGEE {
   public generateView(snapshot: Snapshot): string {
     const crypto = require('crypto');
 
-    this.logger.warn(this.pubKeyBungee);
-    this.logger.warn(this.privKeyBungee);
+   this.log.warn(this.pubKeyBungee);
+   this.log.warn(this.privKeyBungee);
     const view = new View(this.tI, this.tF, snapshot);
     
     const signer = crypto.createSign('SHA256');
     signer.write(JSON.stringify(view));
     signer.end();
 
-    this.logger.warn(view.getViewStr());
+   this.log.warn(view.getViewStr());
 
     const signature = signer.sign(this.privKeyBungee, 'base64');
 

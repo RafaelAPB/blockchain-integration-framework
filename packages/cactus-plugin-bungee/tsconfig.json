@@ -1,16 +1,32 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "composite": true,
     "outDir": "./dist/lib/" /* Redirect output structure to the directory. */,
     "declarationDir": "dist/types",
     "resolveJsonModule": true,
-    "allowJs": false
+    "allowJs": false,
+    "rootDir": "./src/",
+    "tsBuildInfoFile": "../../.build-cache/cactus-plugin-bungee.tsbuildinfo",
+    "moduleResolution": "Node16"
   },
   "ts-node": {
     "files": true
   },
-  "include": ["./src"],
+  "include": [
+    "./src",
+    "src/**/*.json"
+  ],
   "exclude": [
-    "./src/test/typescript/fabric-contracts/lock-asset/chaincode-typescript./**/*.ts"
-  ]
+    "./src/test/typescript/fabric-contracts/lock-asset/chaincode-typescript/**/*.ts",
+    "./src/test/typescript/fabric-contracts/simple-asset/chaincode-typescript/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../cactus-plugin-ledger-connector-fabric/tsconfig.json"
+    },
+    {
+      "path": "../cactus-plugin-odap-hermes/tsconfig.json"
+    },
+  ],
 }
