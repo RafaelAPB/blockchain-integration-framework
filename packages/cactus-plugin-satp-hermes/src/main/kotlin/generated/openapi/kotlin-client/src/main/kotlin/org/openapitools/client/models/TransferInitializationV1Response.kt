@@ -66,7 +66,7 @@ data class TransferInitializationV1Response (
     val backupGatewaysAllowed: kotlin.collections.List<kotlin.String>,
 
     @Json(name = "satpPhase")
-    val satpPhase: TransferInitializationV1Response.OdapPhase? = null,
+    val satpPhase: TransferInitializationV1Response.SatpPhase? = null,
 
     @Json(name = "destination")
     val destination: kotlin.String? = null
@@ -79,7 +79,7 @@ data class TransferInitializationV1Response (
      * Values: transferInitialization,lockEvidenceVerification,commitmentEstablishment
      */
     @JsonClass(generateAdapter = false)
-    enum class OdapPhase(val value: kotlin.String) {
+    enum class SatpPhase(val value: kotlin.String) {
         @Json(name = "TransferInitialization") transferInitialization("TransferInitialization"),
         @Json(name = "LockEvidenceVerification") lockEvidenceVerification("LockEvidenceVerification"),
         @Json(name = "CommitmentEstablishment") commitmentEstablishment("CommitmentEstablishment");

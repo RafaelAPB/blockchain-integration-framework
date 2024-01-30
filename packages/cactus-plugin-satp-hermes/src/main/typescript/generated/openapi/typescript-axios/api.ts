@@ -1909,7 +1909,7 @@ export interface TransferInitializationV1Response {
      * @type {string}
      * @memberof TransferInitializationV1Response
      */
-    'satpPhase'?: TransferInitializationV1ResponseOdapPhaseEnum;
+    'satpPhase'?: TransferInitializationV1ResponseSatpPhaseEnum;
     /**
      * 
      * @type {string}
@@ -1954,13 +1954,13 @@ export interface TransferInitializationV1Response {
     'backupGatewaysAllowed': Array<string>;
 }
 
-export const TransferInitializationV1ResponseOdapPhaseEnum = {
+export const TransferInitializationV1ResponseSatpPhaseEnum = {
     TransferInitialization: 'TransferInitialization',
     LockEvidenceVerification: 'LockEvidenceVerification',
     CommitmentEstablishment: 'CommitmentEstablishment'
 } as const;
 
-export type TransferInitializationV1ResponseOdapPhaseEnum = typeof TransferInitializationV1ResponseOdapPhaseEnum[keyof typeof TransferInitializationV1ResponseOdapPhaseEnum];
+export type TransferInitializationV1ResponseSatpPhaseEnum = typeof TransferInitializationV1ResponseSatpPhaseEnum[keyof typeof TransferInitializationV1ResponseSatpPhaseEnum];
 
 
 /**
