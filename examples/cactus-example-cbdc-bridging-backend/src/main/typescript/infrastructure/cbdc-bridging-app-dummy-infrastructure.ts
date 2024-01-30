@@ -39,8 +39,8 @@ import { PluginRegistry } from "@hyperledger/cactus-core";
 import AssetReferenceContractJson from "../../../solidity/asset-reference-contract/AssetReferenceContract.json";
 import CBDCcontractJson from "../../../solidity/cbdc-erc-20/CBDCcontract.json";
 import { IKeyPair } from "@hyperledger/cactus-plugin-satp-hermes";
-import { FabricSatpGateway } from "../satp-extension/fabric-satp-gateway";
-import { BesuSatpGateway } from "../satp-extension/besu-satp-gateway";
+import { FabricSATPGateway } from "../satp-extension/fabric-satp-gateway";
+import { BesuSATPGateway } from "../satp-extension/besu-satp-gateway";
 import { PluginImportType } from "@hyperledger/cactus-core-api";
 import CryptoMaterial from "../../../crypto-material/crypto-material.json";
 import { ClientHelper } from "../satp-extension/client-helper";
@@ -89,9 +89,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       publishAllPorts: true,
       imageName: DEFAULT_FABRIC_2_AIO_IMAGE_NAME,
       imageVersion: FABRIC_25_LTS_AIO_IMAGE_VERSION,
-      envVars: new Map([
-        ["FABRIC_VERSION", FABRIC_25_LTS_AIO_FABRIC_VERSION],
-      ]),
+      envVars: new Map([["FABRIC_VERSION", FABRIC_25_LTS_AIO_FABRIC_VERSION]]),
       logLevel: level || "DEBUG",
     });
   }
@@ -250,9 +248,9 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async createClientGateway(
     nodeApiHost: string,
     keyPair: IKeyPair,
-  ): Promise<FabricSatpGateway> {
+  ): Promise<FabricSATPGateway> {
     this.log.info(`Creating Source Gateway...`);
-    const pluginSourceGateway = new FabricSatpGateway({
+    const pluginSourceGateway = new FabricSATPGateway({
       name: "cactus-plugin-source#satpGateway",
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
@@ -277,9 +275,9 @@ export class CbdcBridgingAppDummyInfrastructure {
   public async createServerGateway(
     nodeApiHost: string,
     keyPair: IKeyPair,
-  ): Promise<BesuSatpGateway> {
+  ): Promise<BesuSATPGateway> {
     this.log.info(`Creating Recipient Gateway...`);
-    const pluginRecipientGateway = new BesuSatpGateway({
+    const pluginRecipientGateway = new BesuSATPGateway({
       name: "cactus-plugin-recipient#satpGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
@@ -387,7 +385,8 @@ export class CbdcBridgingAppDummyInfrastructure {
             sourceFiles,
             ccName: contractName,
             targetOrganizations: [this.org1Env, this.org2Env],
-            caFile: FABRIC_25_LTS_FABRIC_SAMPLES_ENV_INFO_ORG_1.ORDERER_TLS_ROOTCERT_FILE,
+            caFile:
+              FABRIC_25_LTS_FABRIC_SAMPLES_ENV_INFO_ORG_1.ORDERER_TLS_ROOTCERT_FILE,
             ccLabel: "asset-reference-contract",
             ccLang: ChainCodeProgrammingLanguage.Typescript,
             ccSequence: 1,
@@ -514,7 +513,8 @@ export class CbdcBridgingAppDummyInfrastructure {
             sourceFiles,
             ccName: contractName,
             targetOrganizations: [this.org1Env, this.org2Env],
-            caFile: FABRIC_25_LTS_FABRIC_SAMPLES_ENV_INFO_ORG_1.ORDERER_TLS_ROOTCERT_FILE,
+            caFile:
+              FABRIC_25_LTS_FABRIC_SAMPLES_ENV_INFO_ORG_1.ORDERER_TLS_ROOTCERT_FILE,
             ccLabel: "cbdc",
             ccLang: ChainCodeProgrammingLanguage.Javascript,
             ccSequence: 1,

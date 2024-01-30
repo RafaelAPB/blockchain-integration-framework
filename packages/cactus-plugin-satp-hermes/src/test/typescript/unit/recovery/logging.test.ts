@@ -2,20 +2,17 @@ import { v4 as uuidv4 } from "uuid";
 import "jest-extended";
 import { Secp256k1Keys } from "@hyperledger/cactus-common";
 import { v4 as uuidV4 } from "uuid";
-import {
-  ILocalLog,
-  PluginSatpGateway,
-} from "../../../../main/typescript/gateway/plugin-satp-gateway";
-
+import { PluginSATPGateway } from "../../../../main/typescript/plugin-satp-gateway";
+import { LocalLog } from "../../../../main/typescript/core/types";
 import { SessionData } from "../../../../main/typescript/public-api";
 import { SHA256 } from "crypto-js";
-import { BesuSatpGateway } from "../../../../main/typescript/gateway/besu-satp-gateway";
+import { BesuSATPGateway } from "../../../../main/typescript/core/besu-satp-gateway";
 import {
-  FabricSatpGateway,
-  IFabricSatpGatewayConstructorOptions,
-} from "../../../../main/typescript/gateway/fabric-satp-gateway";
-import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
-import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
+  FabricSATPGateway,
+  IFabricSATPGatewayConstructorOptions,
+} from "../../../../main/typescript/core/fabric-satp-gateway";
+import { ClientGatewayHelper } from "../../../../main/typescript/core/client-helper";
+import { ServerGatewayHelper } from "../../../../main/typescript/core/server-helper";
 
 import {
   knexClientConnection,
@@ -23,10 +20,10 @@ import {
   knexServerConnection,
 } from "../../knex.config";
 
-let sourceGatewayConstructor: IFabricSatpGatewayConstructorOptions;
+let sourceGatewayConstructor: IFabricSATPGatewayConstructorOptions;
 
-let pluginSourceGateway: PluginSatpGateway;
-let pluginRecipientGateway: PluginSatpGateway;
+let pluginSourceGateway: PluginSATPGateway;
+let pluginRecipientGateway: PluginSATPGateway;
 let sessionID: string;
 let step: number;
 let type: string;
@@ -34,10 +31,10 @@ let type2: string;
 let type3: string;
 let type4: string;
 let operation: string;
-let satpLog: ILocalLog;
-let satpLog2: ILocalLog;
-let satpLog3: ILocalLog;
-let satpLog4: ILocalLog;
+let satpLog: LocalLog;
+let satpLog2: LocalLog;
+let satpLog3: LocalLog;
+let satpLog4: LocalLog;
 let sessionData: SessionData;
 
 beforeEach(async () => {
@@ -66,8 +63,8 @@ beforeEach(async () => {
     knexRemoteConfig: knexRemoteConnection,
   };
 
-  pluginSourceGateway = new FabricSatpGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new BesuSatpGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricSATPGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuSATPGateway(recipientGatewayConstructor);
 
   sessionData = {
     id: sessionID,
@@ -86,26 +83,30 @@ beforeEach(async () => {
   pluginSourceGateway.sessions.set(sessionID, sessionData);
   pluginRecipientGateway.sessions.set(sessionID, sessionData);
 
-  if (
-    pluginSourceGateway.localRepository?.database == undefined ||
-    pluginRecipientGateway.localRepository?.database == undefined
-  ) {
-    throw new Error("Database is not correctly initialized");
-  }
+  expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
+  expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
+
+  expect(pluginSourceGateway.remoteRepository?.database).not.toBeUndefined();
+  expect(pluginRecipientGateway.remoteRepository?.database).not.toBeUndefined();
 
   await pluginSourceGateway.localRepository?.reset();
   await pluginRecipientGateway.localRepository?.reset();
+
+  await pluginSourceGateway.remoteRepository?.reset();
+  await pluginRecipientGateway.remoteRepository?.reset();
+  await pluginSourceGateway.remoteRepository?.reset();
+  await pluginRecipientGateway.remoteRepository?.reset();
 });
 
 test("successful translation of log keys", async () => {
-  expect(PluginSatpGateway.getSatpLogKey(sessionID, type, operation)).toBe(
+  expect(PluginSATPGateway.getSatpLogKey(sessionID, type, operation)).toBe(
     `${sessionID}-${type}-${operation}`,
   );
 });
 
 test("successful logging of proof to ipfs and sqlite", async () => {
   const claim = "claim";
-  const satpLogKey = PluginSatpGateway.getSatpLogKey(
+  const satpLogKey = PluginSATPGateway.getSatpLogKey(
     sessionID,
     "proof",
     "lock",
@@ -141,7 +142,7 @@ test("successful logging of proof to ipfs and sqlite", async () => {
 });
 
 test("successful logging to ipfs and sqlite", async () => {
-  const satpLogKey = PluginSatpGateway.getSatpLogKey(
+  const satpLogKey = PluginSATPGateway.getSatpLogKey(
     sessionID,
     type,
     operation,
@@ -230,7 +231,7 @@ test("successful retrieval of last log", async () => {
   expect(lastLog.operation).toBe(satpLog3.operation);
   expect(lastLog.sessionID).toBe(satpLog3.sessionID);
   expect(lastLog.key).toBe(
-    PluginSatpGateway.getSatpLogKey(sessionID, type3, operation),
+    PluginSATPGateway.getSatpLogKey(sessionID, type3, operation),
   );
 });
 
@@ -285,7 +286,7 @@ test("successful retrieval of logs more recent than another log", async () => {
   expect(moreRecentLogs[0].operation).toBe(satpLog.operation);
   expect(moreRecentLogs[0].sessionID).toBe(satpLog.sessionID);
   expect(moreRecentLogs[0].key).toBe(
-    PluginSatpGateway.getSatpLogKey(sessionID, type, operation),
+    PluginSATPGateway.getSatpLogKey(sessionID, type, operation),
   );
 
   expect(moreRecentLogs[1].type).toBe(satpLog3.type);
@@ -297,7 +298,7 @@ test("successful retrieval of logs more recent than another log", async () => {
   expect(moreRecentLogs[1].operation).toBe(satpLog3.operation);
   expect(moreRecentLogs[1].sessionID).toBe(satpLog3.sessionID);
   expect(moreRecentLogs[1].key).toBe(
-    PluginSatpGateway.getSatpLogKey(sessionID, type3, operation),
+    PluginSATPGateway.getSatpLogKey(sessionID, type3, operation),
   );
 });
 
@@ -356,7 +357,7 @@ test("successful recover of sessions after crash", async () => {
 
   // simulate the crash of one gateway
   pluginSourceGateway.localRepository?.destroy();
-  const newPluginSourceGateway = new FabricSatpGateway(
+  const newPluginSourceGateway = new FabricSATPGateway(
     sourceGatewayConstructor,
   );
 

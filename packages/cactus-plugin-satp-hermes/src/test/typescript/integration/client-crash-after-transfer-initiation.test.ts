@@ -6,29 +6,37 @@ import bodyParser from "body-parser";
 import express, { Express } from "express";
 import {
   IListenOptions,
+  LogLevelDesc,
+  LoggerProvider,
   Secp256k1Keys,
   Servers,
 } from "@hyperledger/cactus-common";
 import {
   IPluginSatpGatewayConstructorOptions,
-  PluginSatpGateway,
-} from "../../../main/typescript/gateway/plugin-satp-gateway";
+  PluginSATPGateway,
+} from "../../../main/typescript/plugin-satp-gateway";
 import {
   AssetProfile,
   ClientV1Request,
 } from "../../../main/typescript/public-api";
 import { makeSessionDataChecks } from "../make-checks";
 
-import { BesuSatpGateway } from "../../../main/typescript/gateway/besu-satp-gateway";
-import { FabricSatpGateway } from "../../../main/typescript/gateway/fabric-satp-gateway";
-import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
-import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
+import { BesuSATPGateway } from "../../../main/typescript/core/besu-satp-gateway";
+import { FabricSATPGateway } from "../../../main/typescript/core/fabric-satp-gateway";
+import { ServerGatewayHelper } from "../../../main/typescript/core/server-helper";
+import { ClientGatewayHelper } from "../../../main/typescript/core/client-helper";
 
 import {
   knexClientConnection,
   knexRemoteConnection,
   knexServerConnection,
 } from "../knex.config";
+import {
+  Containers,
+  pruneDockerAllIfGithubAction,
+} from "@hyperledger/cactus-test-tooling";
+
+const logLevel: LogLevelDesc = "INFO";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -39,8 +47,8 @@ const BESU_ASSET_ID = uuidv4();
 let serverGatewayPluginOptions: IPluginSatpGatewayConstructorOptions;
 let clientGatewayPluginOptions: IPluginSatpGatewayConstructorOptions;
 
-let pluginSourceGateway: PluginSatpGateway;
-let pluginRecipientGateway: PluginSatpGateway;
+let pluginSourceGateway: PluginSATPGateway;
+let pluginRecipientGateway: PluginSATPGateway;
 
 let sourceGatewayServer: Server;
 let recipientGatewayserver: Server;
@@ -56,7 +64,21 @@ let serverListenOptions: IListenOptions;
 let clientExpressApp: Express;
 let clientListenOptions: IListenOptions;
 
+const log = LoggerProvider.getOrCreate({
+  level: "INFO",
+  label: "client-crash-after-transfer-initiation",
+});
+
 beforeAll(async () => {
+  pruneDockerAllIfGithubAction({ logLevel })
+    .then(() => {
+      log.info("Pruning throw OK");
+    })
+    .catch(async () => {
+      await Containers.logDiagnostics({ logLevel });
+      fail("Pruning didn't throw OK");
+    });
+
   {
     // Server Gateway configuration
     serverGatewayPluginOptions = {
@@ -86,13 +108,17 @@ beforeAll(async () => {
     const { address, port } = addressInfo;
     serverGatewayApiHost = `http://${address}:${port}`;
 
-    pluginRecipientGateway = new BesuSatpGateway(serverGatewayPluginOptions);
+    pluginRecipientGateway = new BesuSATPGateway(serverGatewayPluginOptions);
 
     expect(
       pluginRecipientGateway.localRepository?.database,
     ).not.toBeUndefined();
+    expect(
+      pluginRecipientGateway.remoteRepository?.database,
+    ).not.toBeUndefined();
 
     await pluginRecipientGateway.localRepository?.reset();
+    await pluginRecipientGateway.remoteRepository?.reset();
 
     await pluginRecipientGateway.registerWebServices(serverExpressApp);
   }
@@ -125,7 +151,7 @@ beforeAll(async () => {
     const { address, port } = addressInfo;
     clientGatewayApiHost = `http://${address}:${port}`;
 
-    pluginSourceGateway = new FabricSatpGateway(clientGatewayPluginOptions);
+    pluginSourceGateway = new FabricSATPGateway(clientGatewayPluginOptions);
 
     if (pluginSourceGateway.localRepository?.database == undefined) {
       throw new Error("Database is not correctly initialized");
@@ -225,7 +251,7 @@ test("successful run ODAP after client gateway crashed after after receiving tra
 
   await Servers.listen(listenOptions);
 
-  pluginSourceGateway = new FabricSatpGateway(clientGatewayPluginOptions);
+  pluginSourceGateway = new FabricSATPGateway(clientGatewayPluginOptions);
   await pluginSourceGateway.registerWebServices(clientExpressApp);
 
   // client gateway self-healed and is back online

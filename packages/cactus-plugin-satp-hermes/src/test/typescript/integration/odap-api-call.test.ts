@@ -6,25 +6,36 @@ import bodyParser from "body-parser";
 import express from "express";
 import { DefaultApi as SatpApi } from "../../../main/typescript/public-api";
 
-import { IListenOptions, Servers } from "@hyperledger/cactus-common";
+import {
+  IListenOptions,
+  LogLevelDesc,
+  LoggerProvider,
+  Servers,
+} from "@hyperledger/cactus-common";
 
 import { Configuration } from "@hyperledger/cactus-core-api";
 
 import {
-  PluginSatpGateway,
+  PluginSATPGateway,
   IPluginSatpGatewayConstructorOptions,
-} from "../../../main/typescript/gateway/plugin-satp-gateway";
+} from "../../../main/typescript/plugin-satp-gateway";
 import {
   AssetProfile,
   ClientV1Request,
 } from "../../../main/typescript/public-api";
 import { makeSessionDataChecks } from "../make-checks";
 
-import { BesuSatpGateway } from "../../../main/typescript/gateway/besu-satp-gateway";
-import { FabricSatpGateway } from "../../../main/typescript/gateway/fabric-satp-gateway";
-import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
-import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
+import { BesuSATPGateway } from "../../../main/typescript/core/besu-satp-gateway";
+import { FabricSATPGateway } from "../../../main/typescript/core/fabric-satp-gateway";
+import { ClientGatewayHelper } from "../../../main/typescript/core/client-helper";
+import { ServerGatewayHelper } from "../../../main/typescript/core/server-helper";
 import { knexRemoteConnection } from "../knex.config";
+import {
+  Containers,
+  pruneDockerAllIfGithubAction,
+} from "@hyperledger/cactus-test-tooling";
+
+const logLevel: LogLevelDesc = "INFO";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -35,8 +46,24 @@ const BESU_ASSET_ID = uuidv4();
 let sourceGatewayServer: Server;
 let recipientGatewayserver: Server;
 
-let pluginSourceGateway: PluginSatpGateway;
-let pluginRecipientGateway: PluginSatpGateway;
+let pluginSourceGateway: PluginSATPGateway;
+let pluginRecipientGateway: PluginSATPGateway;
+
+const log = LoggerProvider.getOrCreate({
+  level: "INFO",
+  label: "odap-api-call-with-ledger-connector",
+});
+
+beforeAll(async () => {
+  pruneDockerAllIfGithubAction({ logLevel })
+    .then(() => {
+      log.info("Pruning throw OK");
+    })
+    .catch(async () => {
+      await Containers.logDiagnostics({ logLevel });
+      fail("Pruning didn't throw OK");
+    });
+});
 
 test("runs ODAP between two gateways via openApi", async () => {
   const clientGatewayPluginOptions: IPluginSatpGatewayConstructorOptions = {
@@ -57,14 +84,20 @@ test("runs ODAP between two gateways via openApi", async () => {
     knexRemoteConfig: knexRemoteConnection,
   };
 
-  pluginSourceGateway = new FabricSatpGateway(clientGatewayPluginOptions);
-  pluginRecipientGateway = new BesuSatpGateway(serverGatewayPluginOptions);
+  pluginSourceGateway = new FabricSATPGateway(clientGatewayPluginOptions);
+  pluginRecipientGateway = new BesuSATPGateway(serverGatewayPluginOptions);
 
   expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
   expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
 
+  expect(pluginSourceGateway.remoteRepository?.database).not.toBeUndefined();
+  expect(pluginRecipientGateway.remoteRepository?.database).not.toBeUndefined();
+
   await pluginSourceGateway.localRepository?.reset();
   await pluginRecipientGateway.localRepository?.reset();
+
+  await pluginSourceGateway.remoteRepository?.reset();
+  await pluginRecipientGateway.remoteRepository?.reset();
 
   let serverGatewayApiHost: string;
 

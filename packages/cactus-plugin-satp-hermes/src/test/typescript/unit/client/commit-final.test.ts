@@ -3,17 +3,17 @@ import { SHA256 } from "crypto-js";
 import { v4 as uuidv4 } from "uuid";
 import {
   SatpMessageType,
-  PluginSatpGateway,
-} from "../../../../main/typescript/gateway/plugin-satp-gateway";
+  PluginSATPGateway,
+} from "../../../../main/typescript/plugin-satp-gateway";
 import {
   CommitFinalV1Response,
   SessionData,
 } from "../../../../main/typescript/public-api";
 
-import { FabricSatpGateway } from "../../../../main/typescript/gateway/fabric-satp-gateway";
-import { BesuSatpGateway } from "../../../../main/typescript/gateway/besu-satp-gateway";
-import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
-import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
+import { FabricSATPGateway } from "../../../../main/typescript/core/fabric-satp-gateway";
+import { BesuSATPGateway } from "../../../../main/typescript/core/besu-satp-gateway";
+import { ServerGatewayHelper } from "../../../../main/typescript/core/server-helper";
+import { ClientGatewayHelper } from "../../../../main/typescript/core/client-helper";
 import { knexRemoteConnection } from "../../knex.config";
 
 const MAX_RETRIES = 5;
@@ -24,8 +24,8 @@ const COMMIT_ACK_CLAIM = "dummyCommitAckClaim";
 
 let sourceGatewayConstructor;
 let recipientGatewayConstructor;
-let pluginSourceGateway: PluginSatpGateway;
-let pluginRecipientGateway: PluginSatpGateway;
+let pluginSourceGateway: PluginSATPGateway;
+let pluginRecipientGateway: PluginSATPGateway;
 let sequenceNumber: number;
 let sessionID: string;
 let step: number;
@@ -48,18 +48,20 @@ beforeEach(async () => {
     knexRemoteConfig: knexRemoteConnection,
   };
 
-  pluginSourceGateway = new FabricSatpGateway(sourceGatewayConstructor);
-  pluginRecipientGateway = new BesuSatpGateway(recipientGatewayConstructor);
+  pluginSourceGateway = new FabricSATPGateway(sourceGatewayConstructor);
+  pluginRecipientGateway = new BesuSATPGateway(recipientGatewayConstructor);
 
-  if (
-    pluginSourceGateway.localRepository?.database == undefined ||
-    pluginRecipientGateway.localRepository?.database == undefined
-  ) {
-    throw new Error("Database is not correctly initialized");
-  }
+  expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
+  expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
+
+  expect(pluginSourceGateway.remoteRepository?.database).not.toBeUndefined();
+  expect(pluginRecipientGateway.remoteRepository?.database).not.toBeUndefined();
 
   await pluginSourceGateway.localRepository?.reset();
   await pluginRecipientGateway.localRepository?.reset();
+
+  await pluginSourceGateway.remoteRepository?.reset();
+  await pluginRecipientGateway.remoteRepository?.reset();
 
   sequenceNumber = randomInt(100);
   sessionID = uuidv4();
@@ -88,16 +90,6 @@ beforeEach(async () => {
     operation: "create",
     data: COMMIT_ACK_CLAIM,
   });
-
-  if (
-    pluginSourceGateway.localRepository?.database == undefined ||
-    pluginRecipientGateway.localRepository?.database == undefined
-  ) {
-    throw new Error("Database is not correctly initialized");
-  }
-
-  await pluginSourceGateway.localRepository?.reset();
-  await pluginRecipientGateway.localRepository?.reset();
 });
 
 afterEach(async () => {
@@ -117,7 +109,7 @@ test("valid commit final response", async () => {
     sequenceNumber: sequenceNumber,
   };
 
-  commitFinalResponse.signature = PluginSatpGateway.bufArray2HexStr(
+  commitFinalResponse.signature = PluginSATPGateway.bufArray2HexStr(
     await pluginRecipientGateway.sign(JSON.stringify(commitFinalResponse)),
   );
 
@@ -154,7 +146,7 @@ test("commit final response invalid because of wrong previous message hash", asy
     sequenceNumber: sequenceNumber,
   };
 
-  commitFinalResponse.signature = PluginSatpGateway.bufArray2HexStr(
+  commitFinalResponse.signature = PluginSATPGateway.bufArray2HexStr(
     await pluginRecipientGateway.sign(JSON.stringify(commitFinalResponse)),
   );
 
@@ -182,7 +174,7 @@ test("commit final response invalid because of wrong signature", async () => {
     sequenceNumber: sequenceNumber,
   };
 
-  commitFinalResponse.signature = PluginSatpGateway.bufArray2HexStr(
+  commitFinalResponse.signature = PluginSATPGateway.bufArray2HexStr(
     await pluginRecipientGateway.sign("somethingWrong"),
   );
 
