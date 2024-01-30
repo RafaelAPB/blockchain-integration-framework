@@ -1,27 +1,32 @@
-export * from "./generated/openapi/typescript-axios/index";
+// Gateway Client API
+export * from "./generated/gateway-client/typescript-axios";
 
-export {
-  IPluginSatpGatewayConstructorOptions,
-  PluginSatpGateway,
-  SatpMessageType,
-  IKeyPair,
-} from "./gateway/plugin-satp-gateway";
+// TODO: Should we export the gateway backend
+// Gateway Backend
+/*
+// Exporting from the common directory
+export * from './generated/proto/cacti/satp/v02/common/health_connect';
+export * from './generated/proto/cacti/satp/v02/common/health_pb';
 
-import { IPluginFactoryOptions } from "@hyperledger/cactus-core-api";
-import { PluginFactoryFabricSatpGateway } from "./gateway/plugin-factory-fabric-satp-gateway";
-import { PluginFactoryBesuSatpGateway } from "./gateway/plugin-factory-besu-satp-gateway";
+// Re-export everything except CredentialProfile to avoid conflicts
+export { STATUS, MessageType, SignatureAlgorithm, LockType, Error } from './generated/proto/cacti/satp/v02/common/message_pb';
+export * from './generated/proto/cacti/satp/v02/common/session_connect';
+export * from './generated/proto/cacti/satp/v02/common/session_pb';
 
-export async function createFabricPluginFactory(
-  pluginFactoryOptions: IPluginFactoryOptions,
-): Promise<PluginFactoryFabricSatpGateway> {
-  return new PluginFactoryFabricSatpGateway(pluginFactoryOptions);
-}
+// Exporting files in the v02 directory
+export * from './generated/proto/cacti/satp/v02/crash_recovery_connect';
+export * from './generated/proto/cacti/satp/v02/stage_0_connect';
+export * from './generated/proto/cacti/satp/v02/stage_0_pb';
+export * from './generated/proto/cacti/satp/v02/stage_1_connect';
+export * from './generated/proto/cacti/satp/v02/stage_1_pb';
+export * from './generated/proto/cacti/satp/v02/stage_2_connect';
+export * from './generated/proto/cacti/satp/v02/stage_2_pb';
+export * from './generated/proto/cacti/satp/v02/stage_3_connect';
+export * from './generated/proto/cacti/satp/v02/stage_3_pb';
 
-export async function createBesuPluginFactory(
-  pluginFactoryOptions: IPluginFactoryOptions,
-): Promise<PluginFactoryBesuSatpGateway> {
-  return new PluginFactoryBesuSatpGateway(pluginFactoryOptions);
-}
+// Exporting from the view directory
+export * from './generated/proto/cacti/satp/v02/view/bungee_pb';
+*/
 
-export { ServerGatewayHelper } from "./gateway/server/server-helper";
-export { ClientGatewayHelper } from "./gateway/client/client-helper";
+export { SATPGateway, SATPGatewayConfig } from "./plugin-satp-hermes-gateway";
+export { PluginFactorySATPGateway } from "./factory/plugin-factory-gateway-orchestrator";

@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "rootDir": "./src/",
     "tsBuildInfoFile": "../../.build-cache/cactus-plugin-satp-hermes.tsbuildinfo",
-    "moduleResolution": "Node16"
+    "moduleResolution": "Node16",
   },
   "ts-node": {
     "files": true
@@ -19,7 +19,8 @@
     "src/**/*.json"
   ],
   "exclude":[
-    "./src/test/typescript/fabric-contracts/lock-asset/chaincode-typescript/**/*.ts"
+    "./src/main/typescript/fabric-contracts/**/*.ts", 
+    "./src/test/typescript/fabric/**/*.ts"
   ],
   "references": [
     {

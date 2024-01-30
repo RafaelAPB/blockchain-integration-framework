@@ -1,9 +1,8 @@
 import { AddressInfo } from "net";
-import { v4 as uuidv4 } from "uuid";
-import { Server } from "http";
 import exitHook, { IAsyncExitHookDoneCallback } from "async-exit-hook";
 import { PluginRegistry } from "@hyperledger/cactus-core";
 import {
+  IListenOptions,
   LogLevelDesc,
   Logger,
   LoggerProvider,
@@ -17,26 +16,30 @@ import {
 } from "@hyperledger/cactus-cmd-api-server";
 import {
   Configuration,
-  IKeyPair,
-  DefaultApi as SatpApi,
+  SATPGateway,
 } from "@hyperledger/cactus-plugin-satp-hermes/";
-import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import { CbdcBridgingAppDummyInfrastructure } from "./infrastructure/cbdc-bridging-app-dummy-infrastructure";
 import { DefaultApi as FabricApi } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import { DefaultApi as BesuApi } from "@hyperledger/cactus-plugin-ledger-connector-besu";
-import { FabricSatpGateway } from "./satp-extension/fabric-satp-gateway";
-import { BesuSatpGateway } from "./satp-extension/besu-satp-gateway";
-import CryptoMaterial from "../../crypto-material/crypto-material.json";
+import express from "express";
+import bodyParser from "body-parser";
+import http, { Server } from "http";
+import { Constants } from "@hyperledger/cactus-core-api";
+import cors from "cors";
+
+import { Server as SocketIoServer } from "socket.io";
 
 export interface ICbdcBridgingApp {
   apiHost: string;
   apiServer1Port: number;
   apiServer2Port: number;
-  apiCrpcHost: string;
-  apiServer1CrpcPort: number;
-  apiServer2CrpcPort: number;
-  clientGatewayKeyPair: IKeyPair;
-  serverGatewayKeyPair: IKeyPair;
+  apiGateway1ServerPort: number;
+  apiGateway1ClientPort: number;
+  apiGateway1BloPort: number;
+  apiGateway2ServerPort: number;
+  apiGateway2ClientPort: number;
+  apiGateway2BloPort: number;
+
   logLevel?: LogLevelDesc;
   apiServerOptions?: ICactusApiServerOptions;
   disableSignalHandlers?: true;
@@ -72,7 +75,7 @@ export class CbdcBridgingApp {
     });
   }
 
-  public async start(): Promise<IStartInfo> {
+  public async start() /*: Promise<IStartInfo> */ {
     this.log.debug(`Starting CBDC Bridging App...`);
 
     if (!this.options.disableSignalHandlers) {
@@ -84,80 +87,53 @@ export class CbdcBridgingApp {
 
     await this.infrastructure.start();
     this.onShutdown(() => this.infrastructure.stop());
-
+    this.log.info("Creating Fabric Connector");
     const fabricPlugin =
       await this.infrastructure.createFabricLedgerConnector();
+    this.log.info("Creating Besu Connector");
     const besuPlugin = await this.infrastructure.createBesuLedgerConnector();
 
+    let addressInfoA: AddressInfo;
+    let addressInfoB: AddressInfo;
+
     // Reserve the ports where the API Servers will run
-    const httpApiA = await Servers.startOnPort(
-      this.options.apiServer1Port,
-      this.options.apiHost,
-    );
-    const httpApiB = await Servers.startOnPort(
-      this.options.apiServer2Port,
-      this.options.apiHost,
-    );
+    {
+      const expressApp = express();
+      expressApp.use(cors());
+      expressApp.use(bodyParser.json({ limit: "250mb" }));
+      const fabricServer = http.createServer(expressApp);
 
-    const addressInfoA = httpApiA.address() as AddressInfo;
+      const listenOptions: IListenOptions = {
+        hostname: this.options.apiHost,
+        port: this.options.apiServer1Port,
+        server: fabricServer,
+      };
+      addressInfoA = (await Servers.listen(listenOptions)) as AddressInfo;
+
+      await fabricPlugin.getOrCreateWebServices();
+      await fabricPlugin.registerWebServices(expressApp);
+    }
+
+    {
+      const expressApp = express();
+      expressApp.use(bodyParser.json({ limit: "250mb" }));
+      expressApp.use(cors());
+      const besuServer = http.createServer(expressApp);
+      const listenOptions: IListenOptions = {
+        hostname: this.options.apiHost,
+        port: this.options.apiServer2Port,
+        server: besuServer,
+      };
+      addressInfoB = (await Servers.listen(listenOptions)) as AddressInfo;
+      await besuPlugin.getOrCreateWebServices();
+      const wsApi = new SocketIoServer(besuServer, {
+        path: Constants.SocketIoConnectionPathV1,
+      });
+      await besuPlugin.registerWebServices(expressApp, wsApi);
+    }
+
     const nodeApiHostA = `http://${this.options.apiHost}:${addressInfoA.port}`;
-
-    const addressInfoB = httpApiB.address() as AddressInfo;
     const nodeApiHostB = `http://${this.options.apiHost}:${addressInfoB.port}`;
-
-    const fabricSatpGateway = await this.infrastructure.createClientGateway(
-      nodeApiHostA,
-      this.options.clientGatewayKeyPair,
-    );
-    const besuSatpGateway = await this.infrastructure.createServerGateway(
-      nodeApiHostB,
-      this.options.serverGatewayKeyPair,
-    );
-
-    const clientPluginRegistry = new PluginRegistry({
-      plugins: [
-        new PluginKeychainMemory({
-          keychainId: CryptoMaterial.keychains.keychain1.id,
-          instanceId: uuidv4(),
-          logLevel: "INFO",
-        }),
-      ],
-    });
-    const serverPluginRegistry = new PluginRegistry({
-      plugins: [
-        new PluginKeychainMemory({
-          keychainId: CryptoMaterial.keychains.keychain2.id,
-          instanceId: uuidv4(),
-          logLevel: "INFO",
-        }),
-      ],
-    });
-
-    clientPluginRegistry.add(fabricPlugin);
-    clientPluginRegistry.add(fabricSatpGateway);
-
-    serverPluginRegistry.add(besuPlugin);
-    serverPluginRegistry.add(besuSatpGateway);
-
-    const crpcOptionsServer1 = {
-      host: this.options.apiCrpcHost,
-      port: this.options.apiServer1CrpcPort,
-    };
-    const apiServer1 = await this.startNode(
-      httpApiA,
-      clientPluginRegistry,
-      crpcOptionsServer1,
-    );
-
-    const crpcOptionsServer2 = {
-      host: this.options.apiCrpcHost,
-      port: this.options.apiServer2CrpcPort,
-    };
-    const apiServer2 = await this.startNode(
-      httpApiB,
-      serverPluginRegistry,
-      crpcOptionsServer2,
-    );
 
     const fabricApiClient = new FabricApi(
       new Configuration({ basePath: nodeApiHostA }),
@@ -167,31 +143,32 @@ export class CbdcBridgingApp {
       new Configuration({ basePath: nodeApiHostB }),
     );
 
+    this.infrastructure.setFabricApi(fabricApiClient);
+    this.infrastructure.setBesuApi(besuApiClient);
+
     this.log.info("Deploying chaincode and smart contracts...");
 
-    await this.infrastructure.deployFabricCbdcContract(fabricApiClient);
+    await this.infrastructure.deployFabricSATPContract();
 
-    await this.infrastructure.deployFabricAssetReferenceContract(
-      fabricApiClient,
-    );
+    await this.infrastructure.deployFabricWrapperContract();
+    this.log.info("Fabric Chaincode Deployed");
+    await this.infrastructure.deployBesuContracts();
 
-    await this.infrastructure.deployBesuContracts(besuApiClient);
+    await this.infrastructure.initializeContractsAndAddPermitions();
 
     this.log.info(`Chaincode and smart Contracts deployed.`);
 
+    const gatways = await this.infrastructure.createSATPGateways();
+
+    for (const gateway of gatways) {
+      await gateway.startup();
+    }
+
+    this.log.info(`SATP Gateways started.`);
+
     return {
-      apiServer1,
-      apiServer2,
-      fabricGatewayApi: new SatpApi(
-        new Configuration({ basePath: nodeApiHostA }),
-      ),
-      besuGatewayApi: new SatpApi(
-        new Configuration({ basePath: nodeApiHostB }),
-      ),
       fabricApiClient,
       besuApiClient,
-      fabricSatpGateway,
-      besuSatpGateway,
     };
   }
 
@@ -250,10 +227,8 @@ export class CbdcBridgingApp {
 export interface IStartInfo {
   readonly apiServer1: ApiServer;
   readonly apiServer2: ApiServer;
-  readonly fabricGatewayApi: SatpApi;
-  readonly besuGatewayApi: SatpApi;
   readonly besuApiClient: BesuApi;
   readonly fabricApiClient: FabricApi;
-  readonly fabricSatpGateway: FabricSatpGateway;
-  readonly besuSatpGateway: BesuSatpGateway;
+  readonly fabricSatpGateway: SATPGateway;
+  readonly besuSatpGateway: SATPGateway;
 }

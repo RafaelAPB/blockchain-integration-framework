@@ -14,22 +14,7 @@
     "bugs": {
         "url": "https://github.com/hyperledger-cacti/cacti/issues"
     },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/hyperledger/cacti.git"
-    },
-    "license": "Apache-2.0",
-    "author": {
-        "name": "Hyperledger cacti Contributors",
-        "email": "cacti@lists.hyperledger.org",
-        "url": "https://www.hyperledger.org/use/cacti"
-    },
     "contributors": [
-        {
-            "name": "Please add yourself to the list of contributors",
-            "email": "your.name@example.com",
-            "url": "https://example.com"
-        },
         {
             "name": "Venkatraman Ramakrishna",
             "email": "vramakr2@in.ibm.com",

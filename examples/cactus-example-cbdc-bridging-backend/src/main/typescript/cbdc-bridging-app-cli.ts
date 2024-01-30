@@ -7,7 +7,6 @@ import {
 } from "@hyperledger/cactus-cmd-api-server";
 import { LoggerProvider } from "@hyperledger/cactus-common";
 import { ICbdcBridgingApp, CbdcBridgingApp } from "./cbdc-bridging-app";
-import CryptoMaterial from "../../crypto-material/crypto-material.json";
 import "dotenv/config";
 
 export async function launchApp(
@@ -32,45 +31,31 @@ export async function launchApp(
 
   LoggerProvider.setLogLevel(serverOptions.logLevel);
 
-  const clientGatewayKeyPair = {
-    privateKey: Uint8Array.from(
-      Buffer.from(CryptoMaterial.gateways["gateway1"].privateKey, "hex"),
-    ),
-    publicKey: Uint8Array.from(
-      Buffer.from(CryptoMaterial.gateways["gateway1"].publicKey, "hex"),
-    ),
-  };
-
-  const serverGatewayKeyPair = {
-    privateKey: Uint8Array.from(
-      Buffer.from(CryptoMaterial.gateways["gateway2"].privateKey, "hex"),
-    ),
-    publicKey: Uint8Array.from(
-      Buffer.from(CryptoMaterial.gateways["gateway2"].publicKey, "hex"),
-    ),
-  };
-
   if (
     process.env.API_HOST == undefined ||
     process.env.API_SERVER_1_PORT == undefined ||
     process.env.API_SERVER_2_PORT == undefined ||
-    process.env.API_CRPC_HOST == undefined ||
-    process.env.API_SERVER_1_CRPC_PORT == undefined ||
-    process.env.API_SERVER_2_CRPC_PORT == undefined
+    process.env.API_GATEWAY_1_BLO_PORT == undefined ||
+    process.env.API_GATEWAY_2_BLO_PORT == undefined ||
+    process.env.API_GATEWAY_1_CLIENT_PORT == undefined ||
+    process.env.API_GATEWAY_2_CLIENT_PORT == undefined ||
+    process.env.API_GATEWAY_1_SERVER_PORT == undefined ||
+    process.env.API_GATEWAY_2_SERVER_PORT == undefined
   ) {
     throw new Error("Env variables not set");
   }
 
   const appOptions: ICbdcBridgingApp = {
-    apiHost: process.env.API_HOST,
     apiServer1Port: parseInt(process.env.API_SERVER_1_PORT),
     apiServer2Port: parseInt(process.env.API_SERVER_2_PORT),
-    clientGatewayKeyPair: clientGatewayKeyPair,
-    serverGatewayKeyPair: serverGatewayKeyPair,
+    apiHost: process.env.API_HOST,
+    apiGateway1ServerPort: parseInt(process.env.API_GATEWAY_1_SERVER_PORT),
+    apiGateway1ClientPort: parseInt(process.env.API_GATEWAY_1_CLIENT_PORT),
+    apiGateway1BloPort: parseInt(process.env.API_GATEWAY_1_BLO_PORT),
+    apiGateway2ServerPort: parseInt(process.env.API_GATEWAY_2_SERVER_PORT),
+    apiGateway2ClientPort: parseInt(process.env.API_GATEWAY_2_CLIENT_PORT),
+    apiGateway2BloPort: parseInt(process.env.API_GATEWAY_2_BLO_PORT),
     logLevel: "DEBUG",
-    apiCrpcHost: process.env.API_CRPC_HOST,
-    apiServer1CrpcPort: parseInt(process.env.API_SERVER_1_CRPC_PORT),
-    apiServer2CrpcPort: parseInt(process.env.API_SERVER_2_CRPC_PORT),
   };
 
   const cbdcBridgingApp = new CbdcBridgingApp(appOptions);
