@@ -10,6 +10,10 @@ export {
 import { IPluginFactoryOptions } from "@hyperledger/cactus-core-api";
 import { PluginFactoryFabricSATPGateway } from "./factory/plugin-factory-fabric-satp-gateway";
 import { PluginFactoryBesuSATPGateway } from "./factory/plugin-factory-besu-satp-gateway";
+<<<<<<< HEAD
+=======
+import { fileURLToPath } from "url";
+>>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
 
 export async function createFabricPluginFactory(
   pluginFactoryOptions: IPluginFactoryOptions,

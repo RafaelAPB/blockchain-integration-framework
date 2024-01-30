@@ -8373,7 +8373,11 @@ __metadata:
     "@types/uuid": "npm:9.0.6"
     axios: "npm:1.6.0"
     express: "npm:4.18.2"
+<<<<<<< HEAD
     fabric-network: "npm:2.2.20"
+=======
+    fabric-network: "npm:2.2.19"
+>>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
     typescript-optional: "npm:2.0.1"
     uuid: "npm:9.0.1"
   languageName: unknown
@@ -9451,7 +9455,11 @@ __metadata:
     "@types/fs-extra": "npm:9.0.13"
     "@types/js-yaml": "npm:4.0.3"
     "@types/lodash": "npm:4.14.172"
+<<<<<<< HEAD
     "@types/node": "npm:18.11.9"
+=======
+    "@types/node": "npm:20.11.24"
+>>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
     "@types/node-forge": "npm:1.3.0"
     "@types/ssh2": "npm:0.5.47"
     "@types/ssh2-streams": "npm:0.1.9"
@@ -15581,6 +15589,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+<<<<<<< HEAD
+=======
+"@types/node@npm:20.11.24":
+  version: 20.11.24
+  resolution: "@types/node@npm:20.11.24"
+  dependencies:
+    undici-types: "npm:~5.26.4"
+  checksum: 10/7f34bfae5f9b98b9910230af4b4c52dc7fb2d1e96fdebfbc3d7576f8ab3d100076f193f9469add9e7418b455294155e7e6a028498cc5e98f9d49349875a459cf
+  languageName: node
+  linkType: hard
+
+>>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
 "@types/node@npm:20.4.7":
   version: 20.4.7
   resolution: "@types/node@npm:20.4.7"
@@ -16562,6 +16582,15 @@ __metadata:
     "@typescript-eslint/types": "npm:7.1.0"
     eslint-visitor-keys: "npm:^3.4.1"
   checksum: 10/c3e98ebf166fd1854adb0e9599dc108cdbbd95f6eb099d31deae2fd1d4df8fcd8dc9c24ad4f509b961ad900b474c246f6b4b228b5711cc504106c3e0f751a11c
+  languageName: node
+  linkType: hard
+
+"@typescript/vfs@npm:^1.4.0":
+  version: 1.5.0
+  resolution: "@typescript/vfs@npm:1.5.0"
+  dependencies:
+    debug: "npm:^4.1.1"
+  checksum: 10/9a60cfd4e4ef37f69558e7e8a0c4633f86aae969a4c1193435bfdf80eb9573d23850b65621631d07e2f9699a2d7351ae6d9caa46080595314bde03c2c63443dd
   languageName: node
   linkType: hard
 
@@ -27526,6 +27555,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fabric-common@npm:2.2.19":
+  version: 2.2.19
+  resolution: "fabric-common@npm:2.2.19"
+  dependencies:
+    callsite: "npm:^1.0.0"
+    elliptic: "npm:^6.5.4"
+    fabric-protos: "npm:2.2.19"
+    js-sha3: "npm:^0.8.0"
+    jsrsasign: "npm:^10.5.25"
+    long: "npm:^5.2.3"
+    nconf: "npm:^0.12.0"
+    pkcs11js: "npm:^1.3.0"
+    promise-settle: "npm:^0.3.0"
+    sjcl: "npm:^1.0.8"
+    winston: "npm:^2.4.5"
+    yn: "npm:^4.0.0"
+  dependenciesMeta:
+    pkcs11js:
+      optional: true
+  checksum: 10/23056da75976c600d197a5a9a504f4466db93a8f16ecf76fa96a9946d0ec75919edc278bfa765d80f37ed41c82ea729707a905da298fd121e12ee93ed32afc55
+  languageName: node
+  linkType: hard
+
 "fabric-common@npm:2.2.20":
   version: 2.2.20
   resolution: "fabric-common@npm:2.2.20"
@@ -27571,6 +27623,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fabric-network@npm:2.2.19":
+  version: 2.2.19
+  resolution: "fabric-network@npm:2.2.19"
+  dependencies:
+    fabric-common: "npm:2.2.19"
+    fabric-protos: "npm:2.2.19"
+    long: "npm:^5.2.3"
+    nano: "npm:^9.0.5"
+  checksum: 10/cf7adada9411d9168a073f6878074971211f6bc48c06f33bda7c95ac823ddf4d9ef217c6ac996235c41b0e414606184dde563f69f7f284469ca51f34a3628e88
+  languageName: node
+  linkType: hard
+
 "fabric-network@npm:2.2.20":
   version: 2.2.20
   resolution: "fabric-network@npm:2.2.20"
@@ -27591,6 +27655,18 @@ __metadata:
     fabric-protos: "npm:2.5.0-snapshot.23"
     nano: "npm:^10.0.0"
   checksum: 10/ec91b2bc5f72f256c343ab285bfe4ef2ff7be686e4af024166f2dcedbd8defb1983c1597a21c9156b8812e216f1f9a98749d2b6c4af691a46df767ef12958f7d
+  languageName: node
+  linkType: hard
+
+"fabric-protos@npm:2.2.19":
+  version: 2.2.19
+  resolution: "fabric-protos@npm:2.2.19"
+  dependencies:
+    "@grpc/grpc-js": "npm:~1.9.0"
+    "@grpc/proto-loader": "npm:^0.7.0"
+    long: "npm:^5.2.3"
+    protobufjs: "npm:^7.2.0"
+  checksum: 10/d82b98a292f53cdbcbe27b3673721fbff5aece1075b79c580e75f7047c69ec1483e370c5dc3bc4332c0d4768b0af44bbf682318c2544d2a97f8543c69c77f078
   languageName: node
   linkType: hard
 

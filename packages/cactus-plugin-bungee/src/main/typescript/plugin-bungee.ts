@@ -191,8 +191,7 @@ export class PluginBUNGEE implements ICactusPlugin, IPluginWebService {
   }
 
   async onCreateView(request: CreateViewRequest): Promise<CreateViewResponse> {
-    const fnTag = `${this.className}#onCreateView()`;
-    this.log.info(`${fnTag}, request received, ${request}`);
+    //const fnTag = `${this.className}#onCreateView()`;
     const response = this.generateView(this.generateSnapshot());
     return {
       y: response,

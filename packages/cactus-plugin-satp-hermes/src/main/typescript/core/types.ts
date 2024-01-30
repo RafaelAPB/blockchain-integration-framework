@@ -1,4 +1,16 @@
+<<<<<<< HEAD
 import { Secp256k1Keys, LogLevelDesc } from "@hyperledger/cactus-common";
+=======
+import {
+  Secp256k1Keys,
+  Logger,
+  Checks,
+  LoggerProvider,
+  JsObjectSigner,
+  IJsObjectSignerOptions,
+  LogLevelDesc,
+} from "@hyperledger/cactus-common";
+>>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
 import { ValidatorOptions } from "class-validator";
 import { BLODispatcher } from "../blo/dispatcher";
 
