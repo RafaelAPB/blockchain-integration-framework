@@ -1,24 +1,14 @@
-import http, { Server } from "http";
-import type { AddressInfo } from "net";
 import { v4 as uuidv4 } from "uuid";
 import "jest-extended";
-import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
-import bodyParser from "body-parser";
-import express from "express";
-import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import {
-  IListenOptions,
   LogLevelDesc,
   Secp256k1Keys,
   Servers,
 } from "@hyperledger/cactus-common";
 import { v4 as uuidV4 } from "uuid";
-import { Configuration } from "@hyperledger/cactus-core-api";
-import { PluginOdapGateway } from "../../../../main/typescript/gateway/plugin-odap-gateway";
-import { GoIpfsTestContainer } from "@hyperledger/cactus-test-tooling";
+import { IOdapLocalLog, PluginOdapGateway } from "../../../../main/typescript/gateway/plugin-odap-gateway";
 
 import {
-  OdapLocalLog,
   SessionData,
 } from "../../../../main/typescript/public-api";
 import { SHA256 } from "crypto-js";
@@ -33,12 +23,9 @@ import {
 import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
 import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
 
-import { knexClientConnection, knexServerConnection } from "../../knex.config";
-
-const logLevel: LogLevelDesc = "TRACE";
+import { knexClientConnection, knexRemoteConnection, knexServerConnection } from "../../knex.config";
 
 let sourceGatewayConstructor: IFabricOdapGatewayConstructorOptions;
-let recipientGatewayConstructor: IBesuOdapGatewayConstructorOptions;
 
 let pluginSourceGateway: PluginOdapGateway;
 let pluginRecipientGateway: PluginOdapGateway;
@@ -49,85 +36,37 @@ let type2: string;
 let type3: string;
 let type4: string;
 let operation: string;
-let odapLog: OdapLocalLog;
-let odapLog2: OdapLocalLog;
-let odapLog3: OdapLocalLog;
-let odapLog4: OdapLocalLog;
+let odapLog: IOdapLocalLog;
+let odapLog2: IOdapLocalLog;
+let odapLog3: IOdapLocalLog;
+let odapLog4: IOdapLocalLog;
 let sessionData: SessionData;
-
-let ipfsContainer: GoIpfsTestContainer;
-let ipfsServer: Server;
-let ipfsApiHost: string;
-
-beforeAll(async () => {
-  ipfsContainer = new GoIpfsTestContainer({ logLevel });
-  expect(ipfsContainer).not.toBeUndefined();
-
-  const container = await ipfsContainer.start();
-  expect(container).not.toBeUndefined();
-
-  const expressApp = express();
-  expressApp.use(bodyParser.json({ limit: "250mb" }));
-  ipfsServer = http.createServer(expressApp);
-  const listenOptions: IListenOptions = {
-    hostname: "127.0.0.1",
-    port: 0,
-    server: ipfsServer,
-  };
-
-  const addressInfo = (await Servers.listen(listenOptions)) as AddressInfo;
-  const { address, port } = addressInfo;
-  ipfsApiHost = `http://${address}:${port}`;
-
-  const config = new Configuration({ basePath: ipfsApiHost });
-  const apiClient = new ObjectStoreIpfsApi(config);
-
-  expect(apiClient).not.toBeUndefined();
-
-  const ipfsApiUrl = await ipfsContainer.getApiUrl();
-
-  const kuboRpcModule = await import("kubo-rpc-client");
-  const ipfsClientOrOptions = kuboRpcModule.create({
-    url: ipfsApiUrl,
-  });
-
-  const instanceId = uuidv4();
-  const pluginIpfs = new PluginObjectStoreIpfs({
-    parentDir: `/${uuidv4()}/${uuidv4()}/`,
-    logLevel,
-    instanceId,
-    ipfsClientOrOptions,
-  });
-
-  await pluginIpfs.getOrCreateWebServices();
-  await pluginIpfs.registerWebServices(expressApp);
-
-  sourceGatewayConstructor = {
-    name: "plugin-odap-gateway#sourceGateway",
-    dltIDs: ["DLT2"],
-    instanceId: uuidV4(),
-    ipfsPath: ipfsApiHost,
-    keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-    clientHelper: new ClientGatewayHelper(),
-    serverHelper: new ServerGatewayHelper(),
-    knexConfig: knexClientConnection,
-  };
-  recipientGatewayConstructor = {
-    name: "plugin-odap-gateway#recipientGateway",
-    dltIDs: ["DLT1"],
-    instanceId: uuidV4(),
-    ipfsPath: ipfsApiHost,
-    clientHelper: new ClientGatewayHelper(),
-    serverHelper: new ServerGatewayHelper(),
-    knexConfig: knexServerConnection,
-  };
-});
 
 beforeEach(async () => {
   sessionID = uuidv4();
   step = 3;
   type = "type1";
   operation = "operation1";
+
+  sourceGatewayConstructor = {
+    name: "plugin-odap-gateway#sourceGateway",
+    dltIDs: ["DLT2"],
+    instanceId: uuidV4(),
+    keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
+    knexLocalConfig: knexClientConnection,
+    knexRemoteConfig: knexRemoteConnection,
+  };
+  const recipientGatewayConstructor = {
+    name: "plugin-odap-gateway#recipientGateway",
+    dltIDs: ["DLT1"],
+    instanceId: uuidV4(),
+    clientHelper: new ClientGatewayHelper(),
+    serverHelper: new ServerGatewayHelper(),
+    knexLocalConfig: knexServerConnection,
+    knexRemoteConfig: knexRemoteConnection,
+  };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
   pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
@@ -150,21 +89,16 @@ beforeEach(async () => {
   pluginRecipientGateway.sessions.set(sessionID, sessionData);
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
-});
-
-afterEach(() => {
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
+  await pluginSourceGateway.remoteRepository?.reset();
+  await pluginRecipientGateway.remoteRepository?.reset();
 });
 
 test("successful translation of log keys", async () => {
@@ -188,20 +122,20 @@ test("successful logging of proof to ipfs and sqlite", async () => {
     data: claim,
   });
 
-  const retrievedLogIPFS = await pluginSourceGateway.getLogFromIPFS(odapLogKey);
+  const retrievedLogRemote = await pluginSourceGateway.getLogFromRemote(odapLogKey);
   const retrievedLogDB =
     await pluginSourceGateway.getLogFromDatabase(odapLogKey);
 
-  if (retrievedLogDB == undefined || retrievedLogIPFS == undefined) {
+  if (retrievedLogDB == undefined || retrievedLogRemote == undefined) {
     throw new Error("Test Failed");
   }
 
-  expect(retrievedLogIPFS.key).toBe(odapLogKey);
+  expect(retrievedLogRemote.key).toBe(odapLogKey);
   expect(retrievedLogDB.key).toBe(odapLogKey);
-  expect(retrievedLogIPFS.hash).toBe(SHA256(claim).toString());
+  expect(retrievedLogRemote.hash).toBe(SHA256(claim).toString());
   expect(
     pluginRecipientGateway.verifySignature(
-      retrievedLogIPFS,
+      retrievedLogRemote,
       pluginSourceGateway.pubKey,
     ),
   ).toBe(true);
@@ -218,12 +152,12 @@ test("successful logging to ipfs and sqlite", async () => {
 
   await pluginSourceGateway.storeOdapLog(odapLog);
 
-  const retrievedLogIPFS = await pluginSourceGateway.getLogFromIPFS(odapLogKey);
+  const retrievedLogRemote = await pluginSourceGateway.getLogFromRemote(odapLogKey);
   const retrievedLogDB =
     await pluginSourceGateway.getLogFromDatabase(odapLogKey);
 
   if (
-    retrievedLogIPFS == undefined ||
+    retrievedLogRemote == undefined ||
     retrievedLogDB == undefined ||
     retrievedLogDB.data == undefined ||
     odapLog.data == undefined
@@ -231,8 +165,8 @@ test("successful logging to ipfs and sqlite", async () => {
     throw new Error("Test failed");
   }
 
-  expect(retrievedLogIPFS.signerPubKey).toBe(pluginSourceGateway.pubKey);
-  expect(retrievedLogIPFS.hash).toBe(
+  expect(retrievedLogRemote.signerPubKey).toBe(pluginSourceGateway.pubKey);
+  expect(retrievedLogRemote.hash).toBe(
     SHA256(
       JSON.stringify(odapLog, [
         "sessionID",
@@ -244,7 +178,7 @@ test("successful logging to ipfs and sqlite", async () => {
       ]),
     ).toString(),
   );
-  expect(retrievedLogIPFS.key).toBe(odapLogKey);
+  expect(retrievedLogRemote.key).toBe(odapLogKey);
 
   expect(retrievedLogDB.type).toBe(odapLog.type);
   expect(retrievedLogDB.operation).toBe(odapLog.operation);
@@ -423,7 +357,7 @@ test("successful recover of sessions after crash", async () => {
   await pluginSourceGateway.storeOdapLog(odapLog4);
 
   // simulate the crash of one gateway
-  pluginSourceGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
   const newPluginSourceGateway = new FabricOdapGateway(
     sourceGatewayConstructor,
   );
@@ -447,13 +381,12 @@ test("successful recover of sessions after crash", async () => {
     expect(data.recipientGatewayPubkey).toBe(pluginRecipientGateway.pubKey);
   }
 
-  newPluginSourceGateway.database?.destroy();
+  newPluginSourceGateway.localRepository?.destroy()
 });
 
-afterAll(async () => {
-  await ipfsContainer.stop();
-  await ipfsContainer.destroy();
-  await Servers.shutdown(ipfsServer);
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+afterEach(async () => {
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy();
+  pluginRecipientGateway.remoteRepository?.destroy();
 });

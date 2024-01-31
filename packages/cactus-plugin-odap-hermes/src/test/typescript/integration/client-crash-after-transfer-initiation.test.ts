@@ -118,7 +118,7 @@ beforeAll(async () => {
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
-      knexConfig: knexServerConnection,
+      knexLocalConfig: knexServerConnection,
     };
 
     serverExpressApp = express();
@@ -141,10 +141,9 @@ beforeAll(async () => {
       odapServerGatewayPluginOptions,
     );
 
-    expect(pluginRecipientGateway.database).not.toBeUndefined();
+    expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
 
-    await pluginRecipientGateway.database?.migrate.rollback();
-    await pluginRecipientGateway.database?.migrate.latest();
+  await pluginRecipientGateway.localRepository?.reset();
 
     await pluginRecipientGateway.registerWebServices(serverExpressApp);
   }
@@ -158,7 +157,7 @@ beforeAll(async () => {
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
-      knexConfig: knexClientConnection,
+      knexLocalConfig: knexClientConnection,
     };
 
     clientExpressApp = express();
@@ -179,12 +178,11 @@ beforeAll(async () => {
 
     pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
 
-    if (pluginSourceGateway.database == undefined) {
+    if (pluginSourceGateway.localRepository?.database == undefined) {
       throw new Error("Database is not correctly initialized");
     }
 
-    await pluginSourceGateway.database.migrate.rollback();
-    await pluginSourceGateway.database.migrate.latest();
+    await pluginSourceGateway.localRepository?.reset();
 
     await pluginSourceGateway.registerWebServices(clientExpressApp);
 
@@ -227,21 +225,19 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 });
 
 afterEach(() => {
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 });
 
 test("successful run ODAP after client gateway crashed after after receiving transfer initiation response", async () => {
@@ -282,7 +278,7 @@ test("successful run ODAP after client gateway crashed after after receiving tra
   );
 
   // now we simulate the crash of the client gateway
-  pluginSourceGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
   await Servers.shutdown(sourceGatewayServer);
 
   clientExpressApp = express();
@@ -315,6 +311,6 @@ afterAll(async () => {
   await Servers.shutdown(ipfsServer);
   await Servers.shutdown(sourceGatewayServer);
   await Servers.shutdown(recipientGatewayserver);
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 });

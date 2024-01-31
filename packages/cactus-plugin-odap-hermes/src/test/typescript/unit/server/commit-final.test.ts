@@ -7,6 +7,7 @@ import {
   IPluginOdapGatewayConstructorOptions,
   OdapMessageType,
   PluginOdapGateway,
+  IOdapLocalLog,
 } from "../../../../main/typescript/gateway/plugin-odap-gateway";
 import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import {
@@ -117,16 +118,14 @@ beforeEach(async () => {
   pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 
   dummyCommitPreparationResponseMessageHash = SHA256(
     "commitPreparationResponseMessageData",
@@ -158,24 +157,22 @@ beforeEach(async () => {
     type: "proof",
     operation: "delete",
     data: COMMIT_FINAL_CLAIM,
-  });
+  } as IOdapLocalLog);
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 });
 
 afterEach(async () => {
-  await pluginSourceGateway.database?.destroy();
-  await pluginRecipientGateway.database?.destroy();
+  await pluginSourceGateway.localRepository?.destroy()
+  await pluginRecipientGateway.localRepository?.destroy()
 });
 
 test("valid commit final request", async () => {
@@ -341,11 +338,11 @@ afterAll(async () => {
   await ipfsContainer.stop();
   await ipfsContainer.destroy();
   await Servers.shutdown(ipfsServer);
-  await pluginSourceGateway.database?.destroy();
-  await pluginRecipientGateway.database?.destroy();
+  await pluginSourceGateway.localRepository?.destroy()
+  await pluginRecipientGateway.localRepository?.destroy()
 });
 
 afterEach(() => {
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 });

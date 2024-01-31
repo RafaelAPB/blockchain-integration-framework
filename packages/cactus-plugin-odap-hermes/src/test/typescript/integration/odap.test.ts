@@ -104,13 +104,11 @@ test("successful run ODAP instance", async () => {
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
   pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
-  expect(pluginSourceGateway.database).not.toBeUndefined();
-  expect(pluginRecipientGateway.database).not.toBeUndefined();
+  expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
+  expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
 
-  await pluginSourceGateway.database?.migrate.rollback();
-  await pluginSourceGateway.database?.migrate.latest();
-  await pluginRecipientGateway.database?.migrate.rollback();
-  await pluginRecipientGateway.database?.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 
   const dummyPath = { apiHost: "dummyPath" };
 
@@ -356,6 +354,6 @@ afterAll(async () => {
   await ipfsContainer.stop();
   await ipfsContainer.destroy();
   await Servers.shutdown(ipfsServer);
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 });

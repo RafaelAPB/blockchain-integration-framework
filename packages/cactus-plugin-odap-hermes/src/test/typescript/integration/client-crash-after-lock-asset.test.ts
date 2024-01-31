@@ -571,7 +571,7 @@ beforeAll(async () => {
       fabricContractName: fabricContractName,
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
-      knexConfig: knexServerConnection,
+      knexLocalConfig: knexServerConnection,
     };
 
     odapServerGatewayPluginOptions = {
@@ -586,7 +586,7 @@ beforeAll(async () => {
       besuKeychainId: besuKeychainId,
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
-      knexConfig: knexClientConnection,
+      knexLocalConfig: knexClientConnection,
     };
 
     pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
@@ -594,13 +594,11 @@ beforeAll(async () => {
       odapServerGatewayPluginOptions,
     );
 
-    expect(pluginSourceGateway.database).not.toBeUndefined();
-    expect(pluginRecipientGateway.database).not.toBeUndefined();
+    expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
+    expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
 
-    await pluginSourceGateway.database?.migrate.rollback();
-    await pluginSourceGateway.database?.migrate.latest();
-    await pluginRecipientGateway.database?.migrate.rollback();
-    await pluginRecipientGateway.database?.migrate.latest();
+    await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
   }
   {
     // Server Gateway configuration
@@ -756,7 +754,7 @@ test("client gateway crashes after lock fabric asset", async () => {
   );
 
   // now we simulate the crash of the client gateway
-  pluginSourceGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
   await Servers.shutdown(sourceGatewayServer);
 
   const expressApp = express();
@@ -799,8 +797,8 @@ afterAll(async () => {
   await besuTestLedger.stop();
   await besuTestLedger.destroy();
 
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 
   await Servers.shutdown(ipfsServer);
   await Servers.shutdown(besuServer);

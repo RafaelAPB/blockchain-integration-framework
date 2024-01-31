@@ -3,7 +3,7 @@ import {
   RecoverUpdateV1Message,
 } from "../../generated/openapi/typescript-axios";
 import { LoggerProvider } from "@hyperledger/cactus-common";
-import { PluginOdapGateway } from "../plugin-odap-gateway";
+import { IOdapLocalLog, PluginOdapGateway } from "../plugin-odap-gateway";
 import { SHA256 } from "crypto-js";
 // import { SHA256 } from "crypto-js";
 
@@ -33,7 +33,7 @@ export async function sendRecoverUpdateMessage(
     throw new Error(`${fnTag}, session data is not correctly initialized`);
   }
 
-  const recoveredLogs: OdapLocalLog[] =
+  const recoveredLogs: IOdapLocalLog[] =
     await odap.getLogsMoreRecentThanTimestamp(
       sessionData.lastLogEntryTimestamp,
     );
@@ -110,7 +110,7 @@ export async function checkValidRecoverUpdateMessage(
 
     log.info(`${fnTag}, received log: ${JSON.stringify(recLog)}`);
 
-    const ipfsLog = await odap.getLogFromIPFS(recLog.key);
+    const ipfsLog = await odap.getLogFromRemote(recLog.key);
 
     const hash = SHA256(JSON.stringify(recLog)).toString();
 

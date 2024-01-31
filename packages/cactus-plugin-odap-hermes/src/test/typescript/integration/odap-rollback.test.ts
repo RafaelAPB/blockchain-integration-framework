@@ -594,13 +594,11 @@ beforeAll(async () => {
       odapServerGatewayPluginOptions,
     );
 
-    expect(pluginSourceGateway.database).not.toBeUndefined();
-    expect(pluginRecipientGateway.database).not.toBeUndefined();
+    expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
+    expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
 
-    await pluginSourceGateway.database?.migrate.rollback();
-    await pluginSourceGateway.database?.migrate.latest();
-    await pluginRecipientGateway.database?.migrate.rollback();
-    await pluginRecipientGateway.database?.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
   }
   {
     // Server Gateway configuration
@@ -844,7 +842,7 @@ test("client sends rollback message at the end of the protocol", async () => {
   console.log(r1);
   console.log(r2);
   // now we simulate the crash of the client gateway
-  pluginSourceGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
   await Servers.shutdown(sourceGatewayServer);
 
   await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -891,8 +889,8 @@ afterAll(async () => {
   await besuTestLedger.stop();
   await besuTestLedger.destroy();
 
-  await pluginSourceGateway.database?.destroy();
-  await pluginRecipientGateway.database?.destroy();
+  await pluginSourceGateway.localRepository?.destroy()
+  await pluginRecipientGateway.localRepository?.destroy()
 
   await Servers.shutdown(ipfsServer);
   await Servers.shutdown(besuServer);

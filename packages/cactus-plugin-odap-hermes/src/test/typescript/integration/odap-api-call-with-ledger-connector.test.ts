@@ -560,13 +560,11 @@ beforeAll(async () => {
       odapServerGatewayPluginOptions,
     );
 
-    expect(pluginSourceGateway.database).not.toBeUndefined();
-    expect(pluginRecipientGateway.database).not.toBeUndefined();
+    expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
+    expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
 
-    await pluginSourceGateway.database?.migrate.rollback();
-    await pluginSourceGateway.database?.migrate.latest();
-    await pluginRecipientGateway.database?.migrate.rollback();
-    await pluginRecipientGateway.database?.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
   }
   {
     // Server Gateway configuration
@@ -679,8 +677,8 @@ afterAll(async () => {
   await besuTestLedger.stop();
   await besuTestLedger.destroy();
 
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 
   await Servers.shutdown(ipfsServer);
   await Servers.shutdown(besuServer);

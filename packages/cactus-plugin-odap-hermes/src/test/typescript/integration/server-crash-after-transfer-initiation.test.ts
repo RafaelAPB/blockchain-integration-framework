@@ -141,10 +141,9 @@ beforeAll(async () => {
       odapServerGatewayPluginOptions,
     );
 
-    expect(pluginRecipientGateway.database).not.toBeUndefined();
+    expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
 
-    await pluginRecipientGateway.database?.migrate.rollback();
-    await pluginRecipientGateway.database?.migrate.latest();
+  await pluginRecipientGateway.localRepository?.reset();
 
     await pluginRecipientGateway.registerWebServices(serverExpressApp);
   }
@@ -158,7 +157,7 @@ beforeAll(async () => {
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
-      knexConfig: knexClientConnection,
+      knexLocalConfig: knexClientConnection,
     };
 
     clientExpressApp = express();
@@ -179,12 +178,11 @@ beforeAll(async () => {
 
     pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
 
-    if (pluginSourceGateway.database == undefined) {
+    if (pluginSourceGateway.localRepository?.database == undefined) {
       throw new Error("Database is not correctly initialized");
     }
 
-    await pluginSourceGateway.database.migrate.rollback();
-    await pluginSourceGateway.database.migrate.latest();
+    await pluginSourceGateway.localRepository?.reset();
 
     await pluginSourceGateway.registerWebServices(clientExpressApp);
 
@@ -246,7 +244,7 @@ test("server gateway crashes after transfer initiation flow", async () => {
   );
 
   // now we simulate the crash of the server gateway
-  pluginRecipientGateway.database?.destroy();
+  pluginRecipientGateway.localRepository?.destroy()
   await Servers.shutdown(recipientGatewayserver);
 
   serverExpressApp = express();
@@ -277,8 +275,8 @@ afterAll(async () => {
   await ipfsContainer.stop();
   await ipfsContainer.destroy();
 
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 
   await Servers.shutdown(ipfsServer);
   await Servers.shutdown(sourceGatewayServer);

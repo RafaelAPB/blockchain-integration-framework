@@ -322,8 +322,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       fabricContractName: "asset-reference-contract",
     });
 
-    await pluginSourceGateway.database?.migrate.rollback();
-    await pluginSourceGateway.database?.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
 
     return pluginSourceGateway;
   }
@@ -350,8 +349,7 @@ export class CbdcBridgingAppDummyInfrastructure {
       besuKeychainId: CryptoMaterial.keychains.keychain2.id,
     });
 
-    await pluginRecipientGateway.database?.migrate.rollback();
-    await pluginRecipientGateway.database?.migrate.latest();
+  await pluginRecipientGateway.localRepository?.reset();
 
     return pluginRecipientGateway;
   }

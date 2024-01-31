@@ -115,16 +115,14 @@ beforeEach(async () => {
   pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 
   sequenceNumber = randomInt(100);
   sessionID = uuidv4();
@@ -155,21 +153,19 @@ beforeEach(async () => {
   });
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 });
 
 afterEach(async () => {
-  await pluginSourceGateway.database?.destroy();
-  await pluginRecipientGateway.database?.destroy();
+  await pluginSourceGateway.localRepository?.destroy()
+  await pluginRecipientGateway.localRepository?.destroy()
 });
 
 test("valid commit final response", async () => {
@@ -297,11 +293,11 @@ afterAll(async () => {
   await ipfsContainer.stop();
   await ipfsContainer.destroy();
   await Servers.shutdown(ipfsServer);
-  await pluginSourceGateway.database?.destroy();
-  await pluginRecipientGateway.database?.destroy();
+  await pluginSourceGateway.localRepository?.destroy()
+  await pluginRecipientGateway.localRepository?.destroy()
 });
 
 afterEach(() => {
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 });
