@@ -14,9 +14,8 @@ import { BesuOdapGateway } from "../../../../main/typescript/gateway/besu-odap-g
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
 import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
+import { knexRemoteConnection } from "../../knex.config";
 
-let sourceGatewayConstructor: IPluginOdapGatewayConstructorOptions;
-let recipientGatewayConstructor: IPluginOdapGatewayConstructorOptions;
 let pluginSourceGateway: PluginOdapGateway;
 let pluginRecipientGateway: PluginOdapGateway;
 let dummyCommitFinalResponseMessageHash: string;
@@ -26,19 +25,21 @@ let sessionID: string;
 let sequenceNumber: number;
 
 beforeEach(async () => {
-  sourceGatewayConstructor = {
+  const sourceGatewayConstructor = {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
+    knexRemoteConfig: knexRemoteConnection
   };
-  recipientGatewayConstructor = {
+  const recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
+    knexRemoteConfig: knexRemoteConnection
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
@@ -102,17 +103,16 @@ test("dummy test for transfer complete flow", async () => {
     pluginSourceGateway.sign(JSON.stringify(transferCompleteRequestMessage)),
   );
 
-  pluginRecipientGateway.serverHelper
+  await pluginRecipientGateway.serverHelper
     .checkValidTransferCompleteRequest(
       transferCompleteRequestMessage,
       pluginRecipientGateway,
     )
-    .catch(() => {
-      throw new Error("Test failed");
-    });
 });
 
 afterEach(() => {
   pluginSourceGateway.localRepository?.destroy()
   pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy()
+  pluginRecipientGateway.remoteRepository?.destroy()
 });
