@@ -11,8 +11,6 @@ import {
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes";
 import { SessionDataRollbackActionsPerformedEnum } from "@hyperledger/cactus-plugin-odap-hermes";
-import { ClientHelper } from "./client-helper";
-import { ServerHelper } from "./server-helper";
 
 export interface IFabricOdapGatewayConstructorOptions extends IPluginOdapGatewayConstructorOptions {
   fabricPath?: string;
@@ -35,8 +33,8 @@ export class FabricOdapGateway extends PluginOdapGateway {
       keyPair: options.keyPair,
       backupGatewaysAllowed: options.backupGatewaysAllowed,
       ipfsPath: options.ipfsPath,
-      clientHelper: new ClientHelper(),
-      serverHelper: new ServerHelper({}),
+      clientHelper: options.clientHelper,
+      serverHelper: options.serverHelper,
       knexLocalConfig: options.knexLocalConfig,
       knexRemoteConfig: options.knexRemoteConfig
     });
