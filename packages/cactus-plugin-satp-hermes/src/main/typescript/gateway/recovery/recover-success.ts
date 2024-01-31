@@ -9,12 +9,12 @@ const log = LoggerProvider.getOrCreate({
 
 export async function sendRecoverSuccessMessage(
   sessionID: string,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
   remote: boolean,
 ): Promise<void | RecoverSuccessV1Message> {
-  const fnTag = `${odap.className}#sendRecoverSuccessMessage()`;
+  const fnTag = `${satp.className}#sendRecoverSuccessMessage()`;
 
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
 
   if (
     sessionData == undefined ||
@@ -33,7 +33,7 @@ export async function sendRecoverSuccessMessage(
   };
 
   const signature = PluginSatpGateway.bufArray2HexStr(
-    odap.sign(JSON.stringify(recoverSuccessMessage)),
+    satp.sign(JSON.stringify(recoverSuccessMessage)),
   );
 
   recoverSuccessMessage.signature = signature;
@@ -44,10 +44,10 @@ export async function sendRecoverSuccessMessage(
     return recoverSuccessMessage;
   }
 
-  await odap.makeRequest(
+  await satp.makeRequest(
     sessionID,
-    PluginSatpGateway.getOdapAPI(
-      odap.isClientGateway(sessionID)
+    PluginSatpGateway.getSatpAPI(
+      satp.isClientGateway(sessionID)
         ? sessionData.recipientBasePath
         : sessionData.sourceBasePath,
     ).recoverV1Success(recoverSuccessMessage),
@@ -57,17 +57,17 @@ export async function sendRecoverSuccessMessage(
 
 export async function checkValidRecoverSuccessMessage(
   response: RecoverSuccessV1Message,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
 ): Promise<void> {
-  const fnTag = `${odap.className}#checkValidRecoverSuccessMessage`;
+  const fnTag = `${satp.className}#checkValidRecoverSuccessMessage`;
 
   const sessionID = response.sessionID;
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
   if (sessionData == undefined) {
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
-  const pubKey = odap.isClientGateway(response.sessionID)
+  const pubKey = satp.isClientGateway(response.sessionID)
     ? sessionData.recipientGatewayPubkey
     : sessionData.sourceGatewayPubkey;
 
@@ -75,7 +75,7 @@ export async function checkValidRecoverSuccessMessage(
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
-  // if (response.messageType != OdapMessageType.CommitFinalResponse) {
+  // if (response.messageType != SatpMessageType.CommitFinalResponse) {
   //   throw new Error(`${fnTag}, wrong message type for CommitFinalResponse`);
   // }
 
@@ -83,13 +83,13 @@ export async function checkValidRecoverSuccessMessage(
     throw new Error(`${fnTag}, RecoverSuccess message is invalid`);
   }
 
-  if (!odap.verifySignature(response, pubKey)) {
+  if (!satp.verifySignature(response, pubKey)) {
     throw new Error(
       `${fnTag}, RecoverUpdateAckMessage message signature verification failed`,
     );
   }
 
-  // storeSessionData(response, odap);
+  // storeSessionData(response, satp);
 
   log.info(`RecoverSuccessMessage passed all checks.`);
 }

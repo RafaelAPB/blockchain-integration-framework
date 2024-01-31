@@ -31,7 +31,7 @@ import com.squareup.moshi.JsonClass
  */
 
 
-data class OdapLocalLog (
+data class SatpLocalLog (
 
     @Json(name = "sessionID")
     val sessionID: kotlin.String,

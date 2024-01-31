@@ -9,13 +9,13 @@ const log = LoggerProvider.getOrCreate({
 
 export async function sendRecoverMessage(
   sessionID: string,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
   backup: boolean,
   remote: boolean,
 ): Promise<void | RecoverV1Message> {
-  const fnTag = `${odap.className}#sendRecoverMessage()`;
+  const fnTag = `${satp.className}#sendRecoverMessage()`;
 
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
 
   if (
     sessionData == undefined ||
@@ -41,7 +41,7 @@ export async function sendRecoverMessage(
   };
 
   const signature = PluginSatpGateway.bufArray2HexStr(
-    odap.sign(JSON.stringify(recoverMessage)),
+    satp.sign(JSON.stringify(recoverMessage)),
   );
 
   recoverMessage.signature = signature;
@@ -52,10 +52,10 @@ export async function sendRecoverMessage(
     return recoverMessage;
   }
 
-  await odap.makeRequest(
+  await satp.makeRequest(
     sessionID,
-    PluginSatpGateway.getOdapAPI(
-      odap.isClientGateway(sessionID)
+    PluginSatpGateway.getSatpAPI(
+      satp.isClientGateway(sessionID)
         ? sessionData.recipientBasePath
         : sessionData.sourceBasePath,
     ).recoverV1Message(recoverMessage),
@@ -65,19 +65,19 @@ export async function sendRecoverMessage(
 
 export async function checkValidRecoverMessage(
   response: RecoverV1Message,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
 ): Promise<void> {
-  const fnTag = `${odap.className}#checkValidRecoverMessage`;
+  const fnTag = `${satp.className}#checkValidRecoverMessage`;
 
   const sessionID = response.sessionID;
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
   if (sessionData == undefined) {
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
   let pubKey = undefined;
 
-  if (odap.isClientGateway(response.sessionID)) {
+  if (satp.isClientGateway(response.sessionID)) {
     if (
       response.isBackup &&
       sessionData.recipientGatewayPubkey != response.newGatewayPubKey
@@ -119,7 +119,7 @@ export async function checkValidRecoverMessage(
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
-  // if (response.messageType != OdapMessageType.CommitFinalResponse) {
+  // if (response.messageType != SatpMessageType.CommitFinalResponse) {
   //   throw new Error(`${fnTag}, wrong message type for CommitFinalResponse`);
   // }
 
@@ -127,7 +127,7 @@ export async function checkValidRecoverMessage(
     throw new Error(`${fnTag}, last log entry timestamp is not valid`);
   }
 
-  if (!odap.verifySignature(response, pubKey)) {
+  if (!satp.verifySignature(response, pubKey)) {
     throw new Error(
       `${fnTag}, RecoverMessage message signature verification failed`,
     );
@@ -135,7 +135,7 @@ export async function checkValidRecoverMessage(
 
   sessionData.lastLogEntryTimestamp = response.lastLogEntryTimestamp;
 
-  odap.sessions.set(sessionID, sessionData);
+  satp.sessions.set(sessionID, sessionData);
 
   log.info(`RecoverMessage passed all checks.`);
 }

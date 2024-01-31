@@ -4,19 +4,19 @@ import {
   TransferInitializationV1Request,
 } from "@hyperledger/cactus-plugin-satp-hermes";
 import { ClientGatewayHelper } from "@hyperledger/cactus-plugin-satp-hermes";
-import { OdapMessageType } from "@hyperledger/cactus-plugin-satp-hermes";
+import { SatpMessageType } from "@hyperledger/cactus-plugin-satp-hermes";
 import { FabricSatpGateway } from "./fabric-satp-gateway";
 import { BesuSatpGateway } from "./besu-satp-gateway";
 
 export class ClientHelper extends ClientGatewayHelper {
   async sendTransferInitializationRequest(
     sessionID: string,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
     remote: boolean,
   ): Promise<void | TransferInitializationV1Request> {
     const fnTag = `${this.className}#sendTransferInitializationRequest()`;
 
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
@@ -44,14 +44,14 @@ export class ClientHelper extends ClientGatewayHelper {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
 
-    if (!odap.supportedDltIDs.includes(sessionData.recipientGatewayDltSystem)) {
+    if (!satp.supportedDltIDs.includes(sessionData.recipientGatewayDltSystem)) {
       throw new Error(
         `${fnTag}, recipient gateway dlt system is not supported by this gateway`,
       );
     }
 
     const initializationRequestMessage: TransferInitializationV1Request = {
-      messageType: OdapMessageType.InitializationRequest,
+      messageType: SatpMessageType.InitializationRequest,
       sessionID: sessionData.id,
       version: sessionData.version,
       // developer urn
@@ -61,7 +61,7 @@ export class ClientHelper extends ClientGatewayHelper {
       loggingProfile: sessionData.loggingProfile,
       accessControlProfile: sessionData.accessControlProfile,
       signature: "",
-      sourceGatewayPubkey: odap.pubKey,
+      sourceGatewayPubkey: satp.pubKey,
       sourceGatewayDltSystem: sessionData.sourceGatewayDltSystem,
       recipientGatewayPubkey: sessionData.recipientGatewayPubkey,
       recipientGatewayDltSystem: sessionData.recipientGatewayDltSystem,
@@ -81,7 +81,7 @@ export class ClientHelper extends ClientGatewayHelper {
     };
 
     const messageSignature = PluginSatpGateway.bufArray2HexStr(
-      odap.sign(JSON.stringify(initializationRequestMessage)),
+      satp.sign(JSON.stringify(initializationRequestMessage)),
     );
 
     initializationRequestMessage.signature = messageSignature;
@@ -92,17 +92,17 @@ export class ClientHelper extends ClientGatewayHelper {
 
     sessionData.clientSignatureInitializationRequestMessage = messageSignature;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "init",
       operation: "validate",
       data: JSON.stringify(sessionData),
     });
 
-    if (odap instanceof FabricSatpGateway) {
-      await odap
+    if (satp instanceof FabricSatpGateway) {
+      await satp
         .isValidBridgeOutCBDC(
           sessionData.sourceLedgerAssetID,
           sessionData.assetProfile.keyInformationLink[0].toString(), // Amount
@@ -112,8 +112,8 @@ export class ClientHelper extends ClientGatewayHelper {
         .catch((err) => {
           throw new Error(`${err.response.data.error}`);
         });
-    } else if (odap instanceof BesuSatpGateway) {
-      await odap
+    } else if (satp instanceof BesuSatpGateway) {
+      await satp
         .isValidBridgeBackCBDC(
           sessionData.sourceLedgerAssetID,
           sessionData.assetProfile.keyInformationLink[0].toString(), // Amount
@@ -130,9 +130,9 @@ export class ClientHelper extends ClientGatewayHelper {
       return initializationRequestMessage;
     }
 
-    await odap.makeRequest(
+    await satp.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getsatpAPI(
         sessionData.recipientBasePath,
       ).phase1TransferInitiationRequestV1(initializationRequestMessage),
       "TransferInitializationRequest",

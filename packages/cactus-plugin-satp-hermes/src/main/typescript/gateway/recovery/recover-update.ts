@@ -1,11 +1,10 @@
 import {
-  OdapLocalLog,
+  satpLocalLog,
   RecoverUpdateV1Message,
 } from "../../generated/openapi/typescript-axios";
 import { LoggerProvider } from "@hyperledger/cactus-common";
-import { PluginSatpGateway } from "../plugin-satp-gateway";
+import { ISatpLocalLog, PluginSatpGateway } from "../plugin-satp-gateway";
 import { SHA256 } from "crypto-js";
-// import { SHA256 } from "crypto-js";
 
 const log = LoggerProvider.getOrCreate({
   level: "INFO",
@@ -14,12 +13,12 @@ const log = LoggerProvider.getOrCreate({
 
 export async function sendRecoverUpdateMessage(
   sessionID: string,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
   remote: boolean,
 ): Promise<void | RecoverUpdateV1Message> {
-  const fnTag = `${odap.className}#sendRecoverUpdateMessage()`;
+  const fnTag = `${satp.className}#sendRecoverUpdateMessage()`;
 
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
 
   if (
     sessionData == undefined ||
@@ -33,8 +32,8 @@ export async function sendRecoverUpdateMessage(
     throw new Error(`${fnTag}, session data is not correctly initialized`);
   }
 
-  const recoveredLogs: OdapLocalLog[] =
-    await odap.getLogsMoreRecentThanTimestamp(
+  const recoveredLogs: ISatpLocalLog[] =
+    await satp.getLogsMoreRecentThanTimestamp(
       sessionData.lastLogEntryTimestamp,
     );
 
@@ -45,7 +44,7 @@ export async function sendRecoverUpdateMessage(
   };
 
   const signature = PluginSatpGateway.bufArray2HexStr(
-    odap.sign(JSON.stringify(recoverUpdateMessage)),
+    satp.sign(JSON.stringify(recoverUpdateMessage)),
   );
 
   recoverUpdateMessage.signature = signature;
@@ -56,10 +55,10 @@ export async function sendRecoverUpdateMessage(
     return recoverUpdateMessage;
   }
 
-  await odap.makeRequest(
+  await satp.makeRequest(
     sessionID,
-    PluginSatpGateway.getOdapAPI(
-      odap.isClientGateway(sessionID)
+    PluginSatpGateway.getSatpAPI(
+      satp.isClientGateway(sessionID)
         ? sessionData.recipientBasePath
         : sessionData.sourceBasePath,
     ).recoverUpdateV1Message(recoverUpdateMessage),
@@ -69,17 +68,17 @@ export async function sendRecoverUpdateMessage(
 
 export async function checkValidRecoverUpdateMessage(
   response: RecoverUpdateV1Message,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
 ): Promise<void> {
-  const fnTag = `${odap.className}#checkValidRecoverUpdateMessage`;
+  const fnTag = `${satp.className}#checkValidRecoverUpdateMessage`;
 
   const sessionID = response.sessionID;
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
   if (sessionData == undefined) {
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
-  const pubKey = odap.isClientGateway(response.sessionID)
+  const pubKey = satp.isClientGateway(response.sessionID)
     ? sessionData.recipientGatewayPubkey
     : sessionData.sourceGatewayPubkey;
 
@@ -87,13 +86,13 @@ export async function checkValidRecoverUpdateMessage(
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
-  // if (response.messageType != OdapMessageType.CommitFinalResponse) {
+  // if (response.messageType != SatpMessageType.CommitFinalResponse) {
   //   throw new Error(`${fnTag}, wrong message type for CommitFinalResponse`);
   // }
 
   // check if this is a valid recover update message
 
-  if (!odap.verifySignature(response, pubKey)) {
+  if (!satp.verifySignature(response, pubKey)) {
     throw new Error(
       `${fnTag}, RecoverUpdateMessage message signature verification failed`,
     );
@@ -110,7 +109,7 @@ export async function checkValidRecoverUpdateMessage(
 
     log.info(`${fnTag}, received log: ${JSON.stringify(recLog)}`);
 
-    const ipfsLog = await odap.getLogFromIPFS(recLog.key);
+    const ipfsLog = await satp.getLogFromRemote(recLog.key);
 
     const hash = SHA256(JSON.stringify(recLog)).toString();
 
@@ -132,13 +131,13 @@ export async function checkValidRecoverUpdateMessage(
       const data = JSON.parse(recLog.data);
 
       // don't override new gateway public keys in case of being a backup gateway
-      if (odap.isClientGateway(sessionID)) {
-        data.sourceGatewayPubkey = odap.pubKey;
+      if (satp.isClientGateway(sessionID)) {
+        data.sourceGatewayPubkey = satp.pubKey;
       } else {
-        data.recipientGatewayPubkey = odap.pubKey;
+        data.recipientGatewayPubkey = satp.pubKey;
       }
 
-      odap.sessions.set(sessionID, data);
+      satp.sessions.set(sessionID, data);
     }
   }
 

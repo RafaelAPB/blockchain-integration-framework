@@ -7,7 +7,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
-* **plugin-satp-hermes:** fix duplicate enum values of OdapMessageType ([292d287](https://github.com/hyperledger/cacti/commit/292d2876abdc8eedfe9b51ed70ed0bc32db63e48)), closes [#2553](https://github.com/hyperledger/cacti/issues/2553)
+* **plugin-odap-hermes:** fix duplicate enum values of SatpMessageType ([292d287](https://github.com/hyperledger/cacti/commit/292d2876abdc8eedfe9b51ed70ed0bc32db63e48)), closes [#2553](https://github.com/hyperledger/cacti/issues/2553)
 * **security:** the CVE-2022-2421 - upgrade socket.io-parser to >=4.2.1 ([9172172](https://github.com/hyperledger/cacti/commit/917217227a3fa53a00429f047cd6318862e6ab8d)), closes [#2229](https://github.com/hyperledger/cacti/issues/2229) [#2228](https://github.com/hyperledger/cacti/issues/2228)
 * **security:** upgrade fabric 2.x deps to 2.2.18 ([36988a5](https://github.com/hyperledger/cacti/commit/36988a5edbf9856a1bcc960a3b9afe443536733e)), closes [#2610](https://github.com/hyperledger/cacti/issues/2610)
 * use common conventions: tsconfig.json, package.json ([50f5c02](https://github.com/hyperledger/cacti/commit/50f5c02190ba28b77492c09e81f5d5ba6578e862)), closes [#2216](https://github.com/hyperledger/cacti/issues/2216)

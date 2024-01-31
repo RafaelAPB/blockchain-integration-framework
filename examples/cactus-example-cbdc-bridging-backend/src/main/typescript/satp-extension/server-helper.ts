@@ -4,7 +4,7 @@ import {
   TransferInitializationV1Request,
 } from "@hyperledger/cactus-plugin-satp-hermes";
 import {
-  OdapMessageType,
+  SatpMessageType,
   PluginSatpGateway,
 } from "@hyperledger/cactus-plugin-satp-hermes";
 import { ServerGatewayHelper } from "@hyperledger/cactus-plugin-satp-hermes";
@@ -30,9 +30,9 @@ export class ServerHelper extends ServerGatewayHelper {
 
   async checkValidInitializationRequest(
     request: TransferInitializationV1Request,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
   ): Promise<void> {
-    const fnTag = `${odap.className}#checkValidInitializationRequest()`;
+    const fnTag = `${satp.className}#checkValidInitializationRequest()`;
 
     const sessionData: SessionData = {};
     const recvTimestamp: string = Date.now().toString();
@@ -42,28 +42,28 @@ export class ServerHelper extends ServerGatewayHelper {
     sessionData.step = 2;
     sessionData.initializationRequestMessageRcvTimeStamp = recvTimestamp;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "exec",
       operation: "validate",
       data: JSON.stringify(sessionData),
     });
 
-    if (request.messageType != OdapMessageType.InitializationRequest) {
+    if (request.messageType != SatpMessageType.InitializationRequest) {
       throw new Error(
         `${fnTag}, wrong message type for TransferInitializationRequest`,
       );
     }
 
-    if (!odap.verifySignature(request, request.sourceGatewayPubkey)) {
+    if (!satp.verifySignature(request, request.sourceGatewayPubkey)) {
       throw new Error(
         `${fnTag}, TransferInitializationRequest message signature verification failed`,
       );
     }
 
-    if (!odap.supportedDltIDs.includes(request.sourceGatewayDltSystem)) {
+    if (!satp.supportedDltIDs.includes(request.sourceGatewayDltSystem)) {
       throw new Error(
         `${fnTag}, source gateway dlt system is not supported by this gateway`,
       );
@@ -93,7 +93,7 @@ export class ServerHelper extends ServerGatewayHelper {
     sessionData.maxTimeout = request.maxTimeout;
 
     sessionData.allowedSourceBackupGateways = request.backupGatewaysAllowed;
-    sessionData.allowedRecipientBackupGateways = odap.backupGatewaysAllowed;
+    sessionData.allowedRecipientBackupGateways = satp.backupGatewaysAllowed;
 
     sessionData.sourceBasePath = request.sourceBasePath;
     sessionData.recipientBasePath = request.recipientBasePath;
@@ -122,10 +122,10 @@ export class ServerHelper extends ServerGatewayHelper {
     sessionData.initializationRequestMessageProcessedTimeStamp =
       Date.now().toString();
 
-    odap.sessions.set(request.sessionID, sessionData);
+    satp.sessions.set(request.sessionID, sessionData);
 
-    if (odap instanceof FabricSatpGateway) {
-      await odap
+    if (satp instanceof FabricSatpGateway) {
+      await satp
         .isValidBridgeBackCBDC(
           request.payloadProfile.assetProfile.keyInformationLink[1].toString(), // FabricID
           request.payloadProfile.assetProfile.keyInformationLink[2].toString(), // ETH Address
@@ -135,7 +135,7 @@ export class ServerHelper extends ServerGatewayHelper {
         });
     }
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "done",
       operation: "validate",

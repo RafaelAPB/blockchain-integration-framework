@@ -68,7 +68,7 @@ Firstly let us identify the different entities involved in the protocol and what
 
 The sequence diagram of ODAP is pictured below.
 
-![odap-sequence-diagram](https://i.imgur.com/SOdXFEt.png)
+![satp-sequence-diagram](https://i.imgur.com/SOdXFEt.png)
 
 ### API Endpoints
 This plugin uses OpenAPI to generate the API paths.
@@ -101,9 +101,9 @@ Alice and Bob, in blockchains A and B, respectively, want to make a transfer of 
 
 [A test of the entire protocol with manual calls to the methods, i.e. without ledger connectors and Open API.](https://github.com/hyperledger/cactus/blob/2e94ef8d3b34449c7b4d48e37d81245851477a3e/packages/cactus-plugin-satp-hermes/src/test/typescript/integration/satp.test.ts)
 
-[A test of the entire protocol using Open API but with no ledger connectors.](https://github.com/hyperledger/cactus/blob/2e94ef8d3b34449c7b4d48e37d81245851477a3e/packages/cactus-plugin-satp-hermes/src/test/typescript/integration/odap-api-call.test.ts)
+[A test of the entire protocol using Open API but with no ledger connectors.](https://github.com/hyperledger/cactus/blob/2e94ef8d3b34449c7b4d48e37d81245851477a3e/packages/cactus-plugin-satp-hermes/src/test/typescript/integration/satp-api-call.test.ts)
 
-[A test of the entire protocol with ledger connectors (Fabric and Besu) and Open API.](https://github.com/hyperledger/cactus/blob/2e94ef8d3b34449c7b4d48e37d81245851477a3e/packages/cactus-plugin-satp-hermes/src/test/typescript/integration/odap-api-call-with-ledger-connector.test.ts)
+[A test of the entire protocol with ledger connectors (Fabric and Besu) and Open API.](https://github.com/hyperledger/cactus/blob/2e94ef8d3b34449c7b4d48e37d81245851477a3e/packages/cactus-plugin-satp-hermes/src/test/typescript/integration/satp-api-call-with-ledger-connector.test.ts)
 
 [A test with a simulated crash of the client gateway after the transfer initiation flow.](https://github.com/hyperledger/cactus/blob/2e94ef8d3b34449c7b4d48e37d81245851477a3e/packages/cactus-plugin-satp-hermes/src/test/typescript/integration/client-crash-after-transfer-initiation.test.ts)
 
@@ -134,7 +134,7 @@ Then the ODAP gateways should be created as follows:
 
 ```typescript
 const clientGatewayOptions: IFabricSatpGatewayConstructorOptions = {
-  name: "cactus-plugin#clientOdapGateway",
+  name: "cactus-plugin#clientSatpGateway",
   dltIDs: ["DLT2"],
   instanceId: uuidv4(),
   ipfsPath: "http://localhost:8047",
@@ -147,7 +147,7 @@ const clientGatewayOptions: IFabricSatpGatewayConstructorOptions = {
 };
 
 const serverGatewayOptions: IBesuSatpGatewayConstructorOptions = {
-  name: "cactus-plugin#serverOdapGateway",
+  name: "cactus-plugin#serverSatpGateway",
   dltIDs: ["DLT1"],
   instanceId: uuidv4(),
   ipfsPath: "http://localhost:8047",

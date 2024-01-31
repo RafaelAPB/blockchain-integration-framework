@@ -10,12 +10,12 @@ const log = LoggerProvider.getOrCreate({
 
 export async function sendRollbackMessage(
   sessionID: string,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
   remote: boolean,
 ): Promise<void | RollbackV1Message> {
-  const fnTag = `${odap.className}#sendRollbackMessage()`;
+  const fnTag = `${satp.className}#sendRollbackMessage()`;
 
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
 
   if (
     sessionData == undefined ||
@@ -38,7 +38,7 @@ export async function sendRollbackMessage(
   };
 
   const signature = PluginSatpGateway.bufArray2HexStr(
-    odap.sign(JSON.stringify(rollbackMessage)),
+    satp.sign(JSON.stringify(rollbackMessage)),
   );
 
   rollbackMessage.signature = signature;
@@ -49,10 +49,10 @@ export async function sendRollbackMessage(
     return rollbackMessage;
   }
 
-  await odap.makeRequest(
+  await satp.makeRequest(
     sessionID,
-    PluginSatpGateway.getOdapAPI(
-      odap.isClientGateway(sessionID)
+    PluginSatpGateway.getSatpAPI(
+      satp.isClientGateway(sessionID)
         ? sessionData.recipientBasePath
         : sessionData.sourceBasePath,
     ).rollbackV1Message(rollbackMessage),
@@ -62,17 +62,17 @@ export async function sendRollbackMessage(
 
 export async function checkValidRollbackMessage(
   response: RollbackV1Message,
-  odap: PluginSatpGateway,
+  satp: PluginSatpGateway,
 ): Promise<void> {
-  const fnTag = `${odap.className}#checkValidRollbackMessage`;
+  const fnTag = `${satp.className}#checkValidRollbackMessage`;
 
   const sessionID = response.sessionID;
-  const sessionData = odap.sessions.get(sessionID);
+  const sessionData = satp.sessions.get(sessionID);
   if (sessionData == undefined) {
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
-  const pubKey = odap.isClientGateway(response.sessionID)
+  const pubKey = satp.isClientGateway(response.sessionID)
     ? sessionData.recipientGatewayPubkey
     : sessionData.sourceGatewayPubkey;
 
@@ -80,11 +80,11 @@ export async function checkValidRollbackMessage(
     throw new Error(`${fnTag}, session data is undefined`);
   }
 
-  // if (response.messageType != OdapMessageType.CommitFinalResponse) {
+  // if (response.messageType != SatpMessageType.CommitFinalResponse) {
   //   throw new Error(`${fnTag}, wrong message type for CommitFinalResponse`);
   // }
 
-  if (!odap.verifySignature(response, pubKey)) {
+  if (!satp.verifySignature(response, pubKey)) {
     throw new Error(
       `${fnTag}, RollbackMessage message signature verification failed`,
     );

@@ -15,7 +15,7 @@
 
 package org.openapitools.client.models
 
-import org.openapitools.client.models.OdapLocalLog
+import org.openapitools.client.models.SatpLocalLog
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -35,7 +35,7 @@ data class RecoverUpdateV1Message (
     val sessionID: kotlin.String,
 
     @Json(name = "recoveredLogs")
-    val recoveredLogs: kotlin.collections.List<OdapLocalLog>,
+    val recoveredLogs: kotlin.collections.List<SatpLocalLog>,
 
     @Json(name = "signature")
     val signature: kotlin.String

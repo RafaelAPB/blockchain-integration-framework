@@ -3,7 +3,7 @@ export * from "./generated/openapi/typescript-axios/index";
 export {
   IPluginSatpGatewayConstructorOptions,
   PluginSatpGateway,
-  OdapMessageType,
+  SatpMessageType,
   ISatpPluginKeyPair,
 } from "./gateway/plugin-satp-gateway";
 

@@ -13,7 +13,7 @@ import {
   CommitFinalV1Response,
   TransferCompleteV1Request,
 } from "../../public-api";
-import { OdapMessageType, PluginSatpGateway } from "../plugin-satp-gateway";
+import { SatpMessageType, PluginSatpGateway } from "../plugin-satp-gateway";
 
 export class ClientGatewayHelper {
   public static readonly CLASS_NAME = "ClientGatewayHelper";
@@ -35,12 +35,12 @@ export class ClientGatewayHelper {
 
   async sendTransferInitializationRequest(
     sessionID: string,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
     remote: boolean,
   ): Promise<void | TransferInitializationV1Request> {
     const fnTag = `${this.className}#sendTransferInitializationRequest()`;
 
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
@@ -66,14 +66,14 @@ export class ClientGatewayHelper {
       throw new Error(`${fnTag}, session data is not correctly initialized`);
     }
 
-    if (!odap.supportedDltIDs.includes(sessionData.recipientGatewayDltSystem)) {
+    if (!satp.supportedDltIDs.includes(sessionData.recipientGatewayDltSystem)) {
       throw new Error(
         `${fnTag}, recipient gateway dlt system is not supported by this gateway`,
       );
     }
 
     const initializationRequestMessage: TransferInitializationV1Request = {
-      messageType: OdapMessageType.InitializationRequest,
+      messageType: SatpMessageType.InitializationRequest,
       sessionID: sessionData.id,
       version: sessionData.version,
       // developer urn
@@ -83,7 +83,7 @@ export class ClientGatewayHelper {
       loggingProfile: sessionData.loggingProfile,
       accessControlProfile: sessionData.accessControlProfile,
       signature: "",
-      sourceGatewayPubkey: odap.pubKey,
+      sourceGatewayPubkey: satp.pubKey,
       sourceGatewayDltSystem: sessionData.sourceGatewayDltSystem,
       recipientGatewayPubkey: sessionData.recipientGatewayPubkey,
       recipientGatewayDltSystem: sessionData.recipientGatewayDltSystem,
@@ -103,7 +103,7 @@ export class ClientGatewayHelper {
     };
 
     const messageSignature = PluginSatpGateway.bufArray2HexStr(
-      odap.sign(JSON.stringify(initializationRequestMessage)),
+      satp.sign(JSON.stringify(initializationRequestMessage)),
     );
 
     initializationRequestMessage.signature = messageSignature;
@@ -114,9 +114,9 @@ export class ClientGatewayHelper {
 
     sessionData.clientSignatureInitializationRequestMessage = messageSignature;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "init",
       operation: "validate",
@@ -129,9 +129,9 @@ export class ClientGatewayHelper {
       return initializationRequestMessage;
     }
 
-    await odap.makeRequest(
+    await satp.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase1TransferInitiationRequestV1(initializationRequestMessage),
       "TransferInitializationRequest",
@@ -140,17 +140,17 @@ export class ClientGatewayHelper {
 
   async checkValidInitializationResponse(
     response: TransferInitializationV1Response,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
   ): Promise<void> {
     const fnTag = `${this.className}#checkValidInitializationResponse`;
 
     const sessionID = response.sessionID;
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
     if (sessionData == undefined) {
       throw new Error(`${fnTag}, session data is undefined`);
     }
 
-    if (response.messageType != OdapMessageType.InitializationResponse) {
+    if (response.messageType != SatpMessageType.InitializationResponse) {
       throw new Error(
         `${fnTag}, wrong message type for TransferInitializationResponse`,
       );
@@ -177,7 +177,7 @@ export class ClientGatewayHelper {
       );
     }
 
-    if (!odap.verifySignature(response, sessionData.recipientGatewayPubkey)) {
+    if (!satp.verifySignature(response, sessionData.recipientGatewayPubkey)) {
       throw new Error(
         `${fnTag}, TransferInitializationResponse message signature verification failed`,
       );
@@ -198,18 +198,18 @@ export class ClientGatewayHelper {
 
     sessionData.step = 3;
 
-    odap.sessions.set(sessionData.id, sessionData);
+    satp.sessions.set(sessionData.id, sessionData);
     this.log.info(`TransferInitializationResponse passed all checks.`);
   }
 
   async sendTransferCommenceRequest(
     sessionID: string,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
     remote: boolean,
   ): Promise<void | TransferCommenceV1Request> {
-    const fnTag = `${odap.className}#sendTransferCommenceRequest()`;
+    const fnTag = `${satp.className}#sendTransferCommenceRequest()`;
 
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
@@ -235,7 +235,7 @@ export class ClientGatewayHelper {
     ).toString();
 
     const transferCommenceRequestMessage: TransferCommenceV1Request = {
-      messageType: OdapMessageType.TransferCommenceRequest,
+      messageType: SatpMessageType.TransferCommenceRequest,
       // originatorPubkey: sessionData.originatorPubkey,
       // beneficiaryPubkey: sessionData.beneficiaryPubkey,
       originatorPubkey: "sessionData.originatorPubkey",
@@ -253,7 +253,7 @@ export class ClientGatewayHelper {
     };
 
     const messageSignature = PluginSatpGateway.bufArray2HexStr(
-      odap.sign(JSON.stringify(transferCommenceRequestMessage)),
+      satp.sign(JSON.stringify(transferCommenceRequestMessage)),
     );
 
     transferCommenceRequestMessage.signature = messageSignature;
@@ -265,9 +265,9 @@ export class ClientGatewayHelper {
     sessionData.clientSignatureTransferCommenceRequestMessage =
       messageSignature;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "init",
       operation: "commence",
@@ -280,9 +280,9 @@ export class ClientGatewayHelper {
       return transferCommenceRequestMessage;
     }
 
-    await odap.makeRequest(
+    await satp.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase2TransferCommenceRequestV1(transferCommenceRequestMessage),
       "TransferCommenceRequest",
@@ -291,17 +291,17 @@ export class ClientGatewayHelper {
 
   async checkValidTransferCommenceResponse(
     response: TransferCommenceV1Response,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
   ): Promise<void> {
-    const fnTag = `${odap.className}#checkValidTransferCommenceResponse`;
+    const fnTag = `${satp.className}#checkValidTransferCommenceResponse`;
 
     const sessionID = response.sessionID;
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
     if (sessionData == undefined) {
       throw new Error(`${fnTag}, session data is undefined`);
     }
 
-    if (response.messageType != OdapMessageType.TransferCommenceResponse) {
+    if (response.messageType != SatpMessageType.TransferCommenceResponse) {
       throw new Error(
         `${fnTag}, wrong message type for TransferCommenceResponse`,
       );
@@ -334,7 +334,7 @@ export class ClientGatewayHelper {
       );
     }
 
-    if (!odap.verifySignature(response, sessionData.recipientGatewayPubkey)) {
+    if (!satp.verifySignature(response, sessionData.recipientGatewayPubkey)) {
       throw new Error(
         `${fnTag}, TransferCommenceResponse message signature verification failed`,
       );
@@ -349,19 +349,19 @@ export class ClientGatewayHelper {
 
     sessionData.step = 5;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
     this.log.info(`TransferCommenceResponse passed all checks.`);
   }
 
   async sendLockEvidenceRequest(
     sessionID: string,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
     remote: boolean,
   ): Promise<void | LockEvidenceV1Request> {
-    const fnTag = `${odap.className}#sendLockEvidenceRequest()`;
+    const fnTag = `${satp.className}#sendLockEvidenceRequest()`;
 
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
@@ -380,7 +380,7 @@ export class ClientGatewayHelper {
 
     const lockEvidenceRequestMessage: LockEvidenceV1Request = {
       sessionID: sessionID,
-      messageType: OdapMessageType.LockEvidenceRequest,
+      messageType: SatpMessageType.LockEvidenceRequest,
       clientIdentityPubkey: sessionData.sourceGatewayPubkey,
       serverIdentityPubkey: sessionData.recipientGatewayPubkey,
       lockEvidenceClaim: sessionData.lockEvidenceClaim,
@@ -394,7 +394,7 @@ export class ClientGatewayHelper {
     };
 
     const messageSignature = PluginSatpGateway.bufArray2HexStr(
-      odap.sign(JSON.stringify(lockEvidenceRequestMessage)),
+      satp.sign(JSON.stringify(lockEvidenceRequestMessage)),
     );
 
     lockEvidenceRequestMessage.signature = messageSignature;
@@ -405,9 +405,9 @@ export class ClientGatewayHelper {
 
     sessionData.clientSignatureLockEvidenceRequestMessage = messageSignature;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "init",
       operation: "lock",
@@ -420,9 +420,9 @@ export class ClientGatewayHelper {
       return lockEvidenceRequestMessage;
     }
 
-    await odap.makeRequest(
+    await satp.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase2LockEvidenceRequestV1(lockEvidenceRequestMessage),
       "LockEvidenceRequest",
@@ -431,19 +431,19 @@ export class ClientGatewayHelper {
 
   async checkValidLockEvidenceResponse(
     response: LockEvidenceV1Response,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
   ): Promise<void> {
-    const fnTag = `${odap.className}#checkValidLockEvidenceResponse`;
+    const fnTag = `${satp.className}#checkValidLockEvidenceResponse`;
 
     const sessionID = response.sessionID;
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
     if (sessionData == undefined) {
       throw new Error(
         `${fnTag}, reverting transfer because session data is undefined`,
       );
     }
 
-    if (response.messageType != OdapMessageType.LockEvidenceResponse) {
+    if (response.messageType != SatpMessageType.LockEvidenceResponse) {
       throw new Error(`${fnTag}, wrong message type for LockEvidenceResponse`);
     }
 
@@ -474,7 +474,7 @@ export class ClientGatewayHelper {
       );
     }
 
-    if (!odap.verifySignature(response, sessionData.recipientGatewayPubkey)) {
+    if (!satp.verifySignature(response, sessionData.recipientGatewayPubkey)) {
       throw new Error(
         `${fnTag}, LockEvidenceResponse message signature verification failed`,
       );
@@ -488,19 +488,19 @@ export class ClientGatewayHelper {
 
     sessionData.step = 7;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
     this.log.info(`LockEvidenceResponse passed all checks.`);
   }
 
   async sendCommitPreparationRequest(
     sessionID: string,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
     remote: boolean,
   ): Promise<void | CommitPreparationV1Request> {
-    const fnTag = `${odap.className}#sendCommitPreparationRequest()`;
+    const fnTag = `${satp.className}#sendCommitPreparationRequest()`;
 
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
@@ -518,7 +518,7 @@ export class ClientGatewayHelper {
 
     const commitPrepareRequestMessage: CommitPreparationV1Request = {
       sessionID: sessionID,
-      messageType: OdapMessageType.CommitPreparationRequest,
+      messageType: SatpMessageType.CommitPreparationRequest,
       clientIdentityPubkey: sessionData.sourceGatewayPubkey,
       serverIdentityPubkey: sessionData.recipientGatewayPubkey,
       hashLockEvidenceAck: sessionData.lockEvidenceResponseMessageHash,
@@ -527,7 +527,7 @@ export class ClientGatewayHelper {
     };
 
     const messageSignature = PluginSatpGateway.bufArray2HexStr(
-      odap.sign(JSON.stringify(commitPrepareRequestMessage)),
+      satp.sign(JSON.stringify(commitPrepareRequestMessage)),
     );
 
     commitPrepareRequestMessage.signature = messageSignature;
@@ -539,9 +539,9 @@ export class ClientGatewayHelper {
     sessionData.clientSignatureCommitPreparationRequestMessage =
       messageSignature;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "init",
       operation: "prepare",
@@ -554,9 +554,9 @@ export class ClientGatewayHelper {
       return commitPrepareRequestMessage;
     }
 
-    await odap.makeRequest(
+    await satp.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase3CommitPreparationRequestV1(commitPrepareRequestMessage),
       "CommitPreparationRequest",
@@ -565,19 +565,19 @@ export class ClientGatewayHelper {
 
   async checkValidCommitPreparationResponse(
     response: CommitPreparationV1Response,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
   ): Promise<void> {
-    const fnTag = `${odap.className}#checkValidCommitPreparationResponse`;
+    const fnTag = `${satp.className}#checkValidCommitPreparationResponse`;
 
     const sessionID = response.sessionID;
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
     if (sessionData == undefined) {
       throw new Error(
         `${fnTag}, reverting transfer because session data is undefined`,
       );
     }
 
-    if (response.messageType != OdapMessageType.CommitPreparationResponse) {
+    if (response.messageType != SatpMessageType.CommitPreparationResponse) {
       throw new Error(
         `${fnTag}, wrong message type for CommitPreparationResponse`,
       );
@@ -609,7 +609,7 @@ export class ClientGatewayHelper {
       );
     }
 
-    if (!odap.verifySignature(response, sessionData.recipientGatewayPubkey)) {
+    if (!satp.verifySignature(response, sessionData.recipientGatewayPubkey)) {
       throw new Error(
         `${fnTag}, CommitPreparationResponse message signature verification failed`,
       );
@@ -624,19 +624,19 @@ export class ClientGatewayHelper {
 
     sessionData.step = 9;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
     this.log.info(`CommitPreparationResponse passed all checks.`);
   }
 
   async sendCommitFinalRequest(
     sessionID: string,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
     remote: boolean,
   ): Promise<void | CommitFinalV1Request> {
-    const fnTag = `${odap.className}#sendCommitFinalRequest()`;
+    const fnTag = `${satp.className}#sendCommitFinalRequest()`;
 
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
@@ -655,7 +655,7 @@ export class ClientGatewayHelper {
 
     const commitFinalRequestMessage: CommitFinalV1Request = {
       sessionID: sessionID,
-      messageType: OdapMessageType.CommitFinalRequest,
+      messageType: SatpMessageType.CommitFinalRequest,
       clientIdentityPubkey: sessionData.sourceGatewayPubkey,
       serverIdentityPubkey: sessionData.recipientGatewayPubkey,
       commitFinalClaim: sessionData.commitFinalClaim,
@@ -666,7 +666,7 @@ export class ClientGatewayHelper {
     };
 
     const messageSignature = PluginSatpGateway.bufArray2HexStr(
-      odap.sign(JSON.stringify(commitFinalRequestMessage)),
+      satp.sign(JSON.stringify(commitFinalRequestMessage)),
     );
 
     commitFinalRequestMessage.signature = messageSignature;
@@ -677,9 +677,9 @@ export class ClientGatewayHelper {
 
     sessionData.clientSignatureCommitFinalRequestMessage = messageSignature;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "init",
       operation: "final",
@@ -692,9 +692,9 @@ export class ClientGatewayHelper {
       return commitFinalRequestMessage;
     }
 
-    await odap.makeRequest(
+    await satp.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase3CommitFinalRequestV1(commitFinalRequestMessage),
       "CommitFinalRequest",
@@ -703,19 +703,19 @@ export class ClientGatewayHelper {
 
   async checkValidCommitFinalResponse(
     response: CommitFinalV1Response,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
   ): Promise<void> {
-    const fnTag = `${odap.className}#checkValidCommitFinalResponse`;
+    const fnTag = `${satp.className}#checkValidCommitFinalResponse`;
 
     const sessionID = response.sessionID;
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
     if (sessionData == undefined) {
       throw new Error(
         `${fnTag}, reverting transfer because session data is undefined`,
       );
     }
 
-    if (response.messageType != OdapMessageType.CommitFinalResponse) {
+    if (response.messageType != SatpMessageType.CommitFinalResponse) {
       throw new Error(`${fnTag}, wrong message type for CommitFinalResponse`);
     }
 
@@ -747,15 +747,15 @@ export class ClientGatewayHelper {
       );
     }
 
-    if (!odap.verifySignature(response, sessionData.recipientGatewayPubkey)) {
+    if (!satp.verifySignature(response, sessionData.recipientGatewayPubkey)) {
       throw new Error(
         `${fnTag}, CommitFinalResponse message signature verification failed`,
       );
     }
 
     const claimHash = SHA256(response.commitAcknowledgementClaim).toString();
-    const retrievedClaim = await odap.getLogFromIPFS(
-      PluginSatpGateway.getOdapLogKey(sessionID, "proof", "create"),
+    const retrievedClaim = await satp.getLogFromRemote(
+      PluginSatpGateway.getSatpLogKey(sessionID, "proof", "create"),
     );
 
     if (claimHash != retrievedClaim.hash) {
@@ -764,7 +764,7 @@ export class ClientGatewayHelper {
       );
     }
 
-    if (!odap.verifySignature(retrievedClaim, response.serverIdentityPubkey)) {
+    if (!satp.verifySignature(retrievedClaim, response.serverIdentityPubkey)) {
       throw new Error(
         `${fnTag}, Commit Acknowledgement Claim signature verification failed`,
       );
@@ -781,19 +781,19 @@ export class ClientGatewayHelper {
 
     sessionData.step = 11;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
     this.log.info(`CommitFinalResponse passed all checks.`);
   }
 
   async sendTransferCompleteRequest(
     sessionID: string,
-    odap: PluginSatpGateway,
+    satp: PluginSatpGateway,
     remote: boolean,
   ): Promise<void | TransferCompleteV1Request> {
-    const fnTag = `${odap.className}#sendTransferCompleteRequest()`;
+    const fnTag = `${satp.className}#sendTransferCompleteRequest()`;
 
-    const sessionData = odap.sessions.get(sessionID);
+    const sessionData = satp.sessions.get(sessionID);
 
     if (
       sessionData == undefined ||
@@ -812,7 +812,7 @@ export class ClientGatewayHelper {
 
     const transferCompleteRequestMessage: TransferCompleteV1Request = {
       sessionID: sessionID,
-      messageType: OdapMessageType.TransferCompleteRequest,
+      messageType: SatpMessageType.TransferCompleteRequest,
       clientIdentityPubkey: sessionData.sourceGatewayPubkey,
       serverIdentityPubkey: sessionData.recipientGatewayPubkey,
       hashCommitFinalAck: sessionData.commitFinalResponseMessageHash,
@@ -822,7 +822,7 @@ export class ClientGatewayHelper {
     };
 
     const messageSignature = PluginSatpGateway.bufArray2HexStr(
-      odap.sign(JSON.stringify(transferCompleteRequestMessage)),
+      satp.sign(JSON.stringify(transferCompleteRequestMessage)),
     );
 
     transferCompleteRequestMessage.signature = messageSignature;
@@ -833,9 +833,9 @@ export class ClientGatewayHelper {
 
     sessionData.clientSignatureTransferCompleteMessage = messageSignature;
 
-    odap.sessions.set(sessionID, sessionData);
+    satp.sessions.set(sessionID, sessionData);
 
-    await odap.storeSatpLog({
+    await satp.storeSatpLog({
       sessionID: sessionID,
       type: "init",
       operation: "complete",
@@ -848,9 +848,9 @@ export class ClientGatewayHelper {
       return transferCompleteRequestMessage;
     }
 
-    await odap.makeRequest(
+    await satp.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase3TransferCompleteRequestV1(transferCompleteRequestMessage),
       "TransferCompleteRequest",
