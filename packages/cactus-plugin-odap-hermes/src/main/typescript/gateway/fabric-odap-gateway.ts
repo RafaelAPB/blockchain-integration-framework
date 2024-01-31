@@ -7,25 +7,14 @@ import {
   FabricSigningCredential,
   RunTransactionRequest as FabricRunTransactionRequest,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
-import { IOdapPluginKeyPair, PluginOdapGateway } from "./plugin-odap-gateway";
+import { IPluginOdapGatewayConstructorOptions, PluginOdapGateway } from "./plugin-odap-gateway";
 import { SessionDataRollbackActionsPerformedEnum } from "../generated/openapi/typescript-axios";
-import { ClientGatewayHelper } from "./client/client-helper";
-import { ServerGatewayHelper } from "./server/server-helper";
 
-export interface IFabricOdapGatewayConstructorOptions {
-  name: string;
-  dltIDs: string[];
-  instanceId: string;
-  keyPair?: IOdapPluginKeyPair;
-  backupGatewaysAllowed?: string[];
-  ipfsPath?: string;
+export interface IFabricOdapGatewayConstructorOptions extends IPluginOdapGatewayConstructorOptions {
   fabricPath?: string;
   fabricSigningCredential?: FabricSigningCredential;
   fabricChannelName?: string;
   fabricContractName?: string;
-  knexConfig?: Knex.Config;
-  clientHelper: ClientGatewayHelper;
-  serverHelper: ServerGatewayHelper;
 }
 
 export class FabricOdapGateway extends PluginOdapGateway {
@@ -44,7 +33,8 @@ export class FabricOdapGateway extends PluginOdapGateway {
       ipfsPath: options.ipfsPath,
       clientHelper: options.clientHelper,
       serverHelper: options.serverHelper,
-      knexConfig: options.knexConfig,
+      knexLocalConfig: options.knexLocalConfig,
+      knexRemoteConfig: options.knexRemoteConfig
     });
 
     if (options.fabricPath != undefined) this.defineFabricConnection(options);

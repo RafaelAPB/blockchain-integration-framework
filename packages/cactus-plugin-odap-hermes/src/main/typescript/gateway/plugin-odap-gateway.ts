@@ -14,7 +14,6 @@ import {
   JsObjectSigner,
   IJsObjectSignerOptions,
 } from "@hyperledger/cactus-common";
-import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import {
   ICactusPlugin,
   IPluginWebService,
@@ -36,7 +35,6 @@ import {
   CommitFinalV1Response,
   TransferCompleteV1Request,
   TransferInitializationV1Request,
-  OdapLocalLog,
   RecoverV1Message,
   RecoverUpdateV1Message,
   RecoverUpdateAckV1Message,
@@ -90,6 +88,10 @@ import {
 } from "./recovery/rollback-ack";
 import { ClientRequestEndpointV1 } from "../web-services/client-side/client-request-endpoint";
 import { RollbackAckMessageEndpointV1 } from "../web-services/recovery/rollback-ack-message-endpoint";
+import { KnexLocalLogRepository as LocalLogRepository } from "./repository/knex-local-log-repository";
+import { IPFSRemoteLogRepository } from "./repository/ipfs-remote-log-repository";
+import { KnexRemoteLogRepository } from "./repository/knex-remote-log-repository";
+import { ILocalLogRepository, IRemoteLogRepository } from "./repository/interfaces/repository";
 
 export enum OdapMessageType {
   InitializationRequest = "urn:ietf:odap:msgtype:init-transfer-msg",
@@ -111,21 +113,34 @@ export interface IPluginOdapGatewayConstructorOptions {
   instanceId: string;
   keyPair?: IOdapPluginKeyPair;
   backupGatewaysAllowed?: string[];
-  ipfsPath?: string;
   clientHelper: ClientGatewayHelper;
   serverHelper: ServerGatewayHelper;
-  knexConfig?: Knex.Config;
+  knexLocalConfig?: Knex.Config;
+
+  // these are the two options to store remote logs. Either using a DB simulating a remote DB or using
+  // IPFS wich ensures a different notion of accountability. If both are set, the IPFS will be used
+  knexRemoteConfig?: Knex.Config;
+  ipfsPath?: string;
 }
 export interface IOdapPluginKeyPair {
   publicKey: Uint8Array;
   privateKey: Uint8Array;
 }
 
-export interface IOdapLogIPFS {
+export interface IOdapLogRemote {
   key: string;
   hash: string;
   signature: string;
   signerPubKey: string;
+}
+
+export interface IOdapLocalLog {
+  key?: string;
+  sessionID: string;
+  data?: string;
+  type: string;
+  operation: string;
+  timestamp?: string;
 }
 
 export abstract class PluginOdapGateway
@@ -139,13 +154,11 @@ export abstract class PluginOdapGateway
   private _pubKey: string;
   private _privKey: string;
 
-  public ipfsApi?: ObjectStoreIpfsApi;
-
-  public database?: Knex;
+  public localRepository?: ILocalLogRepository;
+  public remoteRepository?: IRemoteLogRepository;
 
   private endpoints: IWebServiceEndpoint[] | undefined;
-  //map[]object, object refer to a state
-  //of a specific comminications
+
   private _supportedDltIDs: string[];
   private _backupGatewaysAllowed: string[];
 
@@ -185,26 +198,10 @@ export abstract class PluginOdapGateway
     this._clientHelper = options.clientHelper;
     this._serverHelper = options.serverHelper;
 
-    if (options.ipfsPath != undefined) this.defineIpfsConnection(options);
+    this.remoteRepository = new KnexRemoteLogRepository(options.knexRemoteConfig)
+    if (options.ipfsPath != undefined) this.remoteRepository = new IPFSRemoteLogRepository(options.ipfsPath)
 
-    this.defineKnexConnection(options.knexConfig);
-  }
-
-  public defineKnexConnection(config: Knex.Config | undefined): void {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const configFile = require("../../../../knex/knexfile.ts")[
-      process.env.ENVIRONMENT || "development"
-    ];
-
-    this.database = knex(config || configFile);
-  }
-
-  private defineIpfsConnection(
-    options: IPluginOdapGatewayConstructorOptions,
-  ): void {
-    const config = new Configuration({ basePath: options.ipfsPath });
-    const apiClient = new ObjectStoreIpfsApi(config);
-    this.ipfsApi = apiClient;
+    this.localRepository = new LocalLogRepository(options.knexLocalConfig)
   }
 
   public get className(): string {
@@ -377,16 +374,6 @@ export abstract class PluginOdapGateway
     return this._log;
   }
 
-  getDatabaseInstance(): Knex.QueryBuilder {
-    const fnTag = `${this.className}#getDatabaseInstance()`;
-
-    if (this.database == undefined) {
-      throw new Error(`${fnTag}, database is undefined`);
-    }
-
-    return this.database("logs");
-  }
-
   isClientGateway(sessionID: string): boolean {
     const fnTag = `${this.className}#isClientGateway()`;
 
@@ -441,18 +428,11 @@ export abstract class PluginOdapGateway
 
     this.log.info(`${fnTag}, recovering open sessions...`);
 
-    if (this.database == undefined) {
+    if (this.localRepository?.database == undefined) {
       throw new Error(`${fnTag}, database is undefined`);
     }
 
-    const logs: OdapLocalLog[] = await this.getDatabaseInstance()
-      .select(
-        this.database.raw(
-          "sessionId, key, data, type, operation, MAX(timestamp) as timestamp",
-        ),
-      )
-      .whereNot({ type: "proof" })
-      .groupBy("sessionID");
+    const logs: IOdapLocalLog[] = await this.localRepository.readLogsNotProofs();
 
     for (const log of logs) {
       const sessionID = log.sessionID;
@@ -481,48 +461,39 @@ export abstract class PluginOdapGateway
     }
   }
 
-  async storeInDatabase(odapLocalLog: OdapLocalLog) {
+  async storeInDatabase(odapLocalLog: IOdapLocalLog) {
     const fnTag = `${this.className}#storeInDatabase()`;
     this.log.info(
       `${fnTag}, Storing locally log: ${JSON.stringify(odapLocalLog)}`,
     );
 
-    await this.getDatabaseInstance().insert(odapLocalLog);
+    await this.localRepository?.create(odapLocalLog)
   }
 
-  async storeInIPFS(key: string, hash: string) {
-    const fnTag = `${this.className}#storeInIPFS()`;
+  async storeRemoteLog(key: string, hash: string) {
+    const fnTag = `${this.className}#storeRemoteLog()`;
 
-    if (this.ipfsApi == undefined) return;
-
-    const ipfsLog: IOdapLogIPFS = {
+    const remoteLog: IOdapLogRemote = {
       key: key,
       hash: hash,
       signature: "",
       signerPubKey: this.pubKey,
     };
 
-    ipfsLog.signature = PluginOdapGateway.bufArray2HexStr(
-      await this.sign(JSON.stringify(ipfsLog)),
+    remoteLog.signature = PluginOdapGateway.bufArray2HexStr(
+      this.sign(JSON.stringify(remoteLog)),
     );
 
-    const logBase64 = Buffer.from(JSON.stringify(ipfsLog)).toString("base64");
+    this.log.info(`${fnTag}, Storing remote log: ${JSON.stringify(remoteLog)}`);
 
-    this.log.info(`${fnTag}, Storing in ipfs log: ${JSON.stringify(ipfsLog)}`);
-
-    const response = await this.ipfsApi.setObjectV1({
-      key: key,
-      value: logBase64,
-    });
+    const response = await this.remoteRepository?.create(remoteLog);
 
     if (response.status < 200 && response.status > 299) {
-      throw new Error(`${fnTag}, error when logging to ipfs`);
+      throw new Error(`${fnTag}, got response ${response.status} when logging to remote`);
     }
   }
 
-  async storeOdapLog(odapLocalLog: OdapLocalLog): Promise<void> {
-    if (this.ipfsApi == undefined) return;
-
+  async storeOdapLog(odapLocalLog: IOdapLocalLog): Promise<void> {
     odapLocalLog.key = PluginOdapGateway.getOdapLogKey(
       odapLocalLog.sessionID,
       odapLocalLog.type,
@@ -530,8 +501,8 @@ export abstract class PluginOdapGateway
     );
     odapLocalLog.timestamp = Date.now().toString();
 
-    await this.storeInDatabase(odapLocalLog);
-
+    await this.storeInDatabase(odapLocalLog)
+    
     // Keep the order consistent with the order of the fields in the table
     // so that the hash matches when retrieving from the database
     const hash = SHA256(
@@ -545,11 +516,11 @@ export abstract class PluginOdapGateway
       ]),
     ).toString();
 
-    await this.storeInIPFS(odapLocalLog.key, hash);
+    await this.storeRemoteLog(odapLocalLog.key, hash);
   }
 
-  async storeOdapProof(odapLocalLog: OdapLocalLog): Promise<void> {
-    if (this.ipfsApi == undefined || odapLocalLog.data == undefined) return;
+  async storeOdapProof(odapLocalLog: IOdapLocalLog): Promise<void> {
+    if (odapLocalLog.data == undefined) return;
 
     odapLocalLog.key = PluginOdapGateway.getOdapLogKey(
       odapLocalLog.sessionID,
@@ -562,49 +533,40 @@ export abstract class PluginOdapGateway
 
     const hash = SHA256(odapLocalLog.data).toString();
 
-    await this.storeInIPFS(odapLocalLog.key, hash);
+    await this.storeRemoteLog(odapLocalLog.key, hash);
   }
 
-  async getLogFromDatabase(logKey: string): Promise<OdapLocalLog | undefined> {
+  async getLogFromDatabase(logKey: string): Promise<IOdapLocalLog | undefined> {
     const fnTag = `${this.className}#getLogFromDatabase()`;
     this.log.info(`${fnTag}, retrieving log with key ${logKey}`);
 
-    return await this.getDatabaseInstance()
-      .where({ key: logKey })
-      .first()
+    return await this.localRepository?.readById(logKey)
       .then((row) => {
         this.log.info(`${fnTag}, retrieved log ${JSON.stringify(row)}`);
-
         return row;
       });
   }
 
   async getLastLogFromDatabase(
     sessionID: string,
-  ): Promise<OdapLocalLog | undefined> {
+  ): Promise<IOdapLocalLog | undefined> {
     const fnTag = `${this.className}#getLastLog()`;
     this.log.info(`${fnTag}, retrieving last log from sessionID ${sessionID}`);
 
-    return await this.getDatabaseInstance()
-      .orderBy("timestamp", "desc")
-      .where({ sessionID: sessionID })
-      .first()
+    return await this.localRepository?.readLastestLog(sessionID)
       .then((row) => {
         this.log.info(`${fnTag}, retrieved log ${JSON.stringify(row)}`);
-
         return row;
       });
   }
 
   async getLogsMoreRecentThanTimestamp(
     timestamp: string,
-  ): Promise<OdapLocalLog[]> {
+  ): Promise<IOdapLocalLog[]> {
     const fnTag = `${this.className}#getLogsMoreRecentThanTimestamp()`;
     this.log.info(`${fnTag}, retrieving logs more recent than ${timestamp}`);
 
-    const logs: OdapLocalLog[] = await this.getDatabaseInstance()
-      .where("timestamp", ">", timestamp)
-      .whereNot("type", "like", "%proof%");
+    const logs: IOdapLocalLog[] | undefined = await this.localRepository?.readLogsMoreRecentThanTimestamp(timestamp);
 
     if (logs == undefined) {
       throw new Error(`${fnTag}, error when retrieving log from database`);
@@ -615,35 +577,25 @@ export abstract class PluginOdapGateway
     return logs;
   }
 
-  async getLogFromIPFS(logKey: string): Promise<IOdapLogIPFS> {
+  async getLogFromRemote(logKey: string): Promise<IOdapLogRemote> {
     const fnTag = `${this.className}#getOdapLogFromIPFS()`;
     this.log.info(`Retrieving log with key: <${logKey}>`);
 
-    if (this.ipfsApi == undefined) {
-      throw new Error(`${fnTag}, ipfs is not defined`);
+    try {
+      let log = await this.remoteRepository?.readById(logKey);
+
+      if (log == undefined || log?.signature == undefined) {
+        throw new Error(`${fnTag}, the log or its signature is not defined`);
+      }
+
+      if (!this.verifySignature(log, log.signerPubKey)) {
+        throw new Error(`${fnTag}, received log with invalid signature`);
+      }
+
+      return log;
+    } catch {
+      throw new Error(`${fnTag}, error reading from remote log`);
     }
-
-    const response = await this.ipfsApi.getObjectV1({
-      key: logKey,
-    });
-
-    if (response.status < 200 && response.status > 299) {
-      throw new Error(`${fnTag}, error when logging to ipfs`);
-    }
-
-    const log: IOdapLogIPFS = JSON.parse(
-      Buffer.from(response.data.value, "base64").toString(),
-    );
-
-    if (log == undefined || log.signature == undefined) {
-      throw new Error(`${fnTag}, the log or its signature is not defined`);
-    }
-
-    if (!this.verifySignature(log, log.signerPubKey)) {
-      throw new Error(`${fnTag}, received log with invalid signature`);
-    }
-
-    return log;
   }
 
   static getOdapAPI(basePath: string): OdapApi {
@@ -659,7 +611,7 @@ export abstract class PluginOdapGateway
       `deleting logs from database associated with sessionID: ${sessionID}`,
     );
 
-    await this.getDatabaseInstance().where({ sessionID: sessionID }).del();
+    await this.localRepository?.deleteBySessionId(sessionID);
   }
 
   async resumeOdapSession(sessionID: string, remote: boolean) {

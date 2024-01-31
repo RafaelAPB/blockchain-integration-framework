@@ -8,25 +8,14 @@ import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
-import { IOdapPluginKeyPair, PluginOdapGateway } from "./plugin-odap-gateway";
-import { ClientGatewayHelper } from "./client/client-helper";
-import { ServerGatewayHelper } from "./server/server-helper";
+import { IPluginOdapGatewayConstructorOptions, PluginOdapGateway } from "./plugin-odap-gateway";
 
-export interface IBesuOdapGatewayConstructorOptions {
-  name: string;
-  dltIDs: string[];
-  instanceId: string;
-  keyPair?: IOdapPluginKeyPair;
-  backupGatewaysAllowed?: string[];
-  ipfsPath?: string;
+export interface IBesuOdapGatewayConstructorOptions extends IPluginOdapGatewayConstructorOptions {
   besuPath?: string;
   besuContractName?: string;
   besuWeb3SigningCredential?: Web3SigningCredential;
   besuKeychainId?: string;
   besuAssetID?: string;
-  knexConfig?: Knex.Config;
-  clientHelper: ClientGatewayHelper;
-  serverHelper: ServerGatewayHelper;
 }
 
 export class BesuOdapGateway extends PluginOdapGateway {
@@ -45,7 +34,8 @@ export class BesuOdapGateway extends PluginOdapGateway {
       ipfsPath: options.ipfsPath,
       clientHelper: options.clientHelper,
       serverHelper: options.serverHelper,
-      knexConfig: options.knexConfig,
+      knexLocalConfig: options.knexLocalConfig,
+      knexRemoteConfig: options.knexRemoteConfig
     });
 
     if (options.besuPath != undefined) this.defineBesuConnection(options);

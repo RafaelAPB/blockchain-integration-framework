@@ -18,8 +18,6 @@ import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
-let sourceGatewayConstructor: IPluginOdapGatewayConstructorOptions;
-let recipientGatewayConstructor: IPluginOdapGatewayConstructorOptions;
 let pluginSourceGateway: PluginOdapGateway;
 let pluginRecipientGateway: PluginOdapGateway;
 let dummyLockEvidenceResponseMessageHash: string;
@@ -28,14 +26,14 @@ let sessionID: string;
 let sequenceNumber: number;
 
 beforeEach(async () => {
-  sourceGatewayConstructor = {
+  const sourceGatewayConstructor = {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
   };
-  recipientGatewayConstructor = {
+  const recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
@@ -47,16 +45,14 @@ beforeEach(async () => {
   pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 
   dummyLockEvidenceResponseMessageHash = SHA256(
     "lockEvidenceResponseMessageData",
@@ -239,6 +235,8 @@ test("timeout in commit preparation response because no client gateway is connec
 });
 
 afterEach(() => {
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy()
+  pluginRecipientGateway.remoteRepository?.destroy()
 });

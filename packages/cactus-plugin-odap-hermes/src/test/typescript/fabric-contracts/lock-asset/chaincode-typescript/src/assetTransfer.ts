@@ -50,6 +50,7 @@ export class AssetTransferContract extends Contract {
       size: size,
       isLocked: false,
     };
+    console.info(`CreateAsset ${JSON.stringify(asset)}`);
     await ctx.stub.putState(id, Buffer.from(JSON.stringify(asset)));
   }
 
@@ -136,6 +137,8 @@ export class AssetTransferContract extends Contract {
     const asset: Asset = JSON.parse(assetString);
     asset.isLocked = true;
     await ctx.stub.putState(id, Buffer.from(JSON.stringify(asset)));
+    
+    console.info(`LockAsset {${id},${JSON.stringify(asset)}}`);
     return true;
   }
 
