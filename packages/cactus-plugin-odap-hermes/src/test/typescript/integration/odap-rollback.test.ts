@@ -19,7 +19,6 @@ import {
   Containers,
   FabricTestLedgerV1,
   pruneDockerAllIfGithubAction,
-  GoIpfsTestContainer,
   BesuTestLedger,
   DEFAULT_FABRIC_2_AIO_IMAGE_NAME,
   DEFAULT_FABRIC_2_AIO_IMAGE_VERSION,

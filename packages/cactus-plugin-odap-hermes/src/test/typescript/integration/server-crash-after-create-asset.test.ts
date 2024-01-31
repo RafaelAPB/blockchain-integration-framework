@@ -19,7 +19,6 @@ import {
   Containers,
   FabricTestLedgerV1,
   pruneDockerAllIfGithubAction,
-  GoIpfsTestContainer,
   BesuTestLedger,
 } from "@hyperledger/cactus-test-tooling";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";

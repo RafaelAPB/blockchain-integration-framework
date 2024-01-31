@@ -1,20 +1,6 @@
-import http, { Server } from "http";
-import type { AddressInfo } from "net";
-import { v4 as uuidv4 } from "uuid";
 import "jest-extended";
-import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
-import bodyParser from "body-parser";
-import express from "express";
-import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
-import {
-  IListenOptions,
-  LogLevelDesc,
-  Servers,
-} from "@hyperledger/cactus-common";
 import { v4 as uuidV4 } from "uuid";
-import { Configuration } from "@hyperledger/cactus-core-api";
 import { PluginOdapGateway } from "../../../main/typescript/gateway/plugin-odap-gateway";
-import { GoIpfsTestContainer } from "@hyperledger/cactus-test-tooling";
 
 import {
   AssetProfile,

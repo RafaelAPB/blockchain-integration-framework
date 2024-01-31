@@ -70,7 +70,6 @@ import { knexClientConnection, knexRemoteConnection, knexServerConnection } from
  * export HFC_LOGGING='{"debug":"console","info":"console"}'
  * ```
  */
-let ipfsApiHost: string;
 
 let fabricSigningCredential: FabricSigningCredential;
 const logLevel: LogLevelDesc = "INFO";
