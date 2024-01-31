@@ -11,7 +11,7 @@ export class KnexRemoteLogRepository implements IRemoteLogRepository {
     // simulating a remote log storage
     public constructor(config: Knex.Config | undefined) {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const configFile = require("../../../../../knex/knexfile.ts")[
+        const configFile = require("../../../../../knex/knexfile-remote.ts")[
             process.env.ENVIRONMENT || "development"
         ];
         
