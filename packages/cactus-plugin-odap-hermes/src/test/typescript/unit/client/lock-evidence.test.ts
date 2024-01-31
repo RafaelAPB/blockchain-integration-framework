@@ -201,4 +201,6 @@ test("timeout in lock evidence request because no server gateway is connected", 
 afterEach(() => {
   pluginSourceGateway.localRepository?.destroy()
   pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy();
+  pluginRecipientGateway.remoteRepository?.destroy();
 });

@@ -239,4 +239,6 @@ test("timeout in transfer initiation request because no server gateway is connec
 afterEach(() => {
   pluginSourceGateway.localRepository?.destroy()
   pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy();
+  pluginRecipientGateway.remoteRepository?.destroy();
 });

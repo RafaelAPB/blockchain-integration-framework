@@ -211,4 +211,6 @@ test("timeout in commit preparation request because no server gateway is connect
 afterEach(() => {
   pluginSourceGateway.localRepository?.destroy()
   pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy();
+  pluginRecipientGateway.remoteRepository?.destroy();
 });
