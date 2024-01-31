@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Hyperledger Cactus Plugin - Odap Hermes
- * Implementation for Odap and Hermes
+ * Hyperledger Cactus Plugin - Satp Hermes
+ * Implementation for Satp and Hermes
  *
  * The version of the OpenAPI document: v2.0.0-alpha.2
  * 

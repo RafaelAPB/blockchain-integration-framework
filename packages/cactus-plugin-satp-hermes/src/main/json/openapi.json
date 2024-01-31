@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Hyperledger Cactus Plugin - Odap Hermes",
-    "description": "Implementation for Odap and Hermes",
+    "title": "Hyperledger Cactus Plugin - Satp Hermes",
+    "description": "Implementation for Satp and Hermes",
     "version": "v2.0.0-alpha.2",
     "license": {
       "name": "Apache-2.0",
@@ -1226,7 +1226,7 @@
         },
         "required": ["sessionID", "type", "operation"]
       },
-      "OdapMessage": {
+      "SatpMessage": {
         "type": "object",
         "properties": {
           "SequenceNumber": {

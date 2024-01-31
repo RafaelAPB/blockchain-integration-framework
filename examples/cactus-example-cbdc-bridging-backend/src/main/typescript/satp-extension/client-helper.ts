@@ -4,7 +4,7 @@ import {
   TransferInitializationV1Request,
   ClientGatewayHelper,
 } from "@hyperledger/cactus-plugin-satp-hermes";
-import { OdapMessageType } from "@hyperledger/cactus-plugin-satp-hermes";
+import { SatpMessageType } from "@hyperledger/cactus-plugin-satp-hermes";
 import { FabricSatpGateway } from "./fabric-satp-gateway";
 import { BesuSatpGateway } from "./besu-satp-gateway";
 
@@ -51,7 +51,7 @@ export class ClientHelper extends ClientGatewayHelper {
     }
 
     const initializationRequestMessage: TransferInitializationV1Request = {
-      messageType: OdapMessageType.InitializationRequest,
+      messageType: SatpMessageType.InitializationRequest,
       sessionID: sessionData.id,
       version: sessionData.version,
       // developer urn
@@ -132,7 +132,7 @@ export class ClientHelper extends ClientGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getOdapAPI(
+      PluginSatpGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase1TransferInitiationRequestV1(initializationRequestMessage),
       "TransferInitializationRequest",

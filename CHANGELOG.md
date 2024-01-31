@@ -267,7 +267,7 @@ Signed-off-by: Michal Bajer <michal.bajer@fujitsu.com>
 * **core-api:** add weaver protocol buffer definitions [#1523](https://github.com/hyperledger/cactus/issues/1523) ([851c071](https://github.com/hyperledger/cactus/commit/851c071e13e2ed3748a9c52ae9d02fb85d235c9a))
 * **docs:** upated maintainers list ([b5c94dc](https://github.com/hyperledger/cactus/commit/b5c94dc744c48040b5cadd49b8903534ba5998d1))
 * **example:** make cartrade support more environments ([e7e0402](https://github.com/hyperledger/cactus/commit/e7e04026059b7c1dfd1c5bd8c65f052651464966))
-* **odap:** first implemenation for odap plugin and endpoints ([51bf753](https://github.com/hyperledger/cactus/commit/51bf753d421cdd255c178036fe901eb9c1c04130))
+* **satp:** first implemenation for satp plugin and endpoints ([51bf753](https://github.com/hyperledger/cactus/commit/51bf753d421cdd255c178036fe901eb9c1c04130))
 * **test-tooling:** embed couch-db image in the faio ([95d956d](https://github.com/hyperledger/cactus/commit/95d956d9bbfb15b15b043a753f07cbf876c33707))
 * **test-tooling:** env injenction for Besu, Fabric, Quorum AIOs ([bb0352d](https://github.com/hyperledger/cactus/commit/bb0352dad85a1acbb4fc4b34026f39f289cfa9c0)), closes [#1580](https://github.com/hyperledger/cactus/issues/1580)
 * **test-tooling:** faio features and improvements ([794e8b8](https://github.com/hyperledger/cactus/commit/794e8b89aba5a7bc6144343607893bca64affda1))

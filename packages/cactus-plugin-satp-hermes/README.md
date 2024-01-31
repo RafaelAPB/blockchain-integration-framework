@@ -52,7 +52,7 @@ Firstly let us identify the different entities involved in the protocol and what
 
 The sequence diagram of ODAP is pictured below.
 
-![odap-sequence-diagram](https://i.imgur.com/SOdXFEt.png)
+![satp-sequence-diagram](https://i.imgur.com/SOdXFEt.png)
 
 ### API Endpoints
 This plugin uses OpenAPI to generate the API paths.
@@ -118,7 +118,7 @@ Then the ODAP gateways should be created as follows:
 
 ```typescript
 const clientGatewayOptions: IFabricSatpGatewayConstructorOptions = {
-  name: "cactus-plugin#clientOdapGateway",
+  name: "cactus-plugin#clientSatpGateway",
   dltIDs: ["DLT2"],
   instanceId: uuidv4(),
   ipfsPath: "http://localhost:8047",
@@ -131,7 +131,7 @@ const clientGatewayOptions: IFabricSatpGatewayConstructorOptions = {
 };
 
 const serverGatewayOptions: IBesuSatpGatewayConstructorOptions = {
-  name: "cactus-plugin#serverOdapGateway",
+  name: "cactus-plugin#serverSatpGateway",
   dltIDs: ["DLT1"],
   instanceId: uuidv4(),
   ipfsPath: "http://localhost:8047",

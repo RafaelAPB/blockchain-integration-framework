@@ -32,7 +32,7 @@ import org.springframework.web.util.HtmlUtils.htmlEscape
 import kotlin.Exception
 
 // TODO Look into this project for powering the connector of ours:
-// https://github.com/180Protocol/codaptor
+// https://github.com/180Protocol/csatptor
 @Service
 class ApiPluginLedgerConnectorCordaServiceImpl(
     // FIXME: We already have the code/annotations  set up "the spring boot way" so that credentials do not need

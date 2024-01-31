@@ -8,25 +8,14 @@ import {
   EthContractInvocationType,
   InvokeContractV1Request as BesuInvokeContractV1Request,
 } from "@hyperledger/cactus-plugin-ledger-connector-besu";
-import { IKeyPair, PluginSatpGateway } from "./plugin-satp-gateway";
-import { ClientGatewayHelper } from "./client/client-helper";
-import { ServerGatewayHelper } from "./server/server-helper";
+import { IPluginSatpGatewayConstructorOptions, PluginSatpGateway } from "./plugin-satp-gateway";
 
-export interface IBesuSatpGatewayConstructorOptions {
-  name: string;
-  dltIDs: string[];
-  instanceId: string;
-  keyPair?: IKeyPair;
-  backupGatewaysAllowed?: string[];
-  ipfsPath?: string;
+export interface IBesuSatpGatewayConstructorOptions extends IPluginSatpGatewayConstructorOptions {
   besuPath?: string;
   besuContractName?: string;
   besuWeb3SigningCredential?: Web3SigningCredential;
   besuKeychainId?: string;
   besuAssetID?: string;
-  knexConfig?: Knex.Config;
-  clientHelper: ClientGatewayHelper;
-  serverHelper: ServerGatewayHelper;
 }
 
 export class BesuSatpGateway extends PluginSatpGateway {
@@ -45,7 +34,8 @@ export class BesuSatpGateway extends PluginSatpGateway {
       ipfsPath: options.ipfsPath,
       clientHelper: options.clientHelper,
       serverHelper: options.serverHelper,
-      knexConfig: options.knexConfig,
+      knexLocalConfig: options.knexLocalConfig,
+      knexRemoteConfig: options.knexRemoteConfig
     });
 
     if (options.besuPath != undefined) this.defineBesuConnection(options);
