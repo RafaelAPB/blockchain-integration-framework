@@ -497,7 +497,7 @@ export class ServerGatewayHelper {
     }
 
     const claimHash = SHA256(request.lockEvidenceClaim).toString();
-    const retrievedClaim = await odap.getLogFromIPFS(
+    const retrievedClaim = await odap.getLogFromRemote(
       PluginOdapGateway.getOdapLogKey(sessionID, "proof", "lock"),
     );
 
@@ -822,7 +822,7 @@ export class ServerGatewayHelper {
 
     // We need to check somewhere if this phase is completed within the asset-lock duration.
     const claimHash = SHA256(request.commitFinalClaim).toString();
-    const retrievedClaim = await odap.getLogFromIPFS(
+    const retrievedClaim = await odap.getLogFromRemote(
       PluginOdapGateway.getOdapLogKey(sessionID, "proof", "delete"),
     );
 

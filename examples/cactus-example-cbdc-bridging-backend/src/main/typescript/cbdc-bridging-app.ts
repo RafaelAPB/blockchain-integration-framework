@@ -24,7 +24,6 @@ import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory
 import { CbdcBridgingAppDummyInfrastructure } from "./infrastructure/cbdc-bridging-app-dummy-infrastructure";
 import { DefaultApi as FabricApi } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import { DefaultApi as BesuApi } from "@hyperledger/cactus-plugin-ledger-connector-besu";
-import { DefaultApi as IpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import { FabricOdapGateway } from "./odap-extension/fabric-odap-gateway";
 import { BesuOdapGateway } from "./odap-extension/besu-odap-gateway";
 import CryptoMaterial from "../../crypto-material/crypto-material.json";
@@ -81,8 +80,6 @@ export class CbdcBridgingApp {
     const fabricPlugin =
       await this.infrastructure.createFabricLedgerConnector();
     const besuPlugin = await this.infrastructure.createBesuLedgerConnector();
-    const clientIpfsPlugin = await this.infrastructure.createIPFSConnector();
-    const serverIpfsPlugin = await this.infrastructure.createIPFSConnector();
 
     // Reserve the ports where the API Servers will run
     const httpApiA = await Servers.startOnPort(
@@ -103,13 +100,11 @@ export class CbdcBridgingApp {
     const fabricOdapGateway = await this.infrastructure.createClientGateway(
       nodeApiHostA,
       this.options.clientGatewayKeyPair,
-      `http://${this.options.apiHost}:${addressInfoA.port}`,
     );
 
     const besuOdapGateway = await this.infrastructure.createServerGateway(
       nodeApiHostB,
       this.options.serverGatewayKeyPair,
-      `http://${this.options.apiHost}:${addressInfoB.port}`,
     );
 
     const clientPluginRegistry = new PluginRegistry({
@@ -133,10 +128,8 @@ export class CbdcBridgingApp {
 
     clientPluginRegistry.add(fabricPlugin);
     clientPluginRegistry.add(fabricOdapGateway);
-    clientPluginRegistry.add(clientIpfsPlugin);
 
     serverPluginRegistry.add(besuPlugin);
-    serverPluginRegistry.add(serverIpfsPlugin);
     serverPluginRegistry.add(besuOdapGateway);
 
     const apiServer1 = await this.startNode(httpApiA, clientPluginRegistry);
@@ -171,7 +164,6 @@ export class CbdcBridgingApp {
       besuGatewayApi: new OdapApi(
         new Configuration({ basePath: nodeApiHostB }),
       ),
-      ipfsApiClient: new IpfsApi(new Configuration({ basePath: nodeApiHostA })),
       fabricApiClient,
       besuApiClient,
       fabricOdapGateway,
@@ -233,7 +225,6 @@ export interface IStartInfo {
   readonly apiServer2: ApiServer;
   readonly fabricGatewayApi: OdapApi;
   readonly besuGatewayApi: OdapApi;
-  readonly ipfsApiClient: IpfsApi;
   readonly besuApiClient: BesuApi;
   readonly fabricApiClient: FabricApi;
   readonly fabricOdapGateway: FabricOdapGateway;

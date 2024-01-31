@@ -754,7 +754,7 @@ export class ClientGatewayHelper {
     }
 
     const claimHash = SHA256(response.commitAcknowledgementClaim).toString();
-    const retrievedClaim = await odap.getLogFromIPFS(
+    const retrievedClaim = await odap.getLogFromRemote(
       PluginOdapGateway.getOdapLogKey(sessionID, "proof", "create"),
     );
 

@@ -1,7 +1,4 @@
 import { randomInt } from "crypto";
-import { v4 as uuidv4 } from "uuid";
-import bodyParser from "body-parser";
-import http, { Server } from "http";
 import {
   IPluginOdapGatewayConstructorOptions,
   OdapMessageType,
@@ -11,35 +8,23 @@ import {
   LockEvidenceV1Request,
   SessionData,
 } from "../../../../main/typescript/generated/openapi/typescript-axios/api";
-import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import { v4 as uuidV4 } from "uuid";
 import { SHA256 } from "crypto-js";
 import {
-  IListenOptions,
   LogLevelDesc,
-  Servers,
 } from "@hyperledger/cactus-common";
-import { Configuration } from "@hyperledger/cactus-core-api";
-import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
-import { GoIpfsTestContainer } from "@hyperledger/cactus-test-tooling";
-
-import express from "express";
-import { AddressInfo } from "net";
 
 import { BesuOdapGateway } from "../../../../main/typescript/gateway/besu-odap-gateway";
 import { FabricOdapGateway } from "../../../../main/typescript/gateway/fabric-odap-gateway";
 import { ClientGatewayHelper } from "../../../../main/typescript/gateway/client/client-helper";
 import { ServerGatewayHelper } from "../../../../main/typescript/gateway/server/server-helper";
+import { knexRemoteConnection } from "../../knex.config";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
 
-const logLevel: LogLevelDesc = "TRACE";
-
 const LOCK_EVIDENCE_CLAIM = "dummyLockEvidenceClaim";
 
-let sourceGatewayConstructor: IPluginOdapGatewayConstructorOptions;
-let recipientGatewayConstructor: IPluginOdapGatewayConstructorOptions;
 let pluginSourceGateway: PluginOdapGateway;
 let pluginRecipientGateway: PluginOdapGateway;
 let dummyTransferCommenceResponseMessageHash: string;
@@ -48,86 +33,36 @@ let lockExpiryDate: string;
 let sessionID: string;
 let sequenceNumber: number;
 
-let ipfsContainer: GoIpfsTestContainer;
-let ipfsServer: Server;
-let ipfsApiHost: string;
-
-beforeAll(async () => {
-  ipfsContainer = new GoIpfsTestContainer({ logLevel });
-  expect(ipfsContainer).not.toBeUndefined();
-
-  const container = await ipfsContainer.start();
-  expect(container).not.toBeUndefined();
-
-  const expressApp = express();
-  expressApp.use(bodyParser.json({ limit: "250mb" }));
-  ipfsServer = http.createServer(expressApp);
-  const listenOptions: IListenOptions = {
-    hostname: "127.0.0.1",
-    port: 0,
-    server: ipfsServer,
-  };
-
-  const addressInfo = (await Servers.listen(listenOptions)) as AddressInfo;
-  const { address, port } = addressInfo;
-  ipfsApiHost = `http://${address}:${port}`;
-
-  const config = new Configuration({ basePath: ipfsApiHost });
-  const apiClient = new ObjectStoreIpfsApi(config);
-
-  expect(apiClient).not.toBeUndefined();
-
-  const ipfsApiUrl = await ipfsContainer.getApiUrl();
-
-  const kuboRpcModule = await import("kubo-rpc-client");
-  const ipfsClientOrOptions = kuboRpcModule.create({
-    url: ipfsApiUrl,
-  });
-
-  const instanceId = uuidv4();
-  const pluginIpfs = new PluginObjectStoreIpfs({
-    parentDir: `/${uuidv4()}/${uuidv4()}/`,
-    logLevel,
-    instanceId,
-    ipfsClientOrOptions,
-  });
-
-  await pluginIpfs.getOrCreateWebServices();
-  await pluginIpfs.registerWebServices(expressApp);
-});
-
 beforeEach(async () => {
-  sourceGatewayConstructor = {
+  const sourceGatewayConstructor = {
     name: "plugin-odap-gateway#sourceGateway",
     dltIDs: ["DLT2"],
     instanceId: uuidV4(),
-    ipfsPath: ipfsApiHost,
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
+    knexRemoteConfig: knexRemoteConnection
   };
-  recipientGatewayConstructor = {
+  const recipientGatewayConstructor = {
     name: "plugin-odap-gateway#recipientGateway",
     dltIDs: ["DLT1"],
     instanceId: uuidV4(),
-    ipfsPath: ipfsApiHost,
     clientHelper: new ClientGatewayHelper(),
     serverHelper: new ServerGatewayHelper(),
+    knexRemoteConfig: knexRemoteConnection
   };
 
   pluginSourceGateway = new FabricOdapGateway(sourceGatewayConstructor);
   pluginRecipientGateway = new BesuOdapGateway(recipientGatewayConstructor);
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 
   dummyTransferCommenceResponseMessageHash = SHA256(
     "transferCommenceResponseMessageData",
@@ -165,21 +100,19 @@ beforeEach(async () => {
   });
 
   if (
-    pluginSourceGateway.database == undefined ||
-    pluginRecipientGateway.database == undefined
+    pluginSourceGateway.localRepository?.database == undefined ||
+    pluginRecipientGateway.localRepository?.database == undefined
   ) {
     throw new Error("Database is not correctly initialized");
   }
 
-  await pluginSourceGateway.database.migrate.rollback();
-  await pluginSourceGateway.database.migrate.latest();
-  await pluginRecipientGateway.database.migrate.rollback();
-  await pluginRecipientGateway.database.migrate.latest();
+  await pluginSourceGateway.localRepository?.reset();
+  await pluginRecipientGateway.localRepository?.reset();
 });
 
 afterEach(() => {
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
 });
 
 test("valid lock evidence request", async () => {
@@ -374,15 +307,9 @@ test("timeout in lock evidence response because no client gateway is connected",
     });
 });
 
-afterAll(async () => {
-  await ipfsContainer.stop();
-  await ipfsContainer.destroy();
-  await Servers.shutdown(ipfsServer);
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
-});
-
 afterEach(() => {
-  pluginSourceGateway.database?.destroy();
-  pluginRecipientGateway.database?.destroy();
+  pluginSourceGateway.localRepository?.destroy()
+  pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy()
+  pluginRecipientGateway.remoteRepository?.destroy()
 });
