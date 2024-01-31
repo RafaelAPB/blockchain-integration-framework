@@ -15,7 +15,6 @@ export interface IFabricOdapGatewayConstructorOptions extends IPluginOdapGateway
   fabricSigningCredential?: FabricSigningCredential;
   fabricChannelName?: string;
   fabricContractName?: string;
-  knexLocalConfig?: Knex.Config;
 }
 
 export class FabricOdapGateway extends PluginOdapGateway {

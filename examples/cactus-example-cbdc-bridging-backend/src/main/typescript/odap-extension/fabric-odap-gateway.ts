@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { Knex } from "knex";
 import { Configuration } from "@hyperledger/cactus-core-api";
 import {
   DefaultApi as FabricApi,
@@ -8,28 +7,18 @@ import {
   RunTransactionRequest as FabricRunTransactionRequest,
 } from "@hyperledger/cactus-plugin-ledger-connector-fabric";
 import {
-  IOdapPluginKeyPair,
+  IPluginOdapGatewayConstructorOptions,
   PluginOdapGateway,
 } from "@hyperledger/cactus-plugin-odap-hermes";
 import { SessionDataRollbackActionsPerformedEnum } from "@hyperledger/cactus-plugin-odap-hermes";
 import { ClientHelper } from "./client-helper";
 import { ServerHelper } from "./server-helper";
 
-export interface IFabricOdapGatewayConstructorOptions {
-  name: string;
-  dltIDs: string[];
-  instanceId: string;
-  keyPair?: IOdapPluginKeyPair;
-  backupGatewaysAllowed?: string[];
-
-  ipfsPath?: string;
+export interface IFabricOdapGatewayConstructorOptions extends IPluginOdapGatewayConstructorOptions {
   fabricPath?: string;
-
   fabricSigningCredential?: FabricSigningCredential;
   fabricChannelName?: string;
   fabricContractName?: string;
-
-  knexConfig?: Knex.Config;
 }
 
 export class FabricOdapGateway extends PluginOdapGateway {
@@ -48,6 +37,8 @@ export class FabricOdapGateway extends PluginOdapGateway {
       ipfsPath: options.ipfsPath,
       clientHelper: new ClientHelper(),
       serverHelper: new ServerHelper({}),
+      knexLocalConfig: options.knexLocalConfig,
+      knexRemoteConfig: options.knexRemoteConfig
     });
 
     if (options.fabricPath != undefined) this.defineFabricConnection(options);

@@ -4,10 +4,8 @@ import http, { Server } from "http";
 import { Server as SocketIoServer } from "socket.io";
 import { AddressInfo } from "net";
 import { v4 as uuidv4 } from "uuid";
-import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import bodyParser from "body-parser";
 import express from "express";
-import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import { AssetProfile } from "../../../main/typescript/generated/openapi/typescript-axios";
 import {
   IListenOptions,
@@ -66,7 +64,7 @@ import {
 import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
 import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
 
-import { knexClientConnection, knexServerConnection } from "../knex.config";
+import { knexClientConnection, knexRemoteConnection, knexServerConnection } from "../knex.config";
 
 /**
  * Use this to debug issues with the fabric node SDK
@@ -74,18 +72,14 @@ import { knexClientConnection, knexServerConnection } from "../knex.config";
  * export HFC_LOGGING='{"debug":"console","info":"console"}'
  * ```
  */
-let ipfsApiHost: string;
 
 let fabricSigningCredential: FabricSigningCredential;
 const logLevel: LogLevelDesc = "INFO";
 
-let ipfsServer: Server;
 let sourceGatewayServer: Server;
 let recipientGatewayServer: Server;
 let besuServer: Server;
 let fabricServer: Server;
-
-let ipfsContainer: GoIpfsTestContainer;
 
 let fabricLedger: FabricTestLedgerV1;
 let fabricContractName: string;
@@ -129,50 +123,6 @@ beforeAll(async () => {
       fail("Pruning didn't throw OK");
     });
 
-  {
-    // IPFS configuration
-    ipfsContainer = new GoIpfsTestContainer({ logLevel });
-    expect(ipfsContainer).not.toBeUndefined();
-
-    const container = await ipfsContainer.start();
-    expect(container).not.toBeUndefined();
-
-    const expressApp = express();
-    expressApp.use(bodyParser.json({ limit: "250mb" }));
-    ipfsServer = http.createServer(expressApp);
-    const listenOptions: IListenOptions = {
-      hostname: "127.0.0.1",
-      port: 0,
-      server: ipfsServer,
-    };
-
-    const addressInfo = (await Servers.listen(listenOptions)) as AddressInfo;
-    const { address, port } = addressInfo;
-    ipfsApiHost = `http://${address}:${port}`;
-
-    const config = new Configuration({ basePath: ipfsApiHost });
-    const apiClient = new ObjectStoreIpfsApi(config);
-
-    expect(apiClient).not.toBeUndefined();
-
-    const ipfsApiUrl = await ipfsContainer.getApiUrl();
-
-    const kuboRpcModule = await import("kubo-rpc-client");
-    const ipfsClientOrOptions = kuboRpcModule.create({
-      url: ipfsApiUrl,
-    });
-
-    const instanceId = uuidv4();
-    const pluginIpfs = new PluginObjectStoreIpfs({
-      parentDir: `/${uuidv4()}/${uuidv4()}/`,
-      logLevel,
-      instanceId,
-      ipfsClientOrOptions,
-    });
-
-    await pluginIpfs.getOrCreateWebServices();
-    await pluginIpfs.registerWebServices(expressApp);
-  }
   {
     // Fabric ledger connection
     const channelId = "mychannel";
@@ -412,7 +362,7 @@ beforeAll(async () => {
     // does the same thing, it just waits 10 seconds for good measure so there
     // might not be a way for us to avoid doing this, but if there is a way we
     // absolutely should not have timeouts like this, anywhere...
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await new Promise((resolve) => setTimeout(resolve, 15000));
 
     fabricSigningCredential = {
       keychainId,
@@ -566,7 +516,6 @@ beforeEach(async () => {
         dltIDs: ["DLT2"],
         instanceId: uuidv4(),
         keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-        ipfsPath: ipfsApiHost,
         fabricPath: fabricPath,
         fabricSigningCredential: fabricSigningCredential,
         fabricChannelName: fabricChannelName,
@@ -574,6 +523,7 @@ beforeEach(async () => {
         clientHelper: new ClientGatewayHelper(),
         serverHelper: new ServerGatewayHelper(),
         knexLocalConfig: knexClientConnection,
+        knexRemoteConfig: knexRemoteConnection,
       };
 
     odapServerGatewayPluginOptions = {
@@ -581,7 +531,6 @@ beforeEach(async () => {
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
-      ipfsPath: ipfsApiHost,
       besuPath: besuPath,
       besuWeb3SigningCredential: besuWeb3SigningCredential,
       besuContractName: besuContractName,
@@ -589,6 +538,7 @@ beforeEach(async () => {
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
       knexLocalConfig: knexServerConnection,
+      knexRemoteConfig: knexRemoteConnection,
     };
 
     pluginSourceGateway = new FabricOdapGateway(odapClientGatewayPluginOptions);
@@ -841,6 +791,7 @@ test("server gateway crashes after creating besu asset", async () => {
 
   // now we simulate the crash of the server gateway
   pluginRecipientGateway.localRepository?.destroy()
+  pluginRecipientGateway.remoteRepository?.destroy()
   await Servers.shutdown(recipientGatewayServer);
 
   const expressApp = express();
@@ -876,8 +827,6 @@ test("server gateway crashes after creating besu asset", async () => {
 });
 
 afterAll(async () => {
-  await ipfsContainer.stop();
-  await ipfsContainer.destroy();
   await fabricLedger.stop();
   await fabricLedger.destroy();
   await besuTestLedger.stop();
@@ -885,8 +834,10 @@ afterAll(async () => {
 
   await pluginSourceGateway.localRepository?.destroy()
   await pluginRecipientGateway.localRepository?.destroy()
+  await pluginSourceGateway.remoteRepository?.destroy()
+  await pluginRecipientGateway.remoteRepository?.destroy()
 
-  await Servers.shutdown(ipfsServer);
+
   await Servers.shutdown(besuServer);
   await Servers.shutdown(fabricServer);
   await Servers.shutdown(sourceGatewayServer);

@@ -2,10 +2,8 @@ import http, { Server } from "http";
 import type { AddressInfo } from "net";
 import { v4 as uuidv4 } from "uuid";
 import "jest-extended";
-import { PluginObjectStoreIpfs } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import bodyParser from "body-parser";
 import express, { Express } from "express";
-import { DefaultApi as ObjectStoreIpfsApi } from "@hyperledger/cactus-plugin-object-store-ipfs";
 import {
   IListenOptions,
   LogLevelDesc,
@@ -13,7 +11,6 @@ import {
   Servers,
 } from "@hyperledger/cactus-common";
 import { Configuration } from "@hyperledger/cactus-core-api";
-import { GoIpfsTestContainer } from "@hyperledger/cactus-test-tooling";
 
 import {
   AssetProfile,
@@ -31,7 +28,7 @@ import {
 import { ClientGatewayHelper } from "../../../main/typescript/gateway/client/client-helper";
 import { ServerGatewayHelper } from "../../../main/typescript/gateway/server/server-helper";
 
-import { knexClientConnection } from "../knex.config";
+import { knexClientConnection, knexRemoteConnection } from "../knex.config";
 
 const MAX_RETRIES = 5;
 const MAX_TIMEOUT = 5000;
@@ -45,10 +42,6 @@ let odapClientGatewayPluginOptions: IFabricOdapGatewayConstructorOptions;
 let odapServerGatewayPluginOptions: IBesuOdapGatewayConstructorOptions;
 let pluginSourceGateway: FabricOdapGateway;
 let pluginRecipientGateway: BesuOdapGateway;
-
-let ipfsContainer: GoIpfsTestContainer;
-let ipfsApiHost: string;
-let ipfsServer: Server;
 
 let sourceGatewayServer: Server;
 let recipientGatewayserver: Server;
@@ -66,59 +59,15 @@ let clientListenOptions: IListenOptions;
 
 beforeAll(async () => {
   {
-    // Define IPFS connection
-    ipfsContainer = new GoIpfsTestContainer({ logLevel });
-    expect(ipfsContainer).not.toBeUndefined();
-
-    const container = await ipfsContainer.start();
-    expect(container).not.toBeUndefined();
-
-    const expressApp = express();
-    expressApp.use(bodyParser.json({ limit: "250mb" }));
-    ipfsServer = http.createServer(expressApp);
-    const listenOptions: IListenOptions = {
-      hostname: "127.0.0.1",
-      port: 0,
-      server: ipfsServer,
-    };
-
-    const addressInfo = (await Servers.listen(listenOptions)) as AddressInfo;
-    const { address, port } = addressInfo;
-    ipfsApiHost = `http://${address}:${port}`;
-
-    const config = new Configuration({ basePath: ipfsApiHost });
-    const ipfsApi = new ObjectStoreIpfsApi(config);
-
-    expect(ipfsApi).not.toBeUndefined();
-
-    const ipfsApiUrl = await ipfsContainer.getApiUrl();
-
-    const kuboRpcModule = await import("kubo-rpc-client");
-    const ipfsClientOrOptions = kuboRpcModule.create({
-      url: ipfsApiUrl,
-    });
-
-    const instanceId = uuidv4();
-    const pluginIpfs = new PluginObjectStoreIpfs({
-      parentDir: `/${uuidv4()}/${uuidv4()}/`,
-      logLevel,
-      instanceId,
-      ipfsClientOrOptions,
-    });
-
-    await pluginIpfs.getOrCreateWebServices();
-    await pluginIpfs.registerWebServices(expressApp);
-  }
-  {
     // Server Gateway configuration
     odapServerGatewayPluginOptions = {
       name: "cactus-plugin#odapGateway",
       dltIDs: ["DLT1"],
       instanceId: uuidv4(),
-      ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
+      knexRemoteConfig: knexRemoteConnection,
     };
 
     serverExpressApp = express();
@@ -153,10 +102,10 @@ beforeAll(async () => {
       name: "cactus-plugin#odapGateway",
       dltIDs: ["DLT2"],
       instanceId: uuidv4(),
-      ipfsPath: ipfsApiHost,
       keyPair: Secp256k1Keys.generateKeyPairsBuffer(),
       clientHelper: new ClientGatewayHelper(),
       serverHelper: new ServerGatewayHelper(),
+      knexRemoteConfig: knexRemoteConnection,
       knexLocalConfig: knexClientConnection,
     };
 
@@ -245,6 +194,7 @@ test("server gateway crashes after transfer initiation flow", async () => {
 
   // now we simulate the crash of the server gateway
   pluginRecipientGateway.localRepository?.destroy()
+  pluginRecipientGateway.remoteRepository?.destroy()
   await Servers.shutdown(recipientGatewayserver);
 
   serverExpressApp = express();
@@ -272,13 +222,11 @@ test("server gateway crashes after transfer initiation flow", async () => {
 });
 
 afterAll(async () => {
-  await ipfsContainer.stop();
-  await ipfsContainer.destroy();
-
   pluginSourceGateway.localRepository?.destroy()
   pluginRecipientGateway.localRepository?.destroy()
+  pluginSourceGateway.remoteRepository?.destroy()
+  pluginRecipientGateway.remoteRepository?.destroy()
 
-  await Servers.shutdown(ipfsServer);
   await Servers.shutdown(sourceGatewayServer);
   await Servers.shutdown(recipientGatewayserver);
 });
