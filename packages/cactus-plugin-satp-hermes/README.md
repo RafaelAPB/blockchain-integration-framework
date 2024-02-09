@@ -54,7 +54,10 @@ The sequence diagram of ODAP is pictured below.
 
 ![odap-sequence-diagram](https://i.imgur.com/SOdXFEt.png)
 
-### API Endpoints
+### Application-to-Gateway API (API Type 1)
+We
+
+### Gateway-to-Gateway API (API Type 2)
 This plugin uses OpenAPI to generate the API paths.
 There are Client and Server Endpoints for each type of message detailed in the ODAP protocol:
 
