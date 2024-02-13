@@ -3,6 +3,7 @@ The package provides `Cactus` a way to standardize cross-chain transactions betw
 - A unidirectional atomic asset transfer between 2 parties in different ledgers.
 - Lock of the asset in the source ledger and proof is sent to the counterparty.
 - Extinguishment of the asset in the source blockchain and regeneration of the asset in the recipient blockchain.
+- This package implements [Hermes as defined in the paper](https://www.sciencedirect.com/science/article/abs/pii/S0167739X21004337), namely the gateway paradigm and crash recovery.
 
 At the moment, we assume a crash-fault environment under some assumptions detailed in section [Assumptions](#assumptions)
 ## Summary

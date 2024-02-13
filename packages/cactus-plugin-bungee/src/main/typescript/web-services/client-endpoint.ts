@@ -42,7 +42,7 @@ export class ClientEndpointV1 implements IWebServiceEndpoint {
     const label = this.className;
     this.log = LoggerProvider.getOrCreate({ level, label });
   }
-  
+
   public getExpressRequestHandler(): IExpressRequestHandler {
     return this.handleRequest.bind(this);
   }

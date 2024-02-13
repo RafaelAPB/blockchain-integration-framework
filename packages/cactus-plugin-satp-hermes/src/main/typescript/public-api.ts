@@ -10,6 +10,7 @@ export {
 import { IPluginFactoryOptions } from "@hyperledger/cactus-core-api";
 import { PluginFactoryFabricSatpGateway } from "./gateway/plugin-factory-fabric-satp-gateway";
 import { PluginFactoryBesuSatpGateway } from "./gateway/plugin-factory-besu-satp-gateway";
+import { fileURLToPath } from "url";
 
 export async function createFabricPluginFactory(
   pluginFactoryOptions: IPluginFactoryOptions,
@@ -25,3 +26,4 @@ export async function createBesuPluginFactory(
 
 export { ServerGatewayHelper } from "./gateway/server/server-helper";
 export { ClientGatewayHelper } from "./gateway/client/client-helper";
+export { GatewayCoordinator } from "./gateway/coordinator/gateway-coordinator";
