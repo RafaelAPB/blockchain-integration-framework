@@ -1,0 +1,15 @@
+
+syntax = "proto3";
+
+package common.ack;
+    enum STATUS {
+      OK = 0;
+      ERROR = 1;
+    };
+
+message Ack {
+    STATUS status = 1;
+    string requestID = 2;
+    string message = 3;
+  }
+  
