@@ -51,7 +51,7 @@
     "generate-sdk:typescript-axios": "openapi-generator-cli generate -i ./src/main/json/openapi.json -g typescript-axios -o ./src/main/typescript/generated/openapi/typescript-axios/ --reserved-words-mappings protected=protected --ignore-file-override ../../openapi-generator-ignore",
     "pretsc": "npm run generate-sdk",
     "tsc": "tsc --project ./tsconfig.json",
-    "watch": "npm-watch"
+    "watch": "tsc --build --watch"
   },
   "dependencies": {
     "@bufbuild/buf": "1.29.0",
