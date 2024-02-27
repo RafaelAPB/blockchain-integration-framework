@@ -18,10 +18,11 @@ export enum CurrentDrafts {
 export type DraftVersions = {
   [K in CurrentDrafts]: string;
 };
+export type ShutdownHook = () => Promise<void>;
 
 export enum SupportedGatewayImplementations {
-  FABRIC = "FabricSatpGateway",
-  BESU = "BesuSatpGateway",
+  FABRIC = "FabricSATPGateway",
+  BESU = "BesuSATPGateway",
 }
 
 export type GatewayChannel = {
@@ -41,7 +42,7 @@ export type GatewayIdentity = {
     | `${number}.${number}.${number}.${number}.`;
 };
 
-export interface GatewayCoordinatorConfig {
+export interface GatewayOrchestratorConfig {
   gid?: GatewayIdentity;
   logLevel?: LogLevelDesc;
   keys?: Secp256k1Keys;
