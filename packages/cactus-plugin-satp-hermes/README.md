@@ -121,7 +121,7 @@ Let us consider two gateways. The client gateway connected to Hyperledger Fabric
 Then the ODAP gateways should be created as follows:
 
 ```typescript
-const clientGatewayOptions: IFabricSatpGatewayConstructorOptions = {
+const clientGatewayOptions: IFabricSATPGatewayConstructorOptions = {
   name: "cactus-plugin#clientOdapGateway",
   dltIDs: ["DLT2"],
   instanceId: uuidv4(),
@@ -134,7 +134,7 @@ const clientGatewayOptions: IFabricSatpGatewayConstructorOptions = {
   serverHelper: new ServerGatewayHelper(),
 };
 
-const serverGatewayOptions: IBesuSatpGatewayConstructorOptions = {
+const serverGatewayOptions: IBesuSATPGatewayConstructorOptions = {
   name: "cactus-plugin#serverOdapGateway",
   dltIDs: ["DLT1"],
   instanceId: uuidv4(),
@@ -147,8 +147,8 @@ const serverGatewayOptions: IBesuSatpGatewayConstructorOptions = {
   serverHelper: new ServerGatewayHelper(),
 };
    
-  const clientGateway = new FabricSatpGateway(clientGatewayOptions);
-  const serverGateway = new BesuSatpGateway(serverGatewayOptions);
+  const clientGateway = new FabricSATPGateway(clientGatewayOptions);
+  const serverGateway = new BesuSATPGateway(serverGatewayOptions);
 ```
 
 Note that these gateways are extensions of the [default ODAP Gateway class](https://github.com/hyperledger/cactus/blob/main/packages/cactus-plugin-odap-hermes/src/main/typescript/gateway/plugin-satp-gateway.ts), that implements the gateway functionality. Each of these extensions implements ledger-specific operations.

@@ -1,6 +1,6 @@
-import { RollbackAckV1Message } from "../../generated/openapi/typescript-axios";
+import { RollbackAckV1Message } from "../generated/openapi/typescript-axios";
 import { LoggerProvider } from "@hyperledger/cactus-common";
-import { PluginSatpGateway } from "../plugin-satp-gateway";
+import { PluginSATPGateway } from "../plugin-satp-gateway";
 // import { SHA256 } from "crypto-js";
 
 const log = LoggerProvider.getOrCreate({
@@ -10,7 +10,7 @@ const log = LoggerProvider.getOrCreate({
 
 export async function sendRollbackAckMessage(
   sessionID: string,
-  gateway: PluginSatpGateway,
+  gateway: PluginSATPGateway,
   remote: boolean,
 ): Promise<void | RollbackAckV1Message> {
   const fnTag = `${gateway.className}#sendRollbackAckMessage()`;
@@ -35,7 +35,7 @@ export async function sendRollbackAckMessage(
     signature: "",
   };
 
-  const signature = PluginSatpGateway.bufArray2HexStr(
+  const signature = PluginSATPGateway.bufArray2HexStr(
     gateway.sign(JSON.stringify(rollbackAckMessage)),
   );
 
@@ -49,7 +49,7 @@ export async function sendRollbackAckMessage(
 
   await gateway.makeRequest(
     sessionID,
-    PluginSatpGateway.getSatpAPI(
+    PluginSATPGateway.getSatpAPI(
       gateway.isClientGateway(sessionID)
         ? sessionData.recipientBasePath
         : sessionData.sourceBasePath,
@@ -60,7 +60,7 @@ export async function sendRollbackAckMessage(
 
 export async function checkValidRollbackAckMessage(
   response: RollbackAckV1Message,
-  gateway: PluginSatpGateway,
+  gateway: PluginSATPGateway,
 ): Promise<void> {
   const fnTag = `${gateway.className}#checkValidRollbackAckMessage`;
 

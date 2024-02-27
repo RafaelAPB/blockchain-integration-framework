@@ -1,18 +1,19 @@
-import { RecoverSuccessV1Message } from "../../generated/openapi/typescript-axios";
+import { RollbackV1Message } from "../generated/openapi/typescript-axios";
 import { LoggerProvider } from "@hyperledger/cactus-common";
-import { PluginSatpGateway } from "../plugin-satp-gateway";
+import { PluginSATPGateway } from "../plugin-satp-gateway";
+// import { SHA256 } from "crypto-js";
 
 const log = LoggerProvider.getOrCreate({
   level: "INFO",
-  label: "recover-success-helper",
+  label: "rollback-helper",
 });
 
-export async function sendRecoverSuccessMessage(
+export async function sendRollbackMessage(
   sessionID: string,
-  gateway: PluginSatpGateway,
+  gateway: PluginSATPGateway,
   remote: boolean,
-): Promise<void | RecoverSuccessV1Message> {
-  const fnTag = `${gateway.className}#sendRecoverSuccessMessage()`;
+): Promise<void | RollbackV1Message> {
+  const fnTag = `${gateway.className}#sendRollbackMessage()`;
 
   const sessionData = gateway.sessions.get(sessionID);
 
@@ -20,46 +21,50 @@ export async function sendRecoverSuccessMessage(
     sessionData == undefined ||
     sessionData.maxTimeout == undefined ||
     sessionData.maxRetries == undefined ||
+    sessionData.rollbackProofs == undefined ||
     sessionData.sourceBasePath == undefined ||
-    sessionData.recipientBasePath == undefined
+    sessionData.recipientBasePath == undefined ||
+    sessionData.rollbackActionsPerformed == undefined
   ) {
     throw new Error(`${fnTag}, session data is not correctly initialized`);
   }
 
-  const recoverSuccessMessage: RecoverSuccessV1Message = {
+  const rollbackMessage: RollbackV1Message = {
     sessionID: sessionID,
     success: true,
+    actionPerformed: sessionData.rollbackActionsPerformed,
+    proofs: sessionData.rollbackProofs,
     signature: "",
   };
 
-  const signature = PluginSatpGateway.bufArray2HexStr(
-    gateway.sign(JSON.stringify(recoverSuccessMessage)),
+  const signature = PluginSATPGateway.bufArray2HexStr(
+    gateway.sign(JSON.stringify(rollbackMessage)),
   );
 
-  recoverSuccessMessage.signature = signature;
+  rollbackMessage.signature = signature;
 
-  log.info(`${fnTag}, sending RecoverSuccess message...`);
+  log.info(`${fnTag}, sending Rollback message...`);
 
   if (!remote) {
-    return recoverSuccessMessage;
+    return rollbackMessage;
   }
 
   await gateway.makeRequest(
     sessionID,
-    PluginSatpGateway.getSatpAPI(
+    PluginSATPGateway.getSatpAPI(
       gateway.isClientGateway(sessionID)
         ? sessionData.recipientBasePath
         : sessionData.sourceBasePath,
-    ).recoverV1Success(recoverSuccessMessage),
-    "RecoverSuccess",
+    ).rollbackV1Message(rollbackMessage),
+    "Rollback",
   );
 }
 
-export async function checkValidRecoverSuccessMessage(
-  response: RecoverSuccessV1Message,
-  gateway: PluginSatpGateway,
+export async function checkValidRollbackMessage(
+  response: RollbackV1Message,
+  gateway: PluginSATPGateway,
 ): Promise<void> {
-  const fnTag = `${gateway.className}#checkValidRecoverSuccessMessage`;
+  const fnTag = `${gateway.className}#checkValidRollbackMessage`;
 
   const sessionID = response.sessionID;
   const sessionData = gateway.sessions.get(sessionID);
@@ -79,17 +84,11 @@ export async function checkValidRecoverSuccessMessage(
   //   throw new Error(`${fnTag}, wrong message type for CommitFinalResponse`);
   // }
 
-  if (!response.success) {
-    throw new Error(`${fnTag}, RecoverSuccess message is invalid`);
-  }
-
   if (!gateway.verifySignature(response, pubKey)) {
     throw new Error(
-      `${fnTag}, RecoverUpdateAckMessage message signature verification failed`,
+      `${fnTag}, RollbackMessage message signature verification failed`,
     );
   }
 
-  // storeSessionData(response, satp);
-
-  log.info(`RecoverSuccessMessage passed all checks.`);
+  log.info(`RollbackMessage passed all checks.`);
 }

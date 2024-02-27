@@ -7,22 +7,22 @@ import {
 } from "@hyperledger/cactus-test-tooling";
 import { LogLevelDesc, LoggerProvider } from "@hyperledger/cactus-common";
 // import coordinator factory, coordinator and coordinator options
-import { GatewayCoordinator, GatewayCoordinatorConfig } from "../../../main/typescript/gateway/coordinator/gateway-coordinator";
-import { PluginFactoryGatewayCoordinator } from "../../../main/typescript/gateway/coordinator/plugin-factory-gateway-coordinator";
+import { GatewayOrchestrator, GatewayOrchestratorConfig } from "../../../main/typescript/gol/gateway-orchestrator";
+import { PluginFactoryGatewayOrchestrator } from "../../../main/typescript/factory/plugin-factory-gateway-orchestrator";
 import {
   IPluginFactoryOptions, PluginImportType,
 } from "@hyperledger/cactus-core-api";
-import { SupportedGatewayImplementations } from './../../../main/typescript/gateway/coordinator/types';
+import { SupportedGatewayImplementations } from './../../../main/typescript/core/types';
 
 const logLevel: LogLevelDesc = "INFO";
 const log = LoggerProvider.getOrCreate({
   level: "INFO",
-  label: "satp-gateway-coordinator-init-test",
+  label: "satp-gateway-orchestrator-init-test",
 });
 const factoryOptions: IPluginFactoryOptions = {
   pluginImportType: PluginImportType.Local,
 }
-const factory = new PluginFactoryGatewayCoordinator(factoryOptions);
+const factory = new PluginFactoryGatewayOrchestrator(factoryOptions);
 
 beforeAll(async () => {
   pruneDockerAllIfGithubAction({ logLevel })
@@ -35,13 +35,13 @@ beforeAll(async () => {
     });
 });
 
-describe("GatewayCoordinator initialization", () => {
+describe("GatewayOrchestrator initialization", () => {
 
   it("initiates with default config", async () => {
-    const options: GatewayCoordinatorConfig = {};
+    const options: GatewayOrchestratorConfig = {};
     const defaultGatewayCoordinator = await factory.create(options);
 
-    expect(defaultGatewayCoordinator).toBeInstanceOf(GatewayCoordinator);
+    expect(defaultGatewayCoordinator).toBeInstanceOf(GatewayOrchestrator);
 
     const identity = defaultGatewayCoordinator.getIdentity();
     expect(identity).toBeDefined();

@@ -5,7 +5,7 @@ import { Optional } from "typescript-optional";
 import type { Express } from "express";
 import { v4 as uuidV4 } from "uuid";
 import { Knex } from "knex";
-import OAS from "../../json/openapi.json";
+import OAS from "../json/openapi.json";
 import {
   Secp256k1Keys,
   Logger,
@@ -41,21 +41,21 @@ import {
   RecoverUpdateAckV1Message,
   RollbackV1Message,
   RollbackAckV1Message,
-} from "../generated/openapi/typescript-axios";
-import { CommitFinalRequestEndpointV1 } from "../web-services/server-side/commit-final-request-endpoint";
-import { CommitFinalResponseEndpointV1 } from "../web-services/client-side/commit-final-response-endpoint";
-import { CommitPreparationResponseEndpointV1 } from "../web-services/client-side/commit-prepare-response-endpoint";
-import { LockEvidenceResponseEndpointV1 } from "../web-services/client-side/lock-evidence-response-endpoint";
-import { TransferCommenceResponseEndpointV1 } from "../web-services/client-side/transfer-commence-response-endpoint";
-import { TransferInitiationResponseEndpointV1 } from "../web-services/client-side/transfer-initiation-response-endpoint";
-import { LockEvidenceRequestEndpointV1 } from "../web-services/server-side/lock-evidence-request-endpoint";
-import { TransferCommenceRequestEndpointV1 } from "../web-services/server-side/transfer-commence-request-endpoint";
-import { TransferCompleteRequestEndpointV1 } from "../web-services/server-side/transfer-complete-request-endpoint";
-import { TransferInitiationRequestEndpointV1 } from "../web-services/server-side/transfer-initiation-request-endpoint";
-import { CommitPreparationRequestEndpointV1 } from "../web-services/server-side/commite-prepare-request-endpoint";
+} from "./generated/openapi/typescript-axios";
+import { CommitFinalRequestEndpointV1 } from "./web-services/server-side/commit-final-request-endpoint";
+import { CommitFinalResponseEndpointV1 } from "./web-services/client-side/commit-final-response-endpoint";
+import { CommitPreparationResponseEndpointV1 } from "./web-services/client-side/commit-prepare-response-endpoint";
+import { LockEvidenceResponseEndpointV1 } from "./web-services/client-side/lock-evidence-response-endpoint";
+import { TransferCommenceResponseEndpointV1 } from "./web-services/client-side/transfer-commence-response-endpoint";
+import { TransferInitiationResponseEndpointV1 } from "./web-services/client-side/transfer-initiation-response-endpoint";
+import { LockEvidenceRequestEndpointV1 } from "./web-services/server-side/lock-evidence-request-endpoint";
+import { TransferCommenceRequestEndpointV1 } from "./web-services/server-side/transfer-commence-request-endpoint";
+import { TransferCompleteRequestEndpointV1 } from "./web-services/server-side/transfer-complete-request-endpoint";
+import { TransferInitiationRequestEndpointV1 } from "./web-services/server-side/transfer-initiation-request-endpoint";
+import { CommitPreparationRequestEndpointV1 } from "./web-services/server-side/commite-prepare-request-endpoint";
 import { randomInt } from "crypto";
-import { ClientGatewayHelper } from "./client/client-helper";
-import { ServerGatewayHelper } from "./server/server-helper";
+import { ClientGatewayHelper } from "./core/client-helper";
+import { ServerGatewayHelper } from "./core/server-helper";
 import {
   checkValidRecoverMessage,
   sendRecoverMessage,
@@ -73,11 +73,11 @@ import {
   sendRecoverSuccessMessage,
 } from "./recovery/recover-success";
 import { SHA256 } from "crypto-js";
-import { RecoverMessageEndpointV1 } from "../web-services/recovery/recover-message-endpoint";
-import { RecoverUpdateMessageEndpointV1 } from "../web-services/recovery/recover-update-message-endpoint";
-import { RecoverUpdateAckMessageEndpointV1 } from "../web-services/recovery/recover-update-ack-message-endpoint";
-import { RecoverSuccessMessageEndpointV1 } from "../web-services/recovery/recover-success-message-endpoint";
-import { RollbackMessageEndpointV1 } from "../web-services/recovery/rollback-message-endpoint";
+import { RecoverMessageEndpointV1 } from "./web-services/recovery/recover-message-endpoint";
+import { RecoverUpdateMessageEndpointV1 } from "./web-services/recovery/recover-update-message-endpoint";
+import { RecoverUpdateAckMessageEndpointV1 } from "./web-services/recovery/recover-update-ack-message-endpoint";
+import { RecoverSuccessMessageEndpointV1 } from "./web-services/recovery/recover-success-message-endpoint";
+import { RollbackMessageEndpointV1 } from "./web-services/recovery/rollback-message-endpoint";
 import {
   checkValidRollbackMessage,
   sendRollbackMessage,
@@ -87,8 +87,8 @@ import {
   checkValidRollbackAckMessage,
   sendRollbackAckMessage,
 } from "./recovery/rollback-ack";
-import { ClientRequestEndpointV1 } from "../web-services/client-side/client-request-endpoint";
-import { RollbackAckMessageEndpointV1 } from "../web-services/recovery/rollback-ack-message-endpoint";
+import { ClientRequestEndpointV1 } from "./web-services/client-side/client-request-endpoint";
+import { RollbackAckMessageEndpointV1 } from "./web-services/recovery/rollback-ack-message-endpoint";
 import { KnexLocalLogRepository as LocalLogRepository } from "./repository/knex-local-log-repository";
 import { IPFSRemoteLogRepository } from "./repository/ipfs-remote-log-repository";
 import { KnexRemoteLogRepository } from "./repository/knex-remote-log-repository";
@@ -147,10 +147,11 @@ export interface ILocalLog {
   timestamp?: string;
 }
 
-export abstract class PluginSatpGateway
+// todo implement factory
+export abstract class PluginSATPGateway
   implements ICactusPlugin, IPluginWebService
 {
-  public static readonly CLASS_NAME = "SatpGateway";
+  public static readonly CLASS_NAME = "SATPGateway";
   private readonly instanceId: string;
   private readonly _log: Logger;
 
@@ -190,8 +191,8 @@ export abstract class PluginSatpGateway
     const keyPairs = options.keyPair
       ? options.keyPair
       : Secp256k1Keys.generateKeyPairsBuffer();
-    this._pubKey = PluginSatpGateway.bufArray2HexStr(keyPairs.publicKey);
-    this._privKey = PluginSatpGateway.bufArray2HexStr(keyPairs.privateKey);
+    this._pubKey = PluginSATPGateway.bufArray2HexStr(keyPairs.publicKey);
+    this._privKey = PluginSATPGateway.bufArray2HexStr(keyPairs.privateKey);
 
     const objectSignerOptions: IJsObjectSignerOptions = {
       privateKey: this._privKey,
@@ -212,7 +213,7 @@ export abstract class PluginSatpGateway
   }
 
   public get className(): string {
-    return PluginSatpGateway.CLASS_NAME;
+    return PluginSATPGateway.CLASS_NAME;
   }
 
   public getOpenApiSpec(): unknown {
@@ -485,7 +486,7 @@ export abstract class PluginSatpGateway
       signerPubKey: this.pubKey,
     };
 
-    remoteLog.signature = PluginSatpGateway.bufArray2HexStr(
+    remoteLog.signature = PluginSATPGateway.bufArray2HexStr(
       this.sign(JSON.stringify(remoteLog)),
     );
 
@@ -501,7 +502,7 @@ export abstract class PluginSatpGateway
   }
 
   async storeLog(localLog: LocalLog): Promise<void> {
-    localLog.key = PluginSatpGateway.getSatpLogKey(
+    localLog.key = PluginSATPGateway.getSatpLogKey(
       localLog.sessionID,
       localLog.type,
       localLog.operation,
@@ -529,7 +530,7 @@ export abstract class PluginSatpGateway
   async storeProof(localLog: ILocalLog): Promise<void> {
     if (localLog.data == undefined) return;
 
-    localLog.key = PluginSatpGateway.getSatpLogKey(
+    localLog.key = PluginSATPGateway.getSatpLogKey(
       localLog.sessionID,
       localLog.type,
       localLog.operation,

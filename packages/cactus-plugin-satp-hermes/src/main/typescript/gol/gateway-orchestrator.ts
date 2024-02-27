@@ -35,22 +35,23 @@ import path from "path";
 import swaggerUi = require("swagger-ui-express");
 import {
   IPluginSatpGatewayConstructorOptions,
-  PluginSatpGateway,
+  PluginSATPGateway,
 } from "../plugin-satp-gateway";
 import { Server } from "node:http";
 import {
   CurrentDrafts,
   DraftVersions,
-  GatewayCoordinatorConfig,
+  GatewayOrchestratorConfig,
   GatewayIdentity,
+  ShutdownHook,
   SupportedGatewayImplementations,
-} from "./types";
+} from "../core/types";
 import { pass } from "jest-extended";
 import { GatewayConnectionManager } from "./gateway-connection";
 import { log } from "console";
-export { GatewayCoordinatorConfig };
+export { GatewayOrchestratorConfig };
 
-export class GatewayCoordinator {
+export class GatewayOrchestrator {
   // todo more checks; example port from config is between 3000 and 9000
   @IsDefined()
   @IsNotEmptyObject()
@@ -61,20 +62,21 @@ export class GatewayCoordinator {
   @IsNotEmptyObject()
   @IsObject()
   // todo add decorators that check all fields are defined
-  private readonly config: GatewayCoordinatorConfig;
+  private readonly config: GatewayOrchestratorConfig;
 
   @IsString()
   @Contains("Gateway")
-  public readonly label = "GatewayCoordinator";
+  public readonly label = "GatewayOrchestrator";
 
   private gatewayConnectionManager: GatewayConnectionManager;
-
-  constructor(public readonly options: GatewayCoordinatorConfig) {
+  private readonly shutdownHooks: ShutdownHook[];
+  
+  constructor(public readonly options: GatewayOrchestratorConfig) {
     const fnTag = `${this.label}#constructor()`;
     Checks.truthy(options, `${fnTag} arg options`);
     Checks.truthy(options.keys, `${fnTag} arg options.keys`);
-    this.config = GatewayCoordinator.ProcessGatewayCoordinatorConfig(options);
-
+    this.config = GatewayOrchestrator.ProcessGatewayCoordinatorConfig(options);
+    this.shutdownHooks = [];
     const level = options.logLevel || "INFO";
     const logOptions: ILoggerOptions = {
       level: level,
@@ -94,6 +96,8 @@ export class GatewayCoordinator {
     this.gatewayConnectionManager = new GatewayConnectionManager(seedGateways, {
       logger: this.logger,
     });
+    this.onShutdown(async () => this.logger.info("Gateway Coordinator shutdown"));
+
   }
 
   async addGateways(IDs: string[]): Promise<void> {
@@ -224,9 +228,19 @@ export class GatewayCoordinator {
     return mockGatewayIdentity;
   }
 
+  public async stop(): Promise<void> {
+    for (const hook of this.shutdownHooks) {
+      await hook(); // FIXME add timeout here so that shutdown does not hang
+    }
+  }
+
+  public onShutdown(hook: ShutdownHook): void {
+    this.shutdownHooks.push(hook);
+  }
+
   static ProcessGatewayCoordinatorConfig(
-    pluginOptions: GatewayCoordinatorConfig,
-  ): GatewayCoordinatorConfig {
+    pluginOptions: GatewayOrchestratorConfig,
+  ): GatewayOrchestratorConfig {
     if (!pluginOptions.keys) {
       pluginOptions.keys = Secp256k1Keys.generateKeyPairsBuffer();
     }

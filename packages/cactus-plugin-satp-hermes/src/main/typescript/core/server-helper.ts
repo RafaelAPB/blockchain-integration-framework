@@ -13,8 +13,8 @@ import {
   CommitFinalV1Response,
   CommitFinalV1Request,
   TransferCompleteV1Request,
-} from "../../public-api";
-import { SatpMessageType, PluginSatpGateway } from "../plugin-satp-gateway";
+} from "../public-api";
+import { SatpMessageType, PluginSATPGateway } from "../plugin-satp-gateway";
 
 export class ServerGatewayHelper {
   public static readonly CLASS_NAME: string = "ServerGatewayHelper";
@@ -36,7 +36,7 @@ export class ServerGatewayHelper {
 
   async sendTransferInitializationResponse(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | TransferInitializationV1Response> {
     const fnTag = `${gateway.className}#sendTransferInitiationResponse()`;
@@ -70,7 +70,7 @@ export class ServerGatewayHelper {
     };
 
     transferInitializationResponse.signature =
-      PluginSatpGateway.bufArray2HexStr(
+      PluginSATPGateway.bufArray2HexStr(
         gateway.sign(JSON.stringify(transferInitializationResponse)),
       );
 
@@ -98,7 +98,7 @@ export class ServerGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.sourceBasePath,
       ).phase1TransferInitiationResponseV1(transferInitializationResponse),
       "TransferInitializationResponse",
@@ -107,7 +107,7 @@ export class ServerGatewayHelper {
 
   async checkValidInitializationRequest(
     request: TransferInitializationV1Request,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidInitializationRequest()`;
 
@@ -201,7 +201,7 @@ export class ServerGatewayHelper {
 
   async sendTransferCommenceResponse(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | TransferCommenceV1Response> {
     const fnTag = `${gateway.className}#sendTransferCommenceResponse()`;
@@ -233,7 +233,7 @@ export class ServerGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    transferCommenceResponse.signature = PluginSatpGateway.bufArray2HexStr(
+    transferCommenceResponse.signature = PluginSATPGateway.bufArray2HexStr(
       gateway.sign(JSON.stringify(transferCommenceResponse)),
     );
 
@@ -259,7 +259,7 @@ export class ServerGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.sourceBasePath,
       ).phase2TransferCommenceResponseV1(transferCommenceResponse),
       "TransferCommenceResponse",
@@ -268,7 +268,7 @@ export class ServerGatewayHelper {
 
   async checkValidtransferCommenceRequest(
     request: TransferCommenceV1Request,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidtransferCommenceRequest()`;
 
@@ -362,7 +362,7 @@ export class ServerGatewayHelper {
 
   async sendLockEvidenceResponse(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | LockEvidenceV1Response> {
     const fnTag = `${gateway.className}#sendLockEvidenceResponse()`;
@@ -394,7 +394,7 @@ export class ServerGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    lockEvidenceResponseMessage.signature = PluginSatpGateway.bufArray2HexStr(
+    lockEvidenceResponseMessage.signature = PluginSATPGateway.bufArray2HexStr(
       await gateway.sign(JSON.stringify(lockEvidenceResponseMessage)),
     );
 
@@ -420,7 +420,7 @@ export class ServerGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.sourceBasePath,
       ).phase2LockEvidenceResponseV1(lockEvidenceResponseMessage),
       "LockEvidenceResponse",
@@ -429,7 +429,7 @@ export class ServerGatewayHelper {
 
   async checkValidLockEvidenceRequest(
     request: LockEvidenceV1Request,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidLockEvidenceRequest()`;
 
@@ -498,7 +498,7 @@ export class ServerGatewayHelper {
 
     const claimHash = SHA256(request.lockEvidenceClaim).toString();
     const retrievedClaim = await gateway.getLogFromRemote(
-      PluginSatpGateway.getSatpLogKey(sessionID, "proof", "lock"),
+      PluginSATPGateway.getSatpLogKey(sessionID, "proof", "lock"),
     );
 
     if (claimHash != retrievedClaim.hash) {
@@ -540,7 +540,7 @@ export class ServerGatewayHelper {
 
   async sendCommitPreparationResponse(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | CommitPreparationV1Response> {
     const fnTag = `${gateway.className}#sendCommitPrepareResponse()`;
@@ -572,7 +572,7 @@ export class ServerGatewayHelper {
     };
 
     commitPreparationResponseMessage.signature =
-      PluginSatpGateway.bufArray2HexStr(
+      PluginSATPGateway.bufArray2HexStr(
         await gateway.sign(JSON.stringify(commitPreparationResponseMessage)),
       );
 
@@ -598,7 +598,7 @@ export class ServerGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.sourceBasePath,
       ).phase3CommitPreparationResponseV1(commitPreparationResponseMessage),
       "CommitPreparationResponse",
@@ -607,7 +607,7 @@ export class ServerGatewayHelper {
 
   async checkValidCommitPreparationRequest(
     request: CommitPreparationV1Request,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidCommitPrepareRequest()`;
 
@@ -692,7 +692,7 @@ export class ServerGatewayHelper {
 
   async sendCommitFinalResponse(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | CommitFinalV1Response> {
     const fnTag = `${gateway.className}#sendCommitFinalResponse()`;
@@ -724,7 +724,7 @@ export class ServerGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    commitFinalResponseMessage.signature = PluginSatpGateway.bufArray2HexStr(
+    commitFinalResponseMessage.signature = PluginSATPGateway.bufArray2HexStr(
       await gateway.sign(JSON.stringify(commitFinalResponseMessage)),
     );
 
@@ -752,7 +752,7 @@ export class ServerGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.sourceBasePath,
       ).phase3CommitFinalResponseV1(commitFinalResponseMessage),
       "CommitFinalResponse",
@@ -761,7 +761,7 @@ export class ServerGatewayHelper {
 
   async checkValidCommitFinalRequest(
     request: CommitFinalV1Request,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidCommitFinalRequest()`;
 
@@ -826,7 +826,7 @@ export class ServerGatewayHelper {
     const claimHash = SHA256(request.commitFinalClaim).toString();
 
     const retrievedClaim = await gateway.getLogFromRemote(
-      PluginSatpGateway.getSatpLogKey(sessionID, "proof", "delete"),
+      PluginSATPGateway.getSatpLogKey(sessionID, "proof", "delete"),
     );
 
     if (claimHash != retrievedClaim.hash) {
@@ -867,7 +867,7 @@ export class ServerGatewayHelper {
 
   async checkValidTransferCompleteRequest(
     request: TransferCompleteV1Request,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidTransferCompleteRequest()`;
 

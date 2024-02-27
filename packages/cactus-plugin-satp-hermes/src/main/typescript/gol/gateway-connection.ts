@@ -1,8 +1,8 @@
 // a helper class to manage connections to counteryparty gateways
 
 import { Logger } from "@hyperledger/cactus-common";
-import { GatewayIdentity, GatewayChannel } from "./types";
-import { NonExistantGatewayIdentity } from "./gateway-errors";
+import { GatewayIdentity, GatewayChannel } from "../core/types";
+import { NonExistantGatewayIdentity } from "../core/errors";
 interface GatewayConnectionManagerOptions {
   logger: Logger;
 }

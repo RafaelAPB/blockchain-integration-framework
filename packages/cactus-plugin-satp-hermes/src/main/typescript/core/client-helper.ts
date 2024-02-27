@@ -12,8 +12,8 @@ import {
   CommitFinalV1Request,
   CommitFinalV1Response,
   TransferCompleteV1Request,
-} from "../../public-api";
-import { SatpMessageType, PluginSatpGateway } from "../plugin-satp-gateway";
+} from "../public-api";
+import { SatpMessageType, PluginSATPGateway } from "../plugin-satp-gateway";
 
 export class ClientGatewayHelper {
   public static readonly CLASS_NAME = "ClientGatewayHelper";
@@ -35,7 +35,7 @@ export class ClientGatewayHelper {
 
   async sendTransferInitializationRequest(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | TransferInitializationV1Request> {
     const fnTag = `${this.className}#sendTransferInitializationRequest()`;
@@ -104,7 +104,7 @@ export class ClientGatewayHelper {
       sourceLedgerAssetID: sessionData.sourceLedgerAssetID,
     };
 
-    const messageSignature = PluginSatpGateway.bufArray2HexStr(
+    const messageSignature = PluginSATPGateway.bufArray2HexStr(
       gateway.sign(JSON.stringify(initializationRequestMessage)),
     );
 
@@ -133,7 +133,7 @@ export class ClientGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase1TransferInitiationRequestV1(initializationRequestMessage),
       "TransferInitializationRequest",
@@ -142,7 +142,7 @@ export class ClientGatewayHelper {
 
   async checkValidInitializationResponse(
     response: TransferInitializationV1Response,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${this.className}#checkValidInitializationResponse`;
 
@@ -208,7 +208,7 @@ export class ClientGatewayHelper {
 
   async sendTransferCommenceRequest(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | TransferCommenceV1Request> {
     const fnTag = `${gateway.className}#sendTransferCommenceRequest()`;
@@ -256,7 +256,7 @@ export class ClientGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    const messageSignature = PluginSatpGateway.bufArray2HexStr(
+    const messageSignature = PluginSATPGateway.bufArray2HexStr(
       gateway.sign(JSON.stringify(transferCommenceRequestMessage)),
     );
 
@@ -286,7 +286,7 @@ export class ClientGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase2TransferCommenceRequestV1(transferCommenceRequestMessage),
       "TransferCommenceRequest",
@@ -295,7 +295,7 @@ export class ClientGatewayHelper {
 
   async checkValidTransferCommenceResponse(
     response: TransferCommenceV1Response,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidTransferCommenceResponse`;
 
@@ -362,7 +362,7 @@ export class ClientGatewayHelper {
 
   async sendLockEvidenceRequest(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | LockEvidenceV1Request> {
     const fnTag = `${gateway.className}#sendLockEvidenceRequest()`;
@@ -399,7 +399,7 @@ export class ClientGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    const messageSignature = PluginSatpGateway.bufArray2HexStr(
+    const messageSignature = PluginSATPGateway.bufArray2HexStr(
       gateway.sign(JSON.stringify(lockEvidenceRequestMessage)),
     );
 
@@ -428,7 +428,7 @@ export class ClientGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase2LockEvidenceRequestV1(lockEvidenceRequestMessage),
       "LockEvidenceRequest",
@@ -437,7 +437,7 @@ export class ClientGatewayHelper {
 
   async checkValidLockEvidenceResponse(
     response: LockEvidenceV1Response,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidLockEvidenceResponse`;
 
@@ -503,7 +503,7 @@ export class ClientGatewayHelper {
 
   async sendCommitPreparationRequest(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | CommitPreparationV1Request> {
     const fnTag = `${gateway.className}#sendCommitPreparationRequest()`;
@@ -534,7 +534,7 @@ export class ClientGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    const messageSignature = PluginSatpGateway.bufArray2HexStr(
+    const messageSignature = PluginSATPGateway.bufArray2HexStr(
       gateway.sign(JSON.stringify(commitPrepareRequestMessage)),
     );
 
@@ -564,7 +564,7 @@ export class ClientGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase3CommitPreparationRequestV1(commitPrepareRequestMessage),
       "CommitPreparationRequest",
@@ -573,7 +573,7 @@ export class ClientGatewayHelper {
 
   async checkValidCommitPreparationResponse(
     response: CommitPreparationV1Response,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidCommitPreparationResponse`;
 
@@ -641,7 +641,7 @@ export class ClientGatewayHelper {
 
   async sendCommitFinalRequest(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | CommitFinalV1Request> {
     const fnTag = `${gateway.className}#sendCommitFinalRequest()`;
@@ -675,7 +675,7 @@ export class ClientGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    const messageSignature = PluginSatpGateway.bufArray2HexStr(
+    const messageSignature = PluginSATPGateway.bufArray2HexStr(
       gateway.sign(JSON.stringify(commitFinalRequestMessage)),
     );
 
@@ -704,7 +704,7 @@ export class ClientGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase3CommitFinalRequestV1(commitFinalRequestMessage),
       "CommitFinalRequest",
@@ -713,7 +713,7 @@ export class ClientGatewayHelper {
 
   async checkValidCommitFinalResponse(
     response: CommitFinalV1Response,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
   ): Promise<void> {
     const fnTag = `${gateway.className}#checkValidCommitFinalResponse`;
 
@@ -767,7 +767,7 @@ export class ClientGatewayHelper {
 
     const claimHash = SHA256(response.commitAcknowledgementClaim).toString();
     const retrievedClaim = await gateway.getLogFromRemote(
-      PluginSatpGateway.getSatpLogKey(sessionID, "proof", "create"),
+      PluginSATPGateway.getSatpLogKey(sessionID, "proof", "create"),
     );
 
     if (claimHash != retrievedClaim.hash) {
@@ -802,7 +802,7 @@ export class ClientGatewayHelper {
 
   async sendTransferCompleteRequest(
     sessionID: string,
-    gateway: PluginSatpGateway,
+    gateway: PluginSATPGateway,
     remote: boolean,
   ): Promise<void | TransferCompleteV1Request> {
     const fnTag = `${gateway.className}#sendTransferCompleteRequest()`;
@@ -835,7 +835,7 @@ export class ClientGatewayHelper {
       sequenceNumber: ++sessionData.lastSequenceNumber,
     };
 
-    const messageSignature = PluginSatpGateway.bufArray2HexStr(
+    const messageSignature = PluginSATPGateway.bufArray2HexStr(
       gateway.sign(JSON.stringify(transferCompleteRequestMessage)),
     );
 
@@ -864,7 +864,7 @@ export class ClientGatewayHelper {
 
     await gateway.makeRequest(
       sessionID,
-      PluginSatpGateway.getSatpAPI(
+      PluginSATPGateway.getSatpAPI(
         sessionData.recipientBasePath,
       ).phase3TransferCompleteRequestV1(transferCompleteRequestMessage),
       "TransferCompleteRequest",

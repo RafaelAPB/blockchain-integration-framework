@@ -1,9 +1,9 @@
 import {
   LocalLog,
   RecoverUpdateV1Message,
-} from "../../generated/openapi/typescript-axios";
+} from "../generated/openapi/typescript-axios";
 import { LoggerProvider } from "@hyperledger/cactus-common";
-import { PluginSatpGateway } from "../plugin-satp-gateway";
+import { PluginSATPGateway } from "../plugin-satp-gateway";
 import { SHA256 } from "crypto-js";
 
 const log = LoggerProvider.getOrCreate({
@@ -13,7 +13,7 @@ const log = LoggerProvider.getOrCreate({
 
 export async function sendRecoverUpdateMessage(
   sessionID: string,
-  gateway: PluginSatpGateway,
+  gateway: PluginSATPGateway,
   remote: boolean,
 ): Promise<void | RecoverUpdateV1Message> {
   const fnTag = `${gateway.className}#sendRecoverUpdateMessage()`;
@@ -43,7 +43,7 @@ export async function sendRecoverUpdateMessage(
     signature: "",
   };
 
-  const signature = PluginSatpGateway.bufArray2HexStr(
+  const signature = PluginSATPGateway.bufArray2HexStr(
     gateway.sign(JSON.stringify(recoverUpdateMessage)),
   );
 
@@ -57,7 +57,7 @@ export async function sendRecoverUpdateMessage(
 
   await gateway.makeRequest(
     sessionID,
-    PluginSatpGateway.getSatpAPI(
+    PluginSATPGateway.getSatpAPI(
       gateway.isClientGateway(sessionID)
         ? sessionData.recipientBasePath
         : sessionData.sourceBasePath,
@@ -68,7 +68,7 @@ export async function sendRecoverUpdateMessage(
 
 export async function checkValidRecoverUpdateMessage(
   response: RecoverUpdateV1Message,
-  gateway: PluginSatpGateway,
+  gateway: PluginSATPGateway,
 ): Promise<void> {
   const fnTag = `${gateway.className}#checkValidRecoverUpdateMessage`;
 
