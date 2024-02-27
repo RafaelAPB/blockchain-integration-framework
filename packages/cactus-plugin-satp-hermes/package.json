@@ -1,14 +1,15 @@
 {
   "name": "@hyperledger/cactus-plugin-satp-hermes",
   "version": "2.0.0-alpha.2",
-  "description": "SATP-Hermes implementation of SATP. ",
+  "description": "SATP-Hermes implementation of SATP.",
   "keywords": [
     "Hyperledger",
-    "Cactus",
     "Integration",
+    "Interoperability",
     "Blockchain",
     "Distributed Ledger Technology",
-    "Open Digital Asset Protocol"
+    "IETF",
+    "Secure Asset Transfer Protocol"
   ],
   "repository": {
     "type": "git",
@@ -16,7 +17,7 @@
   },
   "license": "Apache-2.0",
   "author": {
-    "name": "Hyperledger Cactus Contributors",
+    "name": "Hyperledger Cacti Contributors",
     "email": "cactus@lists.hyperledger.org",
     "url": "https://www.hyperledger.org/use/cacti"
   },
