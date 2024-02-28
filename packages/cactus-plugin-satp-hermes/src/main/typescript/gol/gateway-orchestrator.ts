@@ -70,11 +70,13 @@ export class GatewayOrchestrator {
 
   private gatewayConnectionManager: GatewayConnectionManager;
   private readonly shutdownHooks: ShutdownHook[];
+
+  // TODO!: add logic to manage sessions (parallelization, user input, freeze, unfreeze, rollback, recovery)
+  // private sessions: Map<string, Session> = new Map();
   
   constructor(public readonly options: GatewayOrchestratorConfig) {
     const fnTag = `${this.label}#constructor()`;
     Checks.truthy(options, `${fnTag} arg options`);
-    Checks.truthy(options.keys, `${fnTag} arg options.keys`);
     this.config = GatewayOrchestrator.ProcessGatewayCoordinatorConfig(options);
     this.shutdownHooks = [];
     const level = options.logLevel || "INFO";
@@ -96,8 +98,6 @@ export class GatewayOrchestrator {
     this.gatewayConnectionManager = new GatewayConnectionManager(seedGateways, {
       logger: this.logger,
     });
-    this.onShutdown(async () => this.logger.info("Gateway Coordinator shutdown"));
-
   }
 
   async addGateways(IDs: string[]): Promise<void> {
@@ -228,16 +228,6 @@ export class GatewayOrchestrator {
     return mockGatewayIdentity;
   }
 
-  public async stop(): Promise<void> {
-    for (const hook of this.shutdownHooks) {
-      await hook(); // FIXME add timeout here so that shutdown does not hang
-    }
-  }
-
-  public onShutdown(hook: ShutdownHook): void {
-    this.shutdownHooks.push(hook);
-  }
-
   static ProcessGatewayCoordinatorConfig(
     pluginOptions: GatewayOrchestratorConfig,
   ): GatewayOrchestratorConfig {
@@ -288,5 +278,11 @@ export class GatewayOrchestrator {
   // generate getter for identity
   getIdentity(): GatewayIdentity {
     return this.config.gid!;
+  }
+
+  async shutdown(): Promise<number>   {
+    this.logger.info("Shutting down Gateway Coordinator");
+    return await this.gatewayConnectionManager.disconnectAll();
+    
   }
 }

@@ -90,4 +90,14 @@ export class GatewayConnectionManager {
     };
     return channel;
   }
+
+  async disconnectAll(): Promise<number>  {
+    let counter = 0;
+    this.channels.forEach(async (channel) => {
+      this.logger.info(`Disconnecting from ${channel.id}`);
+      this.logger.error("Not implemented")
+      counter++;
+    });
+    return counter;
+  }
 }
