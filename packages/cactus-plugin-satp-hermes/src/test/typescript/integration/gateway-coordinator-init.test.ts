@@ -7,8 +7,8 @@ import {
 } from "@hyperledger/cactus-test-tooling";
 import { LogLevelDesc, LoggerProvider } from "@hyperledger/cactus-common";
 // import coordinator factory, coordinator and coordinator options
-import { GatewayOrchestrator, GatewayOrchestratorConfig } from "../../../main/typescript/gol/gateway-orchestrator";
-import { PluginFactoryGatewayOrchestrator } from "../../../main/typescript/factory/plugin-factory-gateway-orchestrator";
+import { SATPGateway, SATPGatewayConfig } from "../../../main/typescript/gateway-refactor";
+import { PluginFactorySATPGateway } from "../../../main/typescript/factory/plugin-factory-gateway-orchestrator";
 import {
   IPluginFactoryOptions, PluginImportType,
 } from "@hyperledger/cactus-core-api";
@@ -22,7 +22,7 @@ const log = LoggerProvider.getOrCreate({
 const factoryOptions: IPluginFactoryOptions = {
   pluginImportType: PluginImportType.Local,
 }
-const factory = new PluginFactoryGatewayOrchestrator(factoryOptions);
+const factory = new PluginFactorySATPGateway(factoryOptions);
 
 beforeAll(async () => {
   pruneDockerAllIfGithubAction({ logLevel })
@@ -35,13 +35,13 @@ beforeAll(async () => {
     });
 });
 
-describe("GatewayOrchestrator initialization", () => {
+describe("SATPGateway initialization", () => {
 
   it("initiates with default config", async () => {
-    const options: GatewayOrchestratorConfig = {};
+    const options: SATPGatewayConfig = {};
     const gateway = await factory.create(options);
 
-    expect(gateway).toBeInstanceOf(GatewayOrchestrator);
+    expect(gateway).toBeInstanceOf(SATPGateway);
 
     const identity = gateway.getIdentity();
     expect(identity).toBeDefined();
@@ -64,7 +64,7 @@ describe("GatewayOrchestrator initialization", () => {
   });
 
   test("initiates custom config Gateway Coordinator", async () => {
-    const options: GatewayOrchestratorConfig = {
+    const options: SATPGatewayConfig = {
       logLevel: "INFO",
       gid: {
         id: "mockID",
@@ -87,7 +87,7 @@ describe("GatewayOrchestrator initialization", () => {
     };
     const gateway = await factory.create(options);
 
-    expect(gateway).toBeInstanceOf(GatewayOrchestrator);
+    expect(gateway).toBeInstanceOf(SATPGateway);
 
     const identity = gateway.getIdentity();
     expect(identity).toBeDefined();
@@ -110,7 +110,7 @@ describe("GatewayOrchestrator initialization", () => {
   });
 
   test("Gateway Server launches", async () => {
-    const options: GatewayOrchestratorConfig = {
+    const options: SATPGatewayConfig = {
       logLevel: "INFO",
       gid: {
         id: "mockID",
@@ -132,7 +132,7 @@ describe("GatewayOrchestrator initialization", () => {
       },
     };
     const gateway = await factory.create(options);
-    expect(gateway).toBeInstanceOf(GatewayOrchestrator);
+    expect(gateway).toBeInstanceOf(SATPGateway);
 
     const identity = gateway.getIdentity();
     expect(identity.port).toBe(3010);
