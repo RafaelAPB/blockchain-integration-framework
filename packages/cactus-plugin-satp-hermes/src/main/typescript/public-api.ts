@@ -26,4 +26,4 @@ export async function createBesuPluginFactory(
 
 export { ServerGatewayHelper } from "./core/server-helper";
 export { ClientGatewayHelper } from "./core/client-helper";
-export { GatewayOrchestrator } from "./gol/gateway-orchestrator";
+// TODO! export new gateway

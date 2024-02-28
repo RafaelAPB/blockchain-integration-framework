@@ -42,7 +42,7 @@ export type GatewayIdentity = {
     | `${number}.${number}.${number}.${number}.`;
 };
 
-export interface GatewayOrchestratorConfig {
+export interface SATPGatewayConfig {
   gid?: GatewayIdentity;
   logLevel?: LogLevelDesc;
   keys?: Secp256k1Keys;

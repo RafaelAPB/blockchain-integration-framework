@@ -3,20 +3,20 @@ import {
   PluginFactory,
 } from "@hyperledger/cactus-core-api";
 import {
-  GatewayOrchestrator,
-  GatewayOrchestratorConfig,
-} from "../gol/gateway-orchestrator";
+  SATPGateway,
+  SATPGatewayConfig,
+} from "../gateway-refactor";
 import { validateOrReject } from "class-validator";
 
-export class PluginFactoryGatewayOrchestrator extends PluginFactory<
-  GatewayOrchestrator,
-  GatewayOrchestratorConfig,
+export class PluginFactorySATPGateway extends PluginFactory<
+  SATPGateway,
+  SATPGatewayConfig,
   IPluginFactoryOptions
 > {
   async create(
-    pluginOptions: GatewayOrchestratorConfig,
-  ): Promise<GatewayOrchestrator> {
-    const coordinator = new GatewayOrchestrator(pluginOptions);
+    pluginOptions: SATPGatewayConfig,
+  ): Promise<SATPGateway> {
+    const coordinator = new SATPGateway(pluginOptions);
 
     try {
       const validationOptions = pluginOptions.validationOptions;
