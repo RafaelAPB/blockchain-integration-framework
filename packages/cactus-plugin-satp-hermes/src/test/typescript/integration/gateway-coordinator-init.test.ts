@@ -39,19 +39,19 @@ describe("GatewayOrchestrator initialization", () => {
 
   it("initiates with default config", async () => {
     const options: GatewayOrchestratorConfig = {};
-    const defaultGatewayCoordinator = await factory.create(options);
+    const gateway = await factory.create(options);
 
-    expect(defaultGatewayCoordinator).toBeInstanceOf(GatewayOrchestrator);
+    expect(gateway).toBeInstanceOf(GatewayOrchestrator);
 
-    const identity = defaultGatewayCoordinator.getIdentity();
+    const identity = gateway.getIdentity();
     expect(identity).toBeDefined();
     expect(identity.id).toBeDefined();
     expect(identity.name).toBeDefined();
     expect(identity.version).toEqual([
       {
-        Core: "1.0",
-        Architecture: "1.0",
-        Crash: "1.0",
+        Core: "v02",
+        Architecture: "v02",
+        Crash: "v02",
       },
     ]);
     expect(identity.supportedChains).toEqual([
@@ -63,10 +63,82 @@ describe("GatewayOrchestrator initialization", () => {
     expect(identity.address).toBe("http://localhost");
   });
 
-test("initiates custom config Gateway Coordinator", async () => {
+  test("initiates custom config Gateway Coordinator", async () => {
+    const options: GatewayOrchestratorConfig = {
+      logLevel: "INFO",
+      gid: {
+        id: "mockID",
+        name: "CustomGateway",
+        version: [
+          {
+            Core: "v02",
+            Architecture: "v02",
+            Crash: "v02",
+          },
+        ],
+        supportedChains: [
+          SupportedGatewayImplementations.FABRIC,
+          SupportedGatewayImplementations.BESU,
+        ],
+        proofID: "mockProofID10",
+        port: 3001,
+        address: "https://localhost",
+      },
+    };
+    const gateway = await factory.create(options);
 
+    expect(gateway).toBeInstanceOf(GatewayOrchestrator);
 
-});
+    const identity = gateway.getIdentity();
+    expect(identity).toBeDefined();
+    expect(identity.id).toBeDefined();
+    expect(identity.name).toBeDefined();
+    expect(identity.version).toEqual([
+      {
+        Core: "v02",
+        Architecture: "v02",
+        Crash: "v02",
+      },
+    ]);
+    expect(identity.supportedChains).toEqual([
+      SupportedGatewayImplementations.FABRIC,
+      SupportedGatewayImplementations.BESU,
+    ]);
+    expect(identity.proofID).toBe("mockProofID10");
+    expect(identity.port).toBe(3001);
+    expect(identity.address).toBe("https://localhost");
+  });
+
+  test("Gateway Server launches", async () => {
+    const options: GatewayOrchestratorConfig = {
+      logLevel: "INFO",
+      gid: {
+        id: "mockID",
+        name: "CustomGateway",
+        version: [
+          {
+            Core: "v02",
+            Architecture: "v02",
+            Crash: "v02",
+          },
+        ],
+        supportedChains: [
+          SupportedGatewayImplementations.FABRIC,
+          SupportedGatewayImplementations.BESU,
+        ],
+        proofID: "mockProofID10",
+        port: 3010,
+        address: "https://localhost",
+      },
+    };
+    const gateway = await factory.create(options);
+    expect(gateway).toBeInstanceOf(GatewayOrchestrator);
+
+    const identity = gateway.getIdentity();
+    expect(identity.port).toBe(3010);
+    expect(identity.address).toBe("https://localhost");
+
+  });
 
 });
 
