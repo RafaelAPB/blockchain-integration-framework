@@ -21,3 +21,7 @@ service TestService   {
     rpc SendMessage(Message) returns (google.protobuf.Empty)   {}
     rpc ModifyMessage(ModifyMessageRequest) returns (ModifyMessageResponse)   {}
 }
+
+service TestService2   {
+    rpc GetMessage(google.protobuf.Empty) returns (Message) {}
+}

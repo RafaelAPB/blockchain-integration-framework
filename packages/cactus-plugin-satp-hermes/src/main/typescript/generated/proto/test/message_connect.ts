@@ -42,3 +42,21 @@ export const TestService = {
   }
 } as const;
 
+/**
+ * @generated from service test.message.TestService2
+ */
+export const TestService2 = {
+  typeName: "test.message.TestService2",
+  methods: {
+    /**
+     * @generated from rpc test.message.TestService2.GetMessage
+     */
+    getMessage: {
+      name: "GetMessage",
+      I: Empty,
+      O: Message,
+      kind: MethodKind.Unary,
+    },
+  }
+} as const;
+

@@ -50,6 +50,11 @@ import { pass } from "jest-extended";
 import { GatewayOrchestrator } from "./gol/gateway-orchestrator";
 import { log } from "console";
 export { SATPGatewayConfig };
+import express, { Express, Request, Response } from 'express';
+import { exitProcess } from 'yargs';
+import { expressConnectMiddleware } from "@connectrpc/connect-express";
+import http from "http";
+import { configureRoutes } from "./web-services/router";
 
 export class SATPGateway {
   // todo more checks; example port from config is between 3000 and 9000
@@ -70,7 +75,7 @@ export class SATPGateway {
 
   private gatewayConnectionManager: GatewayOrchestrator;
   private readonly shutdownHooks: ShutdownHook[];
-
+  private server: any | undefined;
   // TODO!: add logic to manage sessions (parallelization, user input, freeze, unfreeze, rollback, recovery)
   // private sessions: Map<string, Session> = new Map();
   
@@ -99,6 +104,35 @@ export class SATPGateway {
       logger: this.logger,
     });
   }
+
+  async startupServer(): Promise<void> {
+    const fnTag = `${this.label}#startup()`;
+    this.logger.debug(`Entering ${fnTag}`);
+    if (!this.server) {
+      this.server = express();
+      this.server.use(expressConnectMiddleware({ routes: configureRoutes }));
+      http.createServer(this.server).listen(this.options.gid?.port);
+
+    } else  {
+      this.logger.warn("Server already running");
+    }
+  }
+async shutdownServer(): Promise<void> {
+  const fnTag = `${this.label}#shutdown()`;
+  this.logger.debug(`Entering ${fnTag}`);
+  if (this.server) {
+    try {
+      this.server.close();
+      this.server = undefined;
+      this.logger.info("Server shut down");
+    } catch (error) {
+      this.logger.error(`Error shutting down the server: ${error}`);
+    }
+  } else {
+    this.logger.warn("Server is not running.");
+  }
+}
+
 
   async addGateways(IDs: string[]): Promise<void> {
     const fnTag = `${this.label}#connectToGateway()`;
@@ -241,9 +275,9 @@ export class SATPGateway {
         name: id,
         version: [
           {
-            Core: "1.0",
-            Architecture: "1.0",
-            Crash: "1.0",
+            Core: "v02",
+            Architecture: "v02",
+            Crash: "v02",
           },
         ],
         supportedChains: [
