@@ -71,9 +71,9 @@ describe("SATPGateway initialization", () => {
         name: "CustomGateway",
         version: [
           {
-            Core: "v02",
-            Architecture: "v02",
-            Crash: "v02",
+            Core: "v1",
+            Architecture: "v1",
+            Crash: "v1",
           },
         ],
         supportedChains: [
@@ -95,9 +95,9 @@ describe("SATPGateway initialization", () => {
     expect(identity.name).toBeDefined();
     expect(identity.version).toEqual([
       {
-        Core: "v02",
-        Architecture: "v02",
-        Crash: "v02",
+        Core: "v1",
+        Architecture: "v1",
+        Crash: "v1",
       },
     ]);
     expect(identity.supportedChains).toEqual([
@@ -137,11 +137,11 @@ describe("SATPGateway initialization", () => {
     const identity = gateway.getIdentity();
     expect(identity.port).toBe(3010);
     expect(identity.address).toBe("https://localhost");
-
+    await gateway.startupServer();
+    await gateway.shutdown();
   });
 
 });
-
 
 afterAll(async () => {
   // shutdown channels

@@ -21,6 +21,7 @@ let pluginSourceGateway: PluginSATPGateway;
 let pluginRecipientGateway: PluginSATPGateway;
 
 test("successful run ODAP instance", async () => {
+  console.log(knexRemoteConnection)
   const sourceGatewayConstructor = {
     name: "plugin-satp-gateway#sourceGateway",
     dltIDs: ["DLT2"],
