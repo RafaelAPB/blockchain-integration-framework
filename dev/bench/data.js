@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709197201991,
+  "lastUpdate": 1709554022952,
   "repoUrl": "https://github.com/RafaelAPB/blockchain-integration-framework",
   "entries": {
     "Benchmark": [
@@ -76,6 +76,44 @@ window.BENCHMARK_DATA = {
             "range": "±1.48%",
             "unit": "ops/sec",
             "extra": "182 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "peter.somogyvari@accenture.com",
+            "name": "Peter Somogyvari",
+            "username": "petermetz"
+          },
+          "committer": {
+            "email": "petermetz@users.noreply.github.com",
+            "name": "Peter Somogyvari",
+            "username": "petermetz"
+          },
+          "distinct": true,
+          "id": "f02a0aaf8383557bb0b1a01b3e60746730599345",
+          "message": "build(deps): project-wide upgrade to uuid@9.0.2 and @types/uuid@9.0.8\n\nQuality of life dependency consolidation and regular maintenance.\n\nSigned-off-by: Peter Somogyvari <peter.somogyvari@accenture.com>",
+          "timestamp": "2024-03-04T00:15:42-08:00",
+          "tree_id": "4120dc70f8c760db4b1aa09883342553f1e7d31e",
+          "url": "https://github.com/RafaelAPB/blockchain-integration-framework/commit/f02a0aaf8383557bb0b1a01b3e60746730599345"
+        },
+        "date": 1709554021420,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "cmd-api-server_HTTP_GET_getOpenApiSpecV1",
+            "value": 616,
+            "range": "±1.89%",
+            "unit": "ops/sec",
+            "extra": "179 samples"
+          },
+          {
+            "name": "cmd-api-server_gRPC_GetOpenApiSpecV1",
+            "value": 383,
+            "range": "±1.20%",
+            "unit": "ops/sec",
+            "extra": "184 samples"
           }
         ]
       }
