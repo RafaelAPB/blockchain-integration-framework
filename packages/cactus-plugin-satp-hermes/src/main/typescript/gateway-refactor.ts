@@ -3,62 +3,26 @@ import {
   Logger,
   Checks,
   LoggerProvider,
-<<<<<<< HEAD
-=======
-  JsObjectSigner,
-  IJsObjectSignerOptions,
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
   ILoggerOptions,
 } from "@hyperledger/cactus-common";
 import { v4 as uuidv4 } from "uuid";
 
 import {
-<<<<<<< HEAD
-=======
-  ICactusPlugin,
-  IPluginWebService,
-  IWebServiceEndpoint,
-  Configuration,
-} from "@hyperledger/cactus-core-api";
-
-import {
-  MinLength,
-  MaxLength,
-  IsNotEmpty,
-  ValidateNested,
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
   IsDefined,
   IsNotEmptyObject,
   IsObject,
   IsString,
   Contains,
 } from "class-validator";
-<<<<<<< HEAD
 
 import path from "path";
 
 import {
-=======
-import { Type } from "class-transformer";
-
-import fs from "fs";
-import path from "path";
-import swaggerUi = require("swagger-ui-express");
-import {
-  IPluginSatpGatewayConstructorOptions,
-  PluginSATPGateway,
-} from "./plugin-satp-gateway";
-import { Server } from "node:http";
-import {
-  CurrentDrafts,
-  DraftVersions,
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
   SATPGatewayConfig,
   GatewayIdentity,
   ShutdownHook,
   SupportedGatewayImplementations,
 } from "./core/types";
-<<<<<<< HEAD
 import { GatewayOrchestrator } from "./gol/gateway-orchestrator";
 export { SATPGatewayConfig };
 import express, { Express } from "express";
@@ -99,11 +63,7 @@ export class SATPGateway {
 
   // TODO!: add logic to manage sessions (parallelization, user input, freeze, unfreeze, rollback, recovery)
   // private sessions: Map<string, Session> = new Map();
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
   constructor(public readonly options: SATPGatewayConfig) {
     const fnTag = `${this.label}#constructor()`;
     Checks.truthy(options, `${fnTag} arg options`);

@@ -44,7 +44,7 @@ beforeAll(async () => {
 });
 
 test("successful run ODAP instance", async () => {
-  console.log(knexRemoteConnection)
+  console.log(knexRemoteConnection);
   const sourceGatewayConstructor = {
     name: "plugin-satp-gateway#sourceGateway",
     dltIDs: ["DLT2"],

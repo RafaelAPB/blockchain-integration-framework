@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 // a helper class to manage connections to counterparty gateways
-=======
-// a helper class to manage connections to counteryparty gateways
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
 
 import { Logger } from "@hyperledger/cactus-common";
 import { GatewayIdentity, GatewayChannel } from "../core/types";
@@ -22,10 +18,6 @@ export class GatewayOrchestrator {
     public readonly identities: GatewayIdentity[],
     options: GatewayOrchestratorOptions,
   ) {
-<<<<<<< HEAD
-=======
-    const fnTag = `${this.label}#constructor()`;
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
     // add checks
     this.logger = options.logger;
     this.logger.info("Initializing Gateway Connection Manager");
@@ -41,13 +33,9 @@ export class GatewayOrchestrator {
   async connectToCounterPartyGateways(): Promise<number> {
     const fnTag = `${this.label}#connectToCounterPartyGateways()`;
     // add checks
-<<<<<<< HEAD
     this.logger.info(
       `${fnTag}, Connecting to ${this.gatewayIDs.length} gateways`,
     );
-=======
-    this.logger.info(`Connecting to ${this.gatewayIDs.length} gateways`);
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
     let connected = 0;
     try {
       for (const id of this.gatewayIDs) {
@@ -60,11 +48,7 @@ export class GatewayOrchestrator {
         }
       }
     } catch (ex) {
-<<<<<<< HEAD
       this.logger.error(`${fnTag}, Failed to connect to gateway`);
-=======
-      this.logger.error(`Failed to connect to gateway`);
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
       this.logger.error(ex);
     }
     return connected;
@@ -73,7 +57,6 @@ export class GatewayOrchestrator {
   async addGateways(gateways: GatewayIdentity[]): Promise<number> {
     const fnTag = `${this.label}#addGateways()`;
     // add checks
-<<<<<<< HEAD
     this.logger.info(`${fnTag}, Adding ${gateways.length} gateways`);
     for (const gateway of gateways) {
       const id = gateway.id;
@@ -81,23 +64,12 @@ export class GatewayOrchestrator {
         this.logger.info(
           `${fnTag}, ${fnTag}, Gateway with id ${id} already exists, ignoring`,
         );
-=======
-    this.logger.info(`Adding ${gateways.length} gateways`);
-    for (const gateway of gateways) {
-      const id = gateway.id;
-      if (this.gatewayIDs.includes(id)) {
-        this.logger.info(`Gateway with id ${id} already exists, igonoring`);
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
         continue;
       }
       this.gatewayIDs.push(id);
       this.gateways.set(id, gateway);
     }
-<<<<<<< HEAD
     return this.connectToCounterPartyGateways();
-=======
-      return this.connectToCounterPartyGateways();
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
   }
 
   alreadyConnected(ID: string): boolean {
@@ -105,10 +77,6 @@ export class GatewayOrchestrator {
   }
   // make singleton
   async createChannels(): Promise<void> {
-<<<<<<< HEAD
-=======
-    const fnTag = `${this.label}#boostrapChannels()`;
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
     // Add checks and the rest of your logic here
     const channels: GatewayChannel[] = [];
     this.gateways.forEach(async (identity) => {
@@ -117,10 +85,6 @@ export class GatewayOrchestrator {
   }
 
   async createChannel(identity: GatewayIdentity): Promise<GatewayChannel> {
-<<<<<<< HEAD
-=======
-    const fnTag = `${this.label}#createChannel()`;
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
     // add checks
     const channel: GatewayChannel = {
       id: identity.id,
@@ -128,7 +92,6 @@ export class GatewayOrchestrator {
     return channel;
   }
 
-<<<<<<< HEAD
   async disconnectAll(): Promise<number> {
     const fnTag = `${this.label}#disconnectAll()`;
 
@@ -137,13 +100,6 @@ export class GatewayOrchestrator {
       this.logger.info(`${fnTag}, Disconnecting from ${channel.id}`);
       // ! todo implement disconnect
       this.logger.error("Not implemented");
-=======
-  async disconnectAll(): Promise<number>  {
-    let counter = 0;
-    this.channels.forEach(async (channel) => {
-      this.logger.info(`Disconnecting from ${channel.id}`);
-      this.logger.error("Not implemented")
->>>>>>> ec7d9e652 (feat(SATP-Hermes): add gateway coordinator WIP)
       counter++;
     });
     this.channels.clear();
