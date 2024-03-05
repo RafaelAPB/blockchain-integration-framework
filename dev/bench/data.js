@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709554022952,
+  "lastUpdate": 1709640789441,
   "repoUrl": "https://github.com/RafaelAPB/blockchain-integration-framework",
   "entries": {
     "Benchmark": [
@@ -114,6 +114,44 @@ window.BENCHMARK_DATA = {
             "range": "±1.20%",
             "unit": "ops/sec",
             "extra": "184 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "andre.augusto@tecnico.ulisboa.pt",
+            "name": "André Augusto",
+            "username": "AndreAugusto11"
+          },
+          "committer": {
+            "email": "RafaelAPB@users.noreply.github.com",
+            "name": "Rafael Belchior",
+            "username": "RafaelAPB"
+          },
+          "distinct": true,
+          "id": "65596f574c95cc4aba9fb77a1d21d8952dbbf777",
+          "message": "fix(odap-hermes): fix unresolved database config path in repositories\n\nSigned-off-by: André Augusto <andre.augusto@tecnico.ulisboa.pt>",
+          "timestamp": "2024-03-05T12:32:32+01:00",
+          "tree_id": "1ecc9ee3b5578dea5b106ef59835794373659fa3",
+          "url": "https://github.com/RafaelAPB/blockchain-integration-framework/commit/65596f574c95cc4aba9fb77a1d21d8952dbbf777"
+        },
+        "date": 1709640787267,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "cmd-api-server_HTTP_GET_getOpenApiSpecV1",
+            "value": 605,
+            "range": "±1.81%",
+            "unit": "ops/sec",
+            "extra": "177 samples"
+          },
+          {
+            "name": "cmd-api-server_gRPC_GetOpenApiSpecV1",
+            "value": 385,
+            "range": "±1.42%",
+            "unit": "ops/sec",
+            "extra": "180 samples"
           }
         ]
       }
