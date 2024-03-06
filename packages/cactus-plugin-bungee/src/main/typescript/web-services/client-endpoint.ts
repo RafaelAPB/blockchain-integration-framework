@@ -89,8 +89,8 @@ export class ClientEndpointV1 implements IWebServiceEndpoint {
     const reqTag = `${this.getVerbLowerCase()} - ${this.getPath()}`;
     this.log.debug(reqTag);
     try {
-      //await this.options.bungee.onCreateView(req.body);
-      res.status(200).json("OK");
+      const view = await this.options.bungee.onCreateView(req.body);
+      res.status(200).json(view);
     } catch (ex) {
       this.log.error(`Crash while serving ${reqTag}`, ex);
       res.status(500).json({
