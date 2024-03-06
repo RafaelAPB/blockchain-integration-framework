@@ -22,6 +22,7 @@ import { DUMMY_BASE_URL, assertParamExists, setApiKeyToObject, setBasicAuthToObj
 import type { RequestArgs } from './base';
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError } from './base';
+import { NetworkDetails } from '../../../strategy/obtain-ledger-strategy';
 
 /**
  * 
@@ -34,7 +35,12 @@ export interface CreateViewRequest {
      * @type {string}
      * @memberof CreateViewRequest
      */
-    'x'?: string;
+    'stateIds'?: string[];
+    'tI'?: string;
+    'tF'?: string;
+    'viewID'?: string;
+    'strategyId': string;
+    'networkDetails': NetworkDetails;
 }
 /**
  * 
@@ -47,7 +53,7 @@ export interface CreateViewResponse {
      * @type {string}
      * @memberof CreateViewResponse
      */
-    'y'?: string;
+    'view'?: string;
 }
 
 /**

@@ -3,22 +3,49 @@ import { State } from "./state";
 export class Snapshot {
   private id: string;
   private participant;
-  private version: number;
   private stateBins: State[]; //set of state bins
+  private tI: string = "";
+  private tF: string = "";
 
   constructor(id: string, participant: string, stateBins: State[]) {
     this.id = id;
     this.participant = participant;
-    this.version = 1;
     this.stateBins = stateBins;
-  }
-
-  private getVersion(): number {
-    return this.version;
   }
 
   private getId(): string {
     return this.id;
+  }
+
+  public getTI() {
+    return this.tI;
+  }
+  public getTF() {
+    return this.tF;
+  }
+  public setTF(tF: string) {
+    this.tF = tF;
+  }
+
+  public setTI(tI: string) {
+    this.tI = tI;
+  }
+
+  public update_TI_TF() {
+    let ti = 999999999999999;
+    let tf = 0;
+    for (const bin of this.stateBins) {
+      const tI = Number(bin.getInitialTime());
+      const tF = Number(bin.getFinalTime());
+      if (tf < tF) {
+        tf = tF;
+      }
+      if (ti > tI) {
+        ti = tI;
+      }
+    }
+    this.tF = tf.toString();
+    this.tI = ti.toString();
   }
 
   public pruneStates(tI: string, tF: string): void {
@@ -27,15 +54,31 @@ export class Snapshot {
     }
   }
 
-  public getLedgerStates(): State[] {
+  public getStateBins() {
     return this.stateBins;
+  }
+
+  public filterStates(tI: string, tF: string): void {
+    const finalT = parseInt(tF);
+    const initialT = parseInt(tI);
+    const stateBins: State[] = [];
+    for (const state of this.stateBins) {
+      //FIXME string to uint ?? :)
+      if (
+        parseInt(state.getInitialTime()) > finalT ||
+        parseInt(state.getFinalTime()) < initialT
+      ) {
+        continue;
+      }
+      stateBins.push(state);
+    }
+    this.stateBins = stateBins;
   }
 
   public getSnapshotJson(): string {
     const snapshotJson = {
       id: this.id,
       participant: this.participant,
-      version: this.version,
       stateBins: this.stateBins,
     };
 

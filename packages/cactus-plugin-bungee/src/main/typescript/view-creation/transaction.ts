@@ -1,25 +1,57 @@
 import { Proof } from "./proof";
+import { TransactionProof } from "./transaction-proof";
 
 export class Transaction {
   private id: string;
   private timeStamp: string;
-  private proofs: Proof[];
+  private proof: TransactionProof;
+  private stateId?: string;
+  private payload?: string;
+  private target?: string;
+  //private blockN?: number;
 
-  constructor(id: string, timeStamp: string) {
+  constructor(id: string, timeStamp: string, proof: TransactionProof) {
     this.id = id;
     this.timeStamp = timeStamp;
-    this.proofs = [];
+    this.proof = proof;
   }
 
   public printTransaction(): string {
     return "Transaction: \n " + this.id + " \n " + this.timeStamp;
   }
 
-  public defineTxProofs(proofs: Proof[]): void {
-    this.proofs = proofs;
+  public addEndorser(endorser: Proof): void {
+    this.proof.addEndorser(endorser);
   }
   public getId(): string {
     return this.id;
+  }
+
+  //public getBlockN() {
+  //  return this.blockN;
+  //}
+  public getTarget() {
+    return this.target;
+  }
+  public getPayload() {
+    return this.payload;
+  }
+  public getStateId() {
+    return this.stateId;
+  }
+
+  //public setBlockN(n: number) {
+  //  this.blockN = n;
+  //}
+
+  public setTarget(target: string) {
+    this.target = target;
+  }
+  public setPayload(payload: string) {
+    this.payload = payload;
+  }
+  public setStateId(stateId: string) {
+    this.stateId = stateId;
   }
 
   public getTxJson(): string {
@@ -27,9 +59,9 @@ export class Transaction {
     return JSON.stringify(tx);
   }
 
-  public getTxProofs(): string {
-    const txProofs = { id: this.id, proofs: this.proofs };
-    return JSON.stringify(txProofs);
+  public getProof(): TransactionProof {
+    //const txProofs = { id: this.id, proof: this.proof };
+    return this.proof;
   }
 
   public getTimeStamp(): string {

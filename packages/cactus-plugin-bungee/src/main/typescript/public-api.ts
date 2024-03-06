@@ -3,7 +3,7 @@ import { PluginFactoryBUNGEE } from "./plugin-factory-bungee";
 
 export { PluginBUNGEE, IPluginBUNGEEOptions } from "./plugin-bungee";
 
-export async function createPluginFactory(
+export async function createBesuPluginFactory(
   pluginFactoryOptions: IPluginFactoryOptions,
 ): Promise<PluginFactoryBUNGEE> {
   return new PluginFactoryBUNGEE(pluginFactoryOptions);
