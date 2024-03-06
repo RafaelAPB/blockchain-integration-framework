@@ -1,20 +1,24 @@
 export class Proof {
-  private mspid: string;
-  private endorserID: string;
-  private signature: string;
+  private creator: string;
+  private mspid?: string;
+  private signature?: string;
 
-  constructor(mspid: string, endorserID: string, signature: string) {
-    this.mspid = mspid;
-    this.endorserID = endorserID;
-    this.signature = signature;
+  constructor(settings: {
+    creator: string;
+    mspid?: string;
+    signature?: string;
+  }) {
+    this.creator = settings.creator;
+    this.mspid = settings.mspid ? settings.mspid : "undefined";
+    this.signature = settings.signature ? settings.signature : "undefined";
   }
 
   public printEndorsement(): string {
     return (
       "Endorsement: \n " +
-      this.mspid +
+      this.creator +
       " \n " +
-      this.endorserID +
+      this.mspid +
       " \n " +
       this.signature
     );
@@ -22,23 +26,23 @@ export class Proof {
 
   public getEndorsementJson(): string {
     const proof = {
+      creator: this.creator,
       mspid: this.mspid,
-      endorserID: this.endorserID,
       signature: this.signature,
     };
     // JSON.stringify(Array.from(endors.entries()));
     return JSON.stringify(proof);
   }
 
-  public getMspid(): string {
+  public getCreator(): string {
+    return this.creator;
+  }
+
+  public getMspid(): string | undefined {
     return this.mspid;
   }
 
-  public getEndorserID(): string {
-    return this.endorserID;
-  }
-
-  public getSignature(): string {
+  public getSignature(): string | undefined {
     return this.signature;
   }
 }

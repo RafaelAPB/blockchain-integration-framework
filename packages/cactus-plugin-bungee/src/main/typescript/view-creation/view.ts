@@ -1,23 +1,27 @@
+import { v4 as uuidV4 } from "uuid";
 import { Snapshot } from "./snapshot";
 
 export class View {
-  private snapshot;
+  private key: string;
+  private snapshot: Snapshot;
   private tI;
   private tF;
 
-  constructor(tI: string, tF: string, snapshot: Snapshot) {
+  constructor(
+    tI: string,
+    tF: string,
+    snapshot: Snapshot,
+    id: string | undefined,
+  ) {
+    this.key = id ? id : uuidV4(); // FIXME receive as input maybe
     this.tI = tI;
     this.tF = tF;
     this.snapshot = snapshot;
-    this.pruneSnapshot();
+    snapshot.pruneStates(this.tI, this.tF);
   }
-
-  private pruneSnapshot(): void {
-    if (this.tI != "0" && this.tF != "0") {
-      this.snapshot.pruneStates(this.tI, this.tF);
-    }
+  public getKey() {
+    return this.key;
   }
-
   public getViewStr(): string {
     const viewStr = {
       tI: this.tI,
