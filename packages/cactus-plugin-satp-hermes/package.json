@@ -57,7 +57,7 @@
     "lint": "run-p 'lint:*'",
     "lint:eslint": "eslint '*/*/src/**/*.{js,ts}' --quiet --fix && cspell \"*/*/src/**/*.{js,ts}\"",
     "lint:oapi": "vacuum lint -d -e ./src/main/json/bol/openapi-blo-bundled.json",
-    "lint:protobuf": "buf lint --path src/main/proto --verbose",
+    "lint:protobuf": "cd src/main/proto && buf lint --verbose",
     "pretsc": "npm run generate-sdk",
     "tsc": "tsc --project ./tsconfig.json",
     "watch": "tsc --build --watch"

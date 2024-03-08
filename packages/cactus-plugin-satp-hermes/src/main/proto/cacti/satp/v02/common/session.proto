@@ -3,17 +3,16 @@ package cacti.satp.v02.common;
 
 import "google/protobuf/empty.proto";
 
-// TODO: requires fully qualified path from buf.gen.yaml
-import "cacti/satp/v02/common/message.proto";
+import "cacti/satp/v02/common/common_messages.proto";
 
 message SendStatusRequest {
     string status = 1;
-    bool hasBackup = 2;
+    bool has_backup = 2;
 }
 
 message SendStatusResponse {
     string status = 1;
-    bool hasBackup = 2;
+    bool has_backup = 2;
 }
 
 

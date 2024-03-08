@@ -1,34 +1,23 @@
 
 syntax = "proto3";
-package cacti.satp.v02.stage_0;
+package cacti.satp.v02;
 
-import "google/protobuf/empty.proto";
+import "cacti/satp/v02/common/common_messages.proto";
 
-service SATPStage0   {
+message TransferProposalClaimsRequest {
+  cacti.satp.v02.common.MessageType message_type = 1;
+  cacti.satp.v02.common.TransferClaims transfer_claims = 2;
+}
+
+// TODO
+message TransferProposalClaimsResponse {
+  cacti.satp.v02.common.MessageType message_type = 1;
+}
+
+service SatpStage0Service {
   // util RPCs
 
   // step RPCs
   rpc TransferProposalClaims(TransferProposalClaimsRequest) returns (TransferProposalClaimsResponse) {};
   // todo other rpcs
-}
-
-message TransferProposalClaimsRequest {
-  string message_type = 1;
-  string asset_asset_id = 2;
-  string asset_profile_id = 3;
-  string verified_originator_entity_id = 4;
-  string verified_beneficiary_entity_id = 5;
-  string originator_pubkey = 6;
-  string beneficiary_pubkey = 7;
-  string sender_gateway_network_id = 8;
-  string recipient_gateway_network_id = 9;
-  string client_identity_pubkey = 10;
-  string server_identity_pubkey = 11;
-  string sender_gateway_owner_id = 12;
-  string receiver_gateway_owner_id = 13;
-}
-
-// TODO
-message TransferProposalClaimsResponse {
-  string message_type = 1;
 }

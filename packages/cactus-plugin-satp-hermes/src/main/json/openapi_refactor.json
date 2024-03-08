@@ -716,7 +716,7 @@
             "description": "Location of Resource to be accessed.",
             "type": "string"
           },
-          "developerURL": {
+          "developerURN": {
             "description": "Assertion of developer / application identity.",
             "type": "string"
           },

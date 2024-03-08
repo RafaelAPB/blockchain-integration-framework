@@ -16,7 +16,7 @@ export class SendStatusRequest extends Message<SendStatusRequest> {
   status = "";
 
   /**
-   * @generated from field: bool hasBackup = 2;
+   * @generated from field: bool has_backup = 2;
    */
   hasBackup = false;
 
@@ -29,7 +29,7 @@ export class SendStatusRequest extends Message<SendStatusRequest> {
   static readonly typeName = "cacti.satp.v02.common.SendStatusRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "hasBackup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "has_backup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SendStatusRequest {
@@ -59,7 +59,7 @@ export class SendStatusResponse extends Message<SendStatusResponse> {
   status = "";
 
   /**
-   * @generated from field: bool hasBackup = 2;
+   * @generated from field: bool has_backup = 2;
    */
   hasBackup = false;
 
@@ -72,7 +72,7 @@ export class SendStatusResponse extends Message<SendStatusResponse> {
   static readonly typeName = "cacti.satp.v02.common.SendStatusResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "hasBackup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "has_backup", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SendStatusResponse {

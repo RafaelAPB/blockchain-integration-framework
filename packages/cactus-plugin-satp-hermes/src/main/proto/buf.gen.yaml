@@ -10,3 +10,6 @@ plugins:
       - js_import_style=module
     out: ../typescript/generated/proto/
     strategy: directory
+
+
+
