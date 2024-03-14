@@ -89,7 +89,7 @@ test("runs ODAP between two gateways via openApi", async () => {
 
   expect(pluginSourceGateway.localRepository?.database).not.toBeUndefined();
   expect(pluginRecipientGateway.localRepository?.database).not.toBeUndefined();
-  
+
   expect(pluginSourceGateway.remoteRepository?.database).not.toBeUndefined();
   expect(pluginRecipientGateway.remoteRepository?.database).not.toBeUndefined();
 
@@ -98,7 +98,7 @@ test("runs ODAP between two gateways via openApi", async () => {
 
   await pluginSourceGateway.localRepository?.reset();
   await pluginRecipientGateway.localRepository?.reset();
-  
+
   await pluginSourceGateway.remoteRepository?.reset();
   await pluginRecipientGateway.remoteRepository?.reset();
 
