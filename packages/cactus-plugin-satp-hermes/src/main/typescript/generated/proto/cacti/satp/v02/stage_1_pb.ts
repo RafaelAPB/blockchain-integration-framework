@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { NetworkCapabilities, SATPMessage, TransferClaims, TransferInitClaimsFormat } from "./common/common_messages_pb.js";
+import { NetworkCapabilities, SATPMessage, TransferClaims, TransferClaimsFormat } from "./common/common_messages_pb.js";
 
 /**
  * @generated from message cacti.satp.v02.TransferProposalRequest
@@ -22,9 +22,9 @@ export class TransferProposalRequest extends Message<TransferProposalRequest> {
   transferInitClaims?: TransferClaims;
 
   /**
-   * @generated from field: cacti.satp.v02.common.TransferInitClaimsFormat transfer_init_claims_format = 3;
+   * @generated from field: cacti.satp.v02.common.TransferClaimsFormat transfer_init_claims_format = 3;
    */
-  transferInitClaimsFormat?: TransferInitClaimsFormat;
+  transferInitClaimsFormat?: TransferClaimsFormat;
 
   /**
    * @generated from field: cacti.satp.v02.common.NetworkCapabilities network_capabilities = 4;
@@ -56,7 +56,7 @@ export class TransferProposalRequest extends Message<TransferProposalRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "transfer_init_claims", kind: "message", T: TransferClaims },
-    { no: 3, name: "transfer_init_claims_format", kind: "message", T: TransferInitClaimsFormat },
+    { no: 3, name: "transfer_init_claims_format", kind: "message", T: TransferClaimsFormat },
     { no: 4, name: "network_capabilities", kind: "message", T: NetworkCapabilities },
     { no: 5, name: "multiple_claims_allowed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 6, name: "multiple_cancels_allowed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
@@ -290,9 +290,9 @@ export class TransferCommenceRequest extends Message<TransferCommenceRequest> {
 }
 
 /**
- * @generated from message cacti.satp.v02.ComenceResponseMessage
+ * @generated from message cacti.satp.v02.CommenceResponseMessage
  */
-export class ComenceResponseMessage extends Message<ComenceResponseMessage> {
+export class CommenceResponseMessage extends Message<CommenceResponseMessage> {
   /**
    * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
    */
@@ -303,32 +303,32 @@ export class ComenceResponseMessage extends Message<ComenceResponseMessage> {
    */
   serverSignature = "";
 
-  constructor(data?: PartialMessage<ComenceResponseMessage>) {
+  constructor(data?: PartialMessage<CommenceResponseMessage>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.ComenceResponseMessage";
+  static readonly typeName = "cacti.satp.v02.CommenceResponseMessage";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "server_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ComenceResponseMessage {
-    return new ComenceResponseMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommenceResponseMessage {
+    return new CommenceResponseMessage().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ComenceResponseMessage {
-    return new ComenceResponseMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommenceResponseMessage {
+    return new CommenceResponseMessage().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ComenceResponseMessage {
-    return new ComenceResponseMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommenceResponseMessage {
+    return new CommenceResponseMessage().fromJsonString(jsonString, options);
   }
 
-  static equals(a: ComenceResponseMessage | PlainMessage<ComenceResponseMessage> | undefined, b: ComenceResponseMessage | PlainMessage<ComenceResponseMessage> | undefined): boolean {
-    return proto3.util.equals(ComenceResponseMessage, a, b);
+  static equals(a: CommenceResponseMessage | PlainMessage<CommenceResponseMessage> | undefined, b: CommenceResponseMessage | PlainMessage<CommenceResponseMessage> | undefined): boolean {
+    return proto3.util.equals(CommenceResponseMessage, a, b);
   }
 }
 

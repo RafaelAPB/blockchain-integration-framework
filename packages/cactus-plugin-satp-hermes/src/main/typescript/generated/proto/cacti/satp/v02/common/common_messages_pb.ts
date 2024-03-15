@@ -543,33 +543,33 @@ export class TransferClaims extends Message<TransferClaims> {
 }
 
 /**
- * @generated from message cacti.satp.v02.common.TransferInitClaimsFormat
+ * @generated from message cacti.satp.v02.common.TransferClaimsFormat
  */
-export class TransferInitClaimsFormat extends Message<TransferInitClaimsFormat> {
-  constructor(data?: PartialMessage<TransferInitClaimsFormat>) {
+export class TransferClaimsFormat extends Message<TransferClaimsFormat> {
+  constructor(data?: PartialMessage<TransferClaimsFormat>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.common.TransferInitClaimsFormat";
+  static readonly typeName = "cacti.satp.v02.common.TransferClaimsFormat";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferInitClaimsFormat {
-    return new TransferInitClaimsFormat().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferClaimsFormat {
+    return new TransferClaimsFormat().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TransferInitClaimsFormat {
-    return new TransferInitClaimsFormat().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TransferClaimsFormat {
+    return new TransferClaimsFormat().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TransferInitClaimsFormat {
-    return new TransferInitClaimsFormat().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TransferClaimsFormat {
+    return new TransferClaimsFormat().fromJsonString(jsonString, options);
   }
 
-  static equals(a: TransferInitClaimsFormat | PlainMessage<TransferInitClaimsFormat> | undefined, b: TransferInitClaimsFormat | PlainMessage<TransferInitClaimsFormat> | undefined): boolean {
-    return proto3.util.equals(TransferInitClaimsFormat, a, b);
+  static equals(a: TransferClaimsFormat | PlainMessage<TransferClaimsFormat> | undefined, b: TransferClaimsFormat | PlainMessage<TransferClaimsFormat> | undefined): boolean {
+    return proto3.util.equals(TransferClaimsFormat, a, b);
   }
 }
 

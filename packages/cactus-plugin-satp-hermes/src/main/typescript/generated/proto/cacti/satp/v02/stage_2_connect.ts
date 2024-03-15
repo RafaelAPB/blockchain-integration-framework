@@ -3,25 +3,25 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { LockAssertionMessage, LockAssertionReceiptMessage } from "./stage_2_pb.js";
+import { LockAssertionReceiptMessage, LockAssertionRequest } from "./stage_2_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * util RPCs
  *
- * @generated from service cacti.satp.v02.SATPStage2
+ * @generated from service cacti.satp.v02.SatpStage2Service
  */
-export const SATPStage2 = {
-  typeName: "cacti.satp.v02.SATPStage2",
+export const SatpStage2Service = {
+  typeName: "cacti.satp.v02.SatpStage2Service",
   methods: {
     /**
      * step RPCs
      *
-     * @generated from rpc cacti.satp.v02.SATPStage2.LockAssertion
+     * @generated from rpc cacti.satp.v02.SatpStage2Service.LockAssertion
      */
     lockAssertion: {
       name: "LockAssertion",
-      I: LockAssertionMessage,
+      I: LockAssertionRequest,
       O: LockAssertionReceiptMessage,
       kind: MethodKind.Unary,
     },

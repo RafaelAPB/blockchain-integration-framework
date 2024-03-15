@@ -4,20 +4,21 @@ package cacti.satp.v02;
 
 import "cacti/satp/v02/common/common_messages.proto";
 
-message TransferProposalClaimsRequest {
-  cacti.satp.v02.common.MessageType message_type = 1;
-  cacti.satp.v02.common.TransferClaims transfer_claims = 2;
+message PreTransferVerificationAndContextEstablishmentRequest {
+  cacti.satp.v02.common.SATPMessage context = 1;
+  cacti.satp.v02.common.TransferClaims transferClaims = 2;
+  // todo other fields
 }
 
 // TODO
-message TransferProposalClaimsResponse {
-  cacti.satp.v02.common.MessageType message_type = 1;
+message PreTransferVerificationAndContextEstablishmentResponse {
+  
 }
 
 service SatpStage0Service {
   // util RPCs
 
   // step RPCs
-  rpc TransferProposalClaims(TransferProposalClaimsRequest) returns (TransferProposalClaimsResponse) {};
+  rpc TransferProposalClaims(PreTransferVerificationAndContextEstablishmentRequest) returns (PreTransferVerificationAndContextEstablishmentResponse) {};
   // todo other rpcs
 }

@@ -3,26 +3,26 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { TransferProposalClaimsRequest, TransferProposalClaimsResponse } from "./stage_0_pb.js";
+import { PreTransferVerificationAndContextEstablishmentRequest, PreTransferVerificationAndContextEstablishmentResponse } from "./stage_0_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * util RPCs
  *
- * @generated from service cacti.satp.v02.SATPStage0
+ * @generated from service cacti.satp.v02.SatpStage0Service
  */
-export const SATPStage0 = {
-  typeName: "cacti.satp.v02.SATPStage0",
+export const SatpStage0Service = {
+  typeName: "cacti.satp.v02.SatpStage0Service",
   methods: {
     /**
      * step RPCs
      *
-     * @generated from rpc cacti.satp.v02.SATPStage0.TransferProposalClaims
+     * @generated from rpc cacti.satp.v02.SatpStage0Service.TransferProposalClaims
      */
     transferProposalClaims: {
       name: "TransferProposalClaims",
-      I: TransferProposalClaimsRequest,
-      O: TransferProposalClaimsResponse,
+      I: PreTransferVerificationAndContextEstablishmentRequest,
+      O: PreTransferVerificationAndContextEstablishmentResponse,
       kind: MethodKind.Unary,
     },
   }

@@ -4,7 +4,240 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
+import { CredentialProfile, MessageType, NetworkCapabilities, PayloadProfile } from "./common_messages_pb.js";
+
+/**
+ * @generated from message cacti.satp.v02.common.SessionData
+ */
+export class SessionData extends Message<SessionData> {
+  /**
+   * @generated from field: string version = 1;
+   */
+  version = "";
+
+  /**
+   * maybe?
+   *
+   * @generated from field: cacti.satp.v02.common.MessageType message_type = 2;
+   */
+  messageType = MessageType.UNSPECIFIED;
+
+  /**
+   * @generated from field: string session_id = 3;
+   */
+  sessionId = "";
+
+  /**
+   * @generated from field: string transfer_context_id = 4;
+   */
+  transferContextId = "";
+
+  /**
+   * todo verify
+   *
+   * @generated from field: int64 step = 5;
+   */
+  step = protoInt64.zero;
+
+  /**
+   * @generated from field: string max_retries = 6;
+   */
+  maxRetries = "";
+
+  /**
+   * @generated from field: string max_timeout = 7;
+   */
+  maxTimeout = "";
+
+  /**
+   * @generated from field: cacti.satp.v02.common.PayloadProfile payload_profile = 8;
+   */
+  payloadProfile?: PayloadProfile;
+
+  /**
+   * @generated from field: string logging_profile = 9;
+   */
+  loggingProfile = "";
+
+  /**
+   * @generated from field: string source_base_path = 10;
+   */
+  sourceBasePath = "";
+
+  /**
+   * @generated from field: string recipient_base_path = 11;
+   */
+  recipientBasePath = "";
+
+  /**
+   * @generated from field: string access_control_profile = 12;
+   */
+  accessControlProfile = "";
+
+  /**
+   * @generated from field: string application_profile = 13;
+   */
+  applicationProfile = "";
+
+  /**
+   * @generated from field: int64 last_sequence_number = 14;
+   */
+  lastSequenceNumber = protoInt64.zero;
+
+  /**
+   * @generated from field: string source_ledger_asset_id = 15;
+   */
+  sourceLedgerAssetId = "";
+
+  /**
+   * @generated from field: string sender_gateway_network_id = 16;
+   */
+  senderGatewayNetworkId = "";
+
+  /**
+   * @generated from field: string recipient_gateway_pubkey = 17;
+   */
+  recipientGatewayPubkey = "";
+
+  /**
+   * @generated from field: string recipient_ledger_asset_id = 18;
+   */
+  recipientLedgerAssetId = "";
+
+  /**
+   * @generated from field: string recipient_gateway_network_id = 19;
+   */
+  recipientGatewayNetworkId = "";
+
+  /**
+   * @generated from field: repeated string allowed_source_backup_gateways = 20;
+   */
+  allowedSourceBackupGateways: string[] = [];
+
+  /**
+   * @generated from field: string verified_originator_entity_id = 21;
+   */
+  verifiedOriginatorEntityId = "";
+
+  /**
+   * @generated from field: string verified_beneficiary_entity_id = 22;
+   */
+  verifiedBeneficiaryEntityId = "";
+
+  /**
+   * @generated from field: string originator_pubkey = 23;
+   */
+  originatorPubkey = "";
+
+  /**
+   * @generated from field: string beneficiary_pubkey = 24;
+   */
+  beneficiaryPubkey = "";
+
+  /**
+   * @generated from field: string client_identity_pubkey = 25;
+   */
+  clientIdentityPubkey = "";
+
+  /**
+   * @generated from field: string server_identity_pubkey = 26;
+   */
+  serverIdentityPubkey = "";
+
+  /**
+   * @generated from field: string sender_gateway_owner_id = 27;
+   */
+  senderGatewayOwnerId = "";
+
+  /**
+   * @generated from field: string receiver_gateway_owner_id = 28;
+   */
+  receiverGatewayOwnerId = "";
+
+  /**
+   * maybe?
+   *
+   * @generated from field: cacti.satp.v02.common.NetworkCapabilities network_capabilities = 30;
+   */
+  networkCapabilities?: NetworkCapabilities;
+
+  /**
+   * @generated from field: cacti.satp.v02.common.CredentialProfile credential_profile = 31;
+   */
+  credentialProfile = CredentialProfile.UNSPECIFIED;
+
+  /**
+   * @generated from field: string credential_block = 32;
+   */
+  credentialBlock = "";
+
+  /**
+   * @generated from field: string asset_profile_id = 33;
+   */
+  assetProfileId = "";
+  transferInitClaimsFormat: any;
+  multipleClaimsAllowed: any;
+  multipleCancelsAllowed: any;
+
+  constructor(data?: PartialMessage<SessionData>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cacti.satp.v02.common.SessionData";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "message_type", kind: "enum", T: proto3.getEnumType(MessageType) },
+    { no: 3, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "transfer_context_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "step", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 6, name: "max_retries", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "max_timeout", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "payload_profile", kind: "message", T: PayloadProfile },
+    { no: 9, name: "logging_profile", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "source_base_path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 11, name: "recipient_base_path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 12, name: "access_control_profile", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 13, name: "application_profile", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 14, name: "last_sequence_number", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 15, name: "source_ledger_asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 16, name: "sender_gateway_network_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 17, name: "recipient_gateway_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 18, name: "recipient_ledger_asset_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 19, name: "recipient_gateway_network_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 20, name: "allowed_source_backup_gateways", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 21, name: "verified_originator_entity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 22, name: "verified_beneficiary_entity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 23, name: "originator_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 24, name: "beneficiary_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 25, name: "client_identity_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 26, name: "server_identity_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 27, name: "sender_gateway_owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 28, name: "receiver_gateway_owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 30, name: "network_capabilities", kind: "message", T: NetworkCapabilities },
+    { no: 31, name: "credential_profile", kind: "enum", T: proto3.getEnumType(CredentialProfile) },
+    { no: 32, name: "credential_block", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 33, name: "asset_profile_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SessionData {
+    return new SessionData().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SessionData {
+    return new SessionData().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SessionData {
+    return new SessionData().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SessionData | PlainMessage<SessionData> | undefined, b: SessionData | PlainMessage<SessionData> | undefined): boolean {
+    return proto3.util.equals(SessionData, a, b);
+  }
+}
 
 /**
  * @generated from message cacti.satp.v02.common.SendStatusRequest

@@ -70,9 +70,9 @@ export class LockAssertionFormat extends Message<LockAssertionFormat> {
 }
 
 /**
- * @generated from message cacti.satp.v02.LockAssertionMessage
+ * @generated from message cacti.satp.v02.LockAssertionRequest
  */
-export class LockAssertionMessage extends Message<LockAssertionMessage> {
+export class LockAssertionRequest extends Message<LockAssertionRequest> {
   /**
    * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
    */
@@ -103,13 +103,13 @@ export class LockAssertionMessage extends Message<LockAssertionMessage> {
    */
   clientSignature = "";
 
-  constructor(data?: PartialMessage<LockAssertionMessage>) {
+  constructor(data?: PartialMessage<LockAssertionRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.LockAssertionMessage";
+  static readonly typeName = "cacti.satp.v02.LockAssertionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "lock_assertion_claim", kind: "message", T: LockAssertionClaim },
@@ -119,20 +119,20 @@ export class LockAssertionMessage extends Message<LockAssertionMessage> {
     { no: 6, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LockAssertionMessage {
-    return new LockAssertionMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LockAssertionRequest {
+    return new LockAssertionRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LockAssertionMessage {
-    return new LockAssertionMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LockAssertionRequest {
+    return new LockAssertionRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LockAssertionMessage {
-    return new LockAssertionMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LockAssertionRequest {
+    return new LockAssertionRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: LockAssertionMessage | PlainMessage<LockAssertionMessage> | undefined, b: LockAssertionMessage | PlainMessage<LockAssertionMessage> | undefined): boolean {
-    return proto3.util.equals(LockAssertionMessage, a, b);
+  static equals(a: LockAssertionRequest | PlainMessage<LockAssertionRequest> | undefined, b: LockAssertionRequest | PlainMessage<LockAssertionRequest> | undefined): boolean {
+    return proto3.util.equals(LockAssertionRequest, a, b);
   }
 }
 

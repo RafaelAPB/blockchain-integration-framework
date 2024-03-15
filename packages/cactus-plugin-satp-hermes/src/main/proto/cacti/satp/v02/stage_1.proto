@@ -7,7 +7,7 @@ import "cacti/satp/v02/common/common_messages.proto";
 message TransferProposalRequest {
   cacti.satp.v02.common.SATPMessage satp_message = 1;
   cacti.satp.v02.common.TransferClaims transfer_init_claims = 2;
-  cacti.satp.v02.common.TransferInitClaimsFormat transfer_init_claims_format = 3;
+  cacti.satp.v02.common.TransferClaimsFormat transfer_init_claims_format = 3;
   cacti.satp.v02.common.NetworkCapabilities network_capabilities = 4;
   bool multiple_claims_allowed = 5;
   bool multiple_cancels_allowed = 6;
@@ -41,7 +41,7 @@ message TransferCommenceRequest {
   string client_signature = 4;
 }
 
-message ComenceResponseMessage {
+message CommenceResponseMessage {
   cacti.satp.v02.common.SATPMessage satp_message = 1;
   string server_signature = 2;
 }
@@ -51,5 +51,5 @@ service SatpStage1Service {
  
   // step RPCs
   rpc TransferProposal(TransferProposalRequest) returns (TransferProposalResponse) {}
-  rpc TransferCommence(TransferCommenceRequest) returns (ComenceResponseMessage) {}
+  rpc TransferCommence(TransferCommenceRequest) returns (CommenceResponseMessage) {}
 }

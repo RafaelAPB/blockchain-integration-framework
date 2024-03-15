@@ -3,44 +3,44 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CommitFinalAcknowledgementReceiptMessage, CommitFinalAssertionMessage, CommitPreparationMessage, CommitReadyMessage, TransferCompleteMessage } from "./stage_3_pb.js";
-import { Empty, MethodKind } from "@bufbuild/protobuf";
+import { CommitFinalAcknowledgementReceiptResponse, CommitFinalAssertionRequest, CommitPreparationRequest, CommitReadyResponse, TransferCompleteRequest, TransferCompleteResponse } from "./stage_3_pb.js";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * util RPCs
  *
- * @generated from service cacti.satp.v02.SATPStage3
+ * @generated from service cacti.satp.v02.SatpStage3Service
  */
-export const SATPStage3 = {
-  typeName: "cacti.satp.v02.SATPStage3",
+export const SatpStage3Service = {
+  typeName: "cacti.satp.v02.SatpStage3Service",
   methods: {
     /**
      * step RPCs
      *
-     * @generated from rpc cacti.satp.v02.SATPStage3.CommitPreparation
+     * @generated from rpc cacti.satp.v02.SatpStage3Service.CommitPreparation
      */
     commitPreparation: {
       name: "CommitPreparation",
-      I: CommitPreparationMessage,
-      O: CommitReadyMessage,
+      I: CommitPreparationRequest,
+      O: CommitReadyResponse,
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc cacti.satp.v02.SATPStage3.CommitFinalAssertion
+     * @generated from rpc cacti.satp.v02.SatpStage3Service.CommitFinalAssertion
      */
     commitFinalAssertion: {
       name: "CommitFinalAssertion",
-      I: CommitFinalAssertionMessage,
-      O: CommitFinalAcknowledgementReceiptMessage,
+      I: CommitFinalAssertionRequest,
+      O: CommitFinalAcknowledgementReceiptResponse,
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc cacti.satp.v02.SATPStage3.TransferComplete
+     * @generated from rpc cacti.satp.v02.SatpStage3Service.TransferComplete
      */
     transferComplete: {
       name: "TransferComplete",
-      I: TransferCompleteMessage,
-      O: Empty,
+      I: TransferCompleteRequest,
+      O: TransferCompleteResponse,
       kind: MethodKind.Unary,
     },
   }

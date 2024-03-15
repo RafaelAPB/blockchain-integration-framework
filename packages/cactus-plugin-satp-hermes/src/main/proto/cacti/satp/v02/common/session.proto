@@ -5,6 +5,48 @@ import "google/protobuf/empty.proto";
 
 import "cacti/satp/v02/common/common_messages.proto";
 
+
+message SessionData {
+
+    string version = 1;
+    cacti.satp.v02.common.MessageType message_type = 2; //maybe?
+    string session_id = 3;
+    string transfer_context_id = 4;
+    
+    int64 step = 5; //todo verify
+    
+   
+    string max_retries = 6;
+    string max_timeout = 7;
+    cacti.satp.v02.common.PayloadProfile payload_profile = 8;
+    string logging_profile = 9;
+    string source_base_path = 10;
+    string recipient_base_path = 11;
+    string access_control_profile = 12;
+    string application_profile = 13;
+    int64 last_sequence_number = 14;
+    string source_ledger_asset_id = 15; 
+    string sender_gateway_network_id  = 16;
+    string recipient_gateway_pubkey = 17;
+    string recipient_ledger_asset_id = 18;
+    string recipient_gateway_network_id = 19;
+    repeated string allowed_source_backup_gateways = 20;
+    string verified_originator_entity_id = 21; 
+    string verified_beneficiary_entity_id = 22;
+    string originator_pubkey = 23;
+    string beneficiary_pubkey = 24;
+    string client_identity_pubkey = 25;
+    string server_identity_pubkey  = 26;
+    string sender_gateway_owner_id = 27;
+    string receiver_gateway_owner_id = 28;
+    //maybe?
+    cacti.satp.v02.common.NetworkCapabilities network_capabilities = 30;
+    cacti.satp.v02.common.CredentialProfile credential_profile = 31;
+    string credential_block = 32;
+    string asset_profile_id = 33;
+}
+
+
 message SendStatusRequest {
     string status = 1;
     bool has_backup = 2;

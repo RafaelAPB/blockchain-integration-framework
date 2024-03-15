@@ -3,21 +3,21 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ComenceResponseMessage, TransferCommenceRequest, TransferProposalRequest, TransferProposalResponse } from "./stage_1_pb.js";
+import { CommenceResponseMessage, TransferCommenceRequest, TransferProposalRequest, TransferProposalResponse } from "./stage_1_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * util RPCs
  *
- * @generated from service cacti.satp.v02.SATPStage1
+ * @generated from service cacti.satp.v02.SatpStage1Service
  */
-export const SATPStage1 = {
-  typeName: "cacti.satp.v02.SATPStage1",
+export const SatpStage1Service = {
+  typeName: "cacti.satp.v02.SatpStage1Service",
   methods: {
     /**
      * step RPCs
      *
-     * @generated from rpc cacti.satp.v02.SATPStage1.TransferProposal
+     * @generated from rpc cacti.satp.v02.SatpStage1Service.TransferProposal
      */
     transferProposal: {
       name: "TransferProposal",
@@ -26,12 +26,12 @@ export const SATPStage1 = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc cacti.satp.v02.SATPStage1.TransferCommence
+     * @generated from rpc cacti.satp.v02.SatpStage1Service.TransferCommence
      */
     transferCommence: {
       name: "TransferCommence",
       I: TransferCommenceRequest,
-      O: ComenceResponseMessage,
+      O: CommenceResponseMessage,
       kind: MethodKind.Unary,
     },
   }

@@ -36,7 +36,7 @@ message TransferClaims {
     string receiver_gateway_owner_id = 12;
 }
 
-message TransferInitClaimsFormat {
+message TransferClaimsFormat {
 
 }
 

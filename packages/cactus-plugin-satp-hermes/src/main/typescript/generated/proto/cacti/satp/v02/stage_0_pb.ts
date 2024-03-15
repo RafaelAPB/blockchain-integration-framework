@@ -5,87 +5,83 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { MessageType, TransferClaims } from "./common/common_messages_pb.js";
+import { SATPMessage, TransferClaims } from "./common/common_messages_pb.js";
 
 /**
- * @generated from message cacti.satp.v02.TransferProposalClaimsRequest
+ * @generated from message cacti.satp.v02.PreTransferVerificationAndContextEstablishmentRequest
  */
-export class TransferProposalClaimsRequest extends Message<TransferProposalClaimsRequest> {
+export class PreTransferVerificationAndContextEstablishmentRequest extends Message<PreTransferVerificationAndContextEstablishmentRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.MessageType message_type = 1;
+   * @generated from field: cacti.satp.v02.common.SATPMessage context = 1;
    */
-  messageType = MessageType.UNSPECIFIED;
+  context?: SATPMessage;
 
   /**
-   * @generated from field: cacti.satp.v02.common.TransferClaims transfer_claims = 2;
+   * todo other fields
+   *
+   * @generated from field: cacti.satp.v02.common.TransferClaims transferClaims = 2;
    */
   transferClaims?: TransferClaims;
 
-  constructor(data?: PartialMessage<TransferProposalClaimsRequest>) {
+  constructor(data?: PartialMessage<PreTransferVerificationAndContextEstablishmentRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.TransferProposalClaimsRequest";
+  static readonly typeName = "cacti.satp.v02.PreTransferVerificationAndContextEstablishmentRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "message_type", kind: "enum", T: proto3.getEnumType(MessageType) },
-    { no: 2, name: "transfer_claims", kind: "message", T: TransferClaims },
+    { no: 1, name: "context", kind: "message", T: SATPMessage },
+    { no: 2, name: "transferClaims", kind: "message", T: TransferClaims },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferProposalClaimsRequest {
-    return new TransferProposalClaimsRequest().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PreTransferVerificationAndContextEstablishmentRequest {
+    return new PreTransferVerificationAndContextEstablishmentRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TransferProposalClaimsRequest {
-    return new TransferProposalClaimsRequest().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PreTransferVerificationAndContextEstablishmentRequest {
+    return new PreTransferVerificationAndContextEstablishmentRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TransferProposalClaimsRequest {
-    return new TransferProposalClaimsRequest().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PreTransferVerificationAndContextEstablishmentRequest {
+    return new PreTransferVerificationAndContextEstablishmentRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: TransferProposalClaimsRequest | PlainMessage<TransferProposalClaimsRequest> | undefined, b: TransferProposalClaimsRequest | PlainMessage<TransferProposalClaimsRequest> | undefined): boolean {
-    return proto3.util.equals(TransferProposalClaimsRequest, a, b);
+  static equals(a: PreTransferVerificationAndContextEstablishmentRequest | PlainMessage<PreTransferVerificationAndContextEstablishmentRequest> | undefined, b: PreTransferVerificationAndContextEstablishmentRequest | PlainMessage<PreTransferVerificationAndContextEstablishmentRequest> | undefined): boolean {
+    return proto3.util.equals(PreTransferVerificationAndContextEstablishmentRequest, a, b);
   }
 }
 
 /**
  * TODO
  *
- * @generated from message cacti.satp.v02.TransferProposalClaimsResponse
+ * @generated from message cacti.satp.v02.PreTransferVerificationAndContextEstablishmentResponse
  */
-export class TransferProposalClaimsResponse extends Message<TransferProposalClaimsResponse> {
-  /**
-   * @generated from field: cacti.satp.v02.common.MessageType message_type = 1;
-   */
-  messageType = MessageType.UNSPECIFIED;
-
-  constructor(data?: PartialMessage<TransferProposalClaimsResponse>) {
+export class PreTransferVerificationAndContextEstablishmentResponse extends Message<PreTransferVerificationAndContextEstablishmentResponse> {
+  constructor(data?: PartialMessage<PreTransferVerificationAndContextEstablishmentResponse>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.TransferProposalClaimsResponse";
+  static readonly typeName = "cacti.satp.v02.PreTransferVerificationAndContextEstablishmentResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "message_type", kind: "enum", T: proto3.getEnumType(MessageType) },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferProposalClaimsResponse {
-    return new TransferProposalClaimsResponse().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PreTransferVerificationAndContextEstablishmentResponse {
+    return new PreTransferVerificationAndContextEstablishmentResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TransferProposalClaimsResponse {
-    return new TransferProposalClaimsResponse().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PreTransferVerificationAndContextEstablishmentResponse {
+    return new PreTransferVerificationAndContextEstablishmentResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TransferProposalClaimsResponse {
-    return new TransferProposalClaimsResponse().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PreTransferVerificationAndContextEstablishmentResponse {
+    return new PreTransferVerificationAndContextEstablishmentResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: TransferProposalClaimsResponse | PlainMessage<TransferProposalClaimsResponse> | undefined, b: TransferProposalClaimsResponse | PlainMessage<TransferProposalClaimsResponse> | undefined): boolean {
-    return proto3.util.equals(TransferProposalClaimsResponse, a, b);
+  static equals(a: PreTransferVerificationAndContextEstablishmentResponse | PlainMessage<PreTransferVerificationAndContextEstablishmentResponse> | undefined, b: PreTransferVerificationAndContextEstablishmentResponse | PlainMessage<PreTransferVerificationAndContextEstablishmentResponse> | undefined): boolean {
+    return proto3.util.equals(PreTransferVerificationAndContextEstablishmentResponse, a, b);
   }
 }
 

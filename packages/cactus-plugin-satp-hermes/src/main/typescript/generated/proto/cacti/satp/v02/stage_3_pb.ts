@@ -163,9 +163,9 @@ export class AssignmentAssertionClaimFormat extends Message<AssignmentAssertionC
 }
 
 /**
- * @generated from message cacti.satp.v02.CommitPreparationMessage
+ * @generated from message cacti.satp.v02.CommitPreparationRequest
  */
-export class CommitPreparationMessage extends Message<CommitPreparationMessage> {
+export class CommitPreparationRequest extends Message<CommitPreparationRequest> {
   /**
    * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
    */
@@ -181,40 +181,40 @@ export class CommitPreparationMessage extends Message<CommitPreparationMessage> 
    */
   clientSignature = "";
 
-  constructor(data?: PartialMessage<CommitPreparationMessage>) {
+  constructor(data?: PartialMessage<CommitPreparationRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.CommitPreparationMessage";
+  static readonly typeName = "cacti.satp.v02.CommitPreparationRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "client_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitPreparationMessage {
-    return new CommitPreparationMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitPreparationRequest {
+    return new CommitPreparationRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitPreparationMessage {
-    return new CommitPreparationMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitPreparationRequest {
+    return new CommitPreparationRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitPreparationMessage {
-    return new CommitPreparationMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitPreparationRequest {
+    return new CommitPreparationRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CommitPreparationMessage | PlainMessage<CommitPreparationMessage> | undefined, b: CommitPreparationMessage | PlainMessage<CommitPreparationMessage> | undefined): boolean {
-    return proto3.util.equals(CommitPreparationMessage, a, b);
+  static equals(a: CommitPreparationRequest | PlainMessage<CommitPreparationRequest> | undefined, b: CommitPreparationRequest | PlainMessage<CommitPreparationRequest> | undefined): boolean {
+    return proto3.util.equals(CommitPreparationRequest, a, b);
   }
 }
 
 /**
- * @generated from message cacti.satp.v02.CommitReadyMessage
+ * @generated from message cacti.satp.v02.CommitReadyResponse
  */
-export class CommitReadyMessage extends Message<CommitReadyMessage> {
+export class CommitReadyResponse extends Message<CommitReadyResponse> {
   /**
    * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
    */
@@ -235,13 +235,13 @@ export class CommitReadyMessage extends Message<CommitReadyMessage> {
    */
   serverSignature = "";
 
-  constructor(data?: PartialMessage<CommitReadyMessage>) {
+  constructor(data?: PartialMessage<CommitReadyResponse>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.CommitReadyMessage";
+  static readonly typeName = "cacti.satp.v02.CommitReadyResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "mint_assertion_claims", kind: "message", T: MintAssertionClaims },
@@ -249,27 +249,27 @@ export class CommitReadyMessage extends Message<CommitReadyMessage> {
     { no: 4, name: "server_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitReadyMessage {
-    return new CommitReadyMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitReadyResponse {
+    return new CommitReadyResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitReadyMessage {
-    return new CommitReadyMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitReadyResponse {
+    return new CommitReadyResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitReadyMessage {
-    return new CommitReadyMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitReadyResponse {
+    return new CommitReadyResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CommitReadyMessage | PlainMessage<CommitReadyMessage> | undefined, b: CommitReadyMessage | PlainMessage<CommitReadyMessage> | undefined): boolean {
-    return proto3.util.equals(CommitReadyMessage, a, b);
+  static equals(a: CommitReadyResponse | PlainMessage<CommitReadyResponse> | undefined, b: CommitReadyResponse | PlainMessage<CommitReadyResponse> | undefined): boolean {
+    return proto3.util.equals(CommitReadyResponse, a, b);
   }
 }
 
 /**
- * @generated from message cacti.satp.v02.CommitFinalAssertionMessage
+ * @generated from message cacti.satp.v02.CommitFinalAssertionRequest
  */
-export class CommitFinalAssertionMessage extends Message<CommitFinalAssertionMessage> {
+export class CommitFinalAssertionRequest extends Message<CommitFinalAssertionRequest> {
   /**
    * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
    */
@@ -295,13 +295,13 @@ export class CommitFinalAssertionMessage extends Message<CommitFinalAssertionMes
    */
   clientSignature = "";
 
-  constructor(data?: PartialMessage<CommitFinalAssertionMessage>) {
+  constructor(data?: PartialMessage<CommitFinalAssertionRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.CommitFinalAssertionMessage";
+  static readonly typeName = "cacti.satp.v02.CommitFinalAssertionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "burn_assertion_claim", kind: "message", T: BurnAssertionClaim },
@@ -310,27 +310,27 @@ export class CommitFinalAssertionMessage extends Message<CommitFinalAssertionMes
     { no: 5, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitFinalAssertionMessage {
-    return new CommitFinalAssertionMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitFinalAssertionRequest {
+    return new CommitFinalAssertionRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitFinalAssertionMessage {
-    return new CommitFinalAssertionMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitFinalAssertionRequest {
+    return new CommitFinalAssertionRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitFinalAssertionMessage {
-    return new CommitFinalAssertionMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitFinalAssertionRequest {
+    return new CommitFinalAssertionRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CommitFinalAssertionMessage | PlainMessage<CommitFinalAssertionMessage> | undefined, b: CommitFinalAssertionMessage | PlainMessage<CommitFinalAssertionMessage> | undefined): boolean {
-    return proto3.util.equals(CommitFinalAssertionMessage, a, b);
+  static equals(a: CommitFinalAssertionRequest | PlainMessage<CommitFinalAssertionRequest> | undefined, b: CommitFinalAssertionRequest | PlainMessage<CommitFinalAssertionRequest> | undefined): boolean {
+    return proto3.util.equals(CommitFinalAssertionRequest, a, b);
   }
 }
 
 /**
- * @generated from message cacti.satp.v02.CommitFinalAcknowledgementReceiptMessage
+ * @generated from message cacti.satp.v02.CommitFinalAcknowledgementReceiptResponse
  */
-export class CommitFinalAcknowledgementReceiptMessage extends Message<CommitFinalAcknowledgementReceiptMessage> {
+export class CommitFinalAcknowledgementReceiptResponse extends Message<CommitFinalAcknowledgementReceiptResponse> {
   /**
    * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
    */
@@ -356,13 +356,13 @@ export class CommitFinalAcknowledgementReceiptMessage extends Message<CommitFina
    */
   serverSignature = "";
 
-  constructor(data?: PartialMessage<CommitFinalAcknowledgementReceiptMessage>) {
+  constructor(data?: PartialMessage<CommitFinalAcknowledgementReceiptResponse>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.CommitFinalAcknowledgementReceiptMessage";
+  static readonly typeName = "cacti.satp.v02.CommitFinalAcknowledgementReceiptResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "assignment_assertion_claim", kind: "message", T: AssignmentAssertionClaim },
@@ -371,27 +371,27 @@ export class CommitFinalAcknowledgementReceiptMessage extends Message<CommitFina
     { no: 5, name: "server_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitFinalAcknowledgementReceiptMessage {
-    return new CommitFinalAcknowledgementReceiptMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommitFinalAcknowledgementReceiptResponse {
+    return new CommitFinalAcknowledgementReceiptResponse().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitFinalAcknowledgementReceiptMessage {
-    return new CommitFinalAcknowledgementReceiptMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommitFinalAcknowledgementReceiptResponse {
+    return new CommitFinalAcknowledgementReceiptResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitFinalAcknowledgementReceiptMessage {
-    return new CommitFinalAcknowledgementReceiptMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommitFinalAcknowledgementReceiptResponse {
+    return new CommitFinalAcknowledgementReceiptResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(a: CommitFinalAcknowledgementReceiptMessage | PlainMessage<CommitFinalAcknowledgementReceiptMessage> | undefined, b: CommitFinalAcknowledgementReceiptMessage | PlainMessage<CommitFinalAcknowledgementReceiptMessage> | undefined): boolean {
-    return proto3.util.equals(CommitFinalAcknowledgementReceiptMessage, a, b);
+  static equals(a: CommitFinalAcknowledgementReceiptResponse | PlainMessage<CommitFinalAcknowledgementReceiptResponse> | undefined, b: CommitFinalAcknowledgementReceiptResponse | PlainMessage<CommitFinalAcknowledgementReceiptResponse> | undefined): boolean {
+    return proto3.util.equals(CommitFinalAcknowledgementReceiptResponse, a, b);
   }
 }
 
 /**
- * @generated from message cacti.satp.v02.TransferCompleteMessage
+ * @generated from message cacti.satp.v02.TransferCompleteRequest
  */
-export class TransferCompleteMessage extends Message<TransferCompleteMessage> {
+export class TransferCompleteRequest extends Message<TransferCompleteRequest> {
   /**
    * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
    */
@@ -412,13 +412,13 @@ export class TransferCompleteMessage extends Message<TransferCompleteMessage> {
    */
   clientSignature = "";
 
-  constructor(data?: PartialMessage<TransferCompleteMessage>) {
+  constructor(data?: PartialMessage<TransferCompleteRequest>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.TransferCompleteMessage";
+  static readonly typeName = "cacti.satp.v02.TransferCompleteRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
     { no: 2, name: "hash_transfer_commence", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -426,20 +426,51 @@ export class TransferCompleteMessage extends Message<TransferCompleteMessage> {
     { no: 4, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferCompleteMessage {
-    return new TransferCompleteMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferCompleteRequest {
+    return new TransferCompleteRequest().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TransferCompleteMessage {
-    return new TransferCompleteMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TransferCompleteRequest {
+    return new TransferCompleteRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TransferCompleteMessage {
-    return new TransferCompleteMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TransferCompleteRequest {
+    return new TransferCompleteRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(a: TransferCompleteMessage | PlainMessage<TransferCompleteMessage> | undefined, b: TransferCompleteMessage | PlainMessage<TransferCompleteMessage> | undefined): boolean {
-    return proto3.util.equals(TransferCompleteMessage, a, b);
+  static equals(a: TransferCompleteRequest | PlainMessage<TransferCompleteRequest> | undefined, b: TransferCompleteRequest | PlainMessage<TransferCompleteRequest> | undefined): boolean {
+    return proto3.util.equals(TransferCompleteRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message cacti.satp.v02.TransferCompleteResponse
+ */
+export class TransferCompleteResponse extends Message<TransferCompleteResponse> {
+  constructor(data?: PartialMessage<TransferCompleteResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cacti.satp.v02.TransferCompleteResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferCompleteResponse {
+    return new TransferCompleteResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TransferCompleteResponse {
+    return new TransferCompleteResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TransferCompleteResponse {
+    return new TransferCompleteResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: TransferCompleteResponse | PlainMessage<TransferCompleteResponse> | undefined, b: TransferCompleteResponse | PlainMessage<TransferCompleteResponse> | undefined): boolean {
+    return proto3.util.equals(TransferCompleteResponse, a, b);
   }
 }
 
