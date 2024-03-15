@@ -1,11 +1,10 @@
 import { Logger, LoggerProvider } from "@hyperledger/cactus-common";
 import { SHA256 } from "crypto-js";
 
-import { PluginSATPGateway } from "../plugin-satp-gateway_new";
+import { PluginSATPGateway } from "../plugin-satp-gateway";
 import { TransferProposalRejectMessage, TransferProposalRequest } from "../generated/proto/cacti/satp/v02/stage_1_pb";
 import { ActionResponse, MessageType, Payload, SATPMessage, TransferClaims } from "../generated/proto/cacti/satp/v02/common/common_messages_pb";
 import { sendTransferProposalRequest } from "./stage-services/stage1";
-import { ConnectRouter, ConnectRouter } from "@connectrpc/connect";
 
 export class ClientGatewayHelper {
   public static readonly CLASS_NAME = "ClientGatewayHelper";
@@ -114,7 +113,7 @@ export class ClientGatewayHelper {
 
     transferProposalRequestMessage.clientSignature = messageSignature;
     
-    sessionData.clientSignatureInitializationRequestMessage = messageSignature;
+    //sessionData.clientSignatureInitializationRequestMessage = messageSignature;
 
     gateway.sessions.set(sessionID, sessionData);
     
