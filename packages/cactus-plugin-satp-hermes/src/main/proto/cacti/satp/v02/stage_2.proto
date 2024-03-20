@@ -13,7 +13,7 @@ message LockAssertionFormat {
 }
 
 message LockAssertionRequest {
-  cacti.satp.v02.common.SATPMessage satp_message = 1;
+  cacti.satp.v02.common.CommonSatp common = 1;
   LockAssertionClaim lock_assertion_claim = 2;
   LockAssertionFormat lock_assertion_format = 3;
   string lock_assertion_expiration = 4;
@@ -22,7 +22,7 @@ message LockAssertionRequest {
 }
 
 message LockAssertionReceiptMessage {
-  cacti.satp.v02.common.SATPMessage satp_message = 1;
+  cacti.satp.v02.common.CommonSatp common = 1;
   string server_transfer_number = 2;
   string server_signature = 3;
 }

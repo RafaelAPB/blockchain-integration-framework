@@ -5,16 +5,16 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { SATPMessage, TransferClaims } from "./common/common_messages_pb.js";
+import { CommonSatp, TransferClaims } from "./common/common_messages_pb.js";
 
 /**
  * @generated from message cacti.satp.v02.PreTransferVerificationAndContextEstablishmentRequest
  */
 export class PreTransferVerificationAndContextEstablishmentRequest extends Message<PreTransferVerificationAndContextEstablishmentRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage context = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp context = 1;
    */
-  context?: SATPMessage;
+  context?: CommonSatp;
 
   /**
    * todo other fields
@@ -31,7 +31,7 @@ export class PreTransferVerificationAndContextEstablishmentRequest extends Messa
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.PreTransferVerificationAndContextEstablishmentRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "context", kind: "message", T: SATPMessage },
+    { no: 1, name: "context", kind: "message", T: CommonSatp },
     { no: 2, name: "transferClaims", kind: "message", T: TransferClaims },
   ]);
 

@@ -5,16 +5,16 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { NetworkCapabilities, SATPMessage, TransferClaims, TransferClaimsFormat } from "./common/common_messages_pb.js";
+import { CommonSatp, NetworkCapabilities, TransferClaims, TransferClaimsFormat } from "./common/common_messages_pb.js";
 
 /**
  * @generated from message cacti.satp.v02.TransferProposalRequest
  */
 export class TransferProposalRequest extends Message<TransferProposalRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: cacti.satp.v02.common.TransferClaims transfer_init_claims = 2;
@@ -41,11 +41,6 @@ export class TransferProposalRequest extends Message<TransferProposalRequest> {
    */
   multipleCancelsAllowed = false;
 
-  /**
-   * @generated from field: string client_signature = 7;
-   */
-  clientSignature = "";
-
   constructor(data?: PartialMessage<TransferProposalRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -54,13 +49,12 @@ export class TransferProposalRequest extends Message<TransferProposalRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.TransferProposalRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "transfer_init_claims", kind: "message", T: TransferClaims },
     { no: 3, name: "transfer_init_claims_format", kind: "message", T: TransferClaimsFormat },
     { no: 4, name: "network_capabilities", kind: "message", T: NetworkCapabilities },
     { no: 5, name: "multiple_claims_allowed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 6, name: "multiple_cancels_allowed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 7, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferProposalRequest {
@@ -85,9 +79,9 @@ export class TransferProposalRequest extends Message<TransferProposalRequest> {
  */
 export class TransferProposalReceiptMessage extends Message<TransferProposalReceiptMessage> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: string hash_transfer_init_claims = 2;
@@ -107,7 +101,7 @@ export class TransferProposalReceiptMessage extends Message<TransferProposalRece
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.TransferProposalReceiptMessage";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "hash_transfer_init_claims", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "timestamp", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
@@ -134,9 +128,9 @@ export class TransferProposalReceiptMessage extends Message<TransferProposalRece
  */
 export class TransferProposalRejectMessage extends Message<TransferProposalRejectMessage> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: string hash_transfer_init_claims = 2;
@@ -161,7 +155,7 @@ export class TransferProposalRejectMessage extends Message<TransferProposalRejec
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.TransferProposalRejectMessage";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "hash_transfer_init_claims", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "transfer_counter_claims", kind: "message", T: TransferClaims },
     { no: 4, name: "timestamp", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -239,9 +233,9 @@ export class TransferProposalResponse extends Message<TransferProposalResponse> 
  */
 export class TransferCommenceRequest extends Message<TransferCommenceRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: string hash_transfer_init_claims = 2;
@@ -253,11 +247,6 @@ export class TransferCommenceRequest extends Message<TransferCommenceRequest> {
    */
   clientTransferNumber = "";
 
-  /**
-   * @generated from field: string client_signature = 4;
-   */
-  clientSignature = "";
-
   constructor(data?: PartialMessage<TransferCommenceRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -266,10 +255,9 @@ export class TransferCommenceRequest extends Message<TransferCommenceRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.TransferCommenceRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "hash_transfer_init_claims", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "client_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferCommenceRequest {
@@ -294,14 +282,9 @@ export class TransferCommenceRequest extends Message<TransferCommenceRequest> {
  */
 export class CommenceResponseMessage extends Message<CommenceResponseMessage> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
-
-  /**
-   * @generated from field: string server_signature = 2;
-   */
-  serverSignature = "";
+  common?: CommonSatp;
 
   constructor(data?: PartialMessage<CommenceResponseMessage>) {
     super();
@@ -311,8 +294,7 @@ export class CommenceResponseMessage extends Message<CommenceResponseMessage> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.CommenceResponseMessage";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
-    { no: 2, name: "server_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommenceResponseMessage {

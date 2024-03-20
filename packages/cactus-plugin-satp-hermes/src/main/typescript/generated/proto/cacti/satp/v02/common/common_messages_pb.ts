@@ -503,6 +503,16 @@ export class TransferClaims extends Message<TransferClaims> {
    */
   receiverGatewayOwnerId = "";
 
+  /**
+   * @generated from field: uint32 max_retries = 13;
+   */
+  maxRetries = 0;
+
+  /**
+   * @generated from field: uint64 max_timeout = 14;
+   */
+  maxTimeout = protoInt64.zero;
+
   constructor(data?: PartialMessage<TransferClaims>) {
     super();
     proto3.util.initPartial(data, this);
@@ -523,6 +533,8 @@ export class TransferClaims extends Message<TransferClaims> {
     { no: 10, name: "server_identity_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "sender_gateway_owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 12, name: "receiver_gateway_owner_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 13, name: "max_retries", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 14, name: "max_timeout", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TransferClaims {
@@ -911,9 +923,9 @@ export class NetworkCapabilities extends Message<NetworkCapabilities> {
 }
 
 /**
- * @generated from message cacti.satp.v02.common.SATPMessage
+ * @generated from message cacti.satp.v02.common.CommonSatp
  */
-export class SATPMessage extends Message<SATPMessage> {
+export class CommonSatp extends Message<CommonSatp> {
   /**
    * @generated from field: string version = 1;
    */
@@ -985,9 +997,9 @@ export class SATPMessage extends Message<SATPMessage> {
   payloadHash = "";
 
   /**
-   * @generated from field: string message_signature = 15;
+   * @generated from field: string signature = 15;
    */
-  messageSignature = "";
+  signature = "";
 
   /**
    * @generated from field: string client_identity_pubkey = 16;
@@ -1004,13 +1016,13 @@ export class SATPMessage extends Message<SATPMessage> {
    */
   hashPreviousMessage = "";
 
-  constructor(data?: PartialMessage<SATPMessage>) {
+  constructor(data?: PartialMessage<CommonSatp>) {
     super();
     proto3.util.initPartial(data, this);
   }
 
   static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "cacti.satp.v02.common.SATPMessage";
+  static readonly typeName = "cacti.satp.v02.common.CommonSatp";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "message_type", kind: "enum", T: proto3.getEnumType(MessageType) },
@@ -1026,26 +1038,26 @@ export class SATPMessage extends Message<SATPMessage> {
     { no: 12, name: "application_profile", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 13, name: "payload", kind: "message", T: Payload },
     { no: 14, name: "payload_hash", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 15, name: "message_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 15, name: "signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 16, name: "client_identity_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 17, name: "server_identity_pubkey", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 18, name: "hash_previous_message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SATPMessage {
-    return new SATPMessage().fromBinary(bytes, options);
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CommonSatp {
+    return new CommonSatp().fromBinary(bytes, options);
   }
 
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SATPMessage {
-    return new SATPMessage().fromJson(jsonValue, options);
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CommonSatp {
+    return new CommonSatp().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SATPMessage {
-    return new SATPMessage().fromJsonString(jsonString, options);
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CommonSatp {
+    return new CommonSatp().fromJsonString(jsonString, options);
   }
 
-  static equals(a: SATPMessage | PlainMessage<SATPMessage> | undefined, b: SATPMessage | PlainMessage<SATPMessage> | undefined): boolean {
-    return proto3.util.equals(SATPMessage, a, b);
+  static equals(a: CommonSatp | PlainMessage<CommonSatp> | undefined, b: CommonSatp | PlainMessage<CommonSatp> | undefined): boolean {
+    return proto3.util.equals(CommonSatp, a, b);
   }
 }
 
@@ -1168,9 +1180,9 @@ export class AssetProfile extends Message<AssetProfile> {
   prospectusLink = "";
 
   /**
-   * @generated from field: repeated string key_information_links = 9;
+   * @generated from field: repeated string key_information_link = 9;
    */
-  keyInformationLinks: string[] = [];
+  keyInformationLink: string[] = [];
 
   /**
    * @generated from field: repeated string keywords = 10;
@@ -1203,7 +1215,7 @@ export class AssetProfile extends Message<AssetProfile> {
     { no: 6, name: "verification_end_point", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "digital_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 8, name: "prospectus_link", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: "key_information_links", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 9, name: "key_information_link", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 10, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 11, name: "transfer_restrictions", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 12, name: "ledger_requirements", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },

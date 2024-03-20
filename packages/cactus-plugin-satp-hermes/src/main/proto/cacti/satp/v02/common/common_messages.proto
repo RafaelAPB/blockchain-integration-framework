@@ -34,6 +34,8 @@ message TransferClaims {
     string server_identity_pubkey = 10;
     string sender_gateway_owner_id = 11;
     string receiver_gateway_owner_id = 12;
+    uint32 max_retries = 13;
+    uint64 max_timeout = 14;
 }
 
 message TransferClaimsFormat {
@@ -101,7 +103,7 @@ enum MessageType {
     MESSAGE_TYPE_COMMIT_TRANSFER_COMPLETE = 11;
   }
 
-message SATPMessage {
+message CommonSatp {
     string version = 1;
     MessageType message_type = 2;
     string session_id = 3;
@@ -116,7 +118,7 @@ message SATPMessage {
     string application_profile = 12;
     Payload payload = 13;
     string payload_hash = 14;
-    string message_signature = 15;
+    string signature = 15;
     string client_identity_pubkey = 16;
     string server_identity_pubkey = 17;
     string hash_previous_message = 18;
@@ -167,7 +169,7 @@ message AssetProfile {
     string verification_end_point = 6;
     string digital_signature = 7;
     string prospectus_link = 8;
-    repeated string key_information_links = 9;
+    repeated string key_information_link = 9;
     repeated string keywords = 10;
     repeated string transfer_restrictions = 11;
     repeated string ledger_requirements = 12;

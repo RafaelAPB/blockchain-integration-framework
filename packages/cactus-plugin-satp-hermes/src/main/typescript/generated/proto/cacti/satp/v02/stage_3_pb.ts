@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { SATPMessage } from "./common/common_messages_pb.js";
+import { CommonSatp } from "./common/common_messages_pb.js";
 
 /**
  * @generated from message cacti.satp.v02.MintAssertionClaims
@@ -167,9 +167,9 @@ export class AssignmentAssertionClaimFormat extends Message<AssignmentAssertionC
  */
 export class CommitPreparationRequest extends Message<CommitPreparationRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: string client_transfer_number = 2;
@@ -189,7 +189,7 @@ export class CommitPreparationRequest extends Message<CommitPreparationRequest> 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.CommitPreparationRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "client_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
@@ -216,9 +216,9 @@ export class CommitPreparationRequest extends Message<CommitPreparationRequest> 
  */
 export class CommitReadyResponse extends Message<CommitReadyResponse> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: cacti.satp.v02.MintAssertionClaims mint_assertion_claims = 2;
@@ -243,7 +243,7 @@ export class CommitReadyResponse extends Message<CommitReadyResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.CommitReadyResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "mint_assertion_claims", kind: "message", T: MintAssertionClaims },
     { no: 3, name: "server_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "server_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -271,9 +271,9 @@ export class CommitReadyResponse extends Message<CommitReadyResponse> {
  */
 export class CommitFinalAssertionRequest extends Message<CommitFinalAssertionRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: cacti.satp.v02.BurnAssertionClaim burn_assertion_claim = 2;
@@ -303,7 +303,7 @@ export class CommitFinalAssertionRequest extends Message<CommitFinalAssertionReq
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.CommitFinalAssertionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "burn_assertion_claim", kind: "message", T: BurnAssertionClaim },
     { no: 3, name: "burn_assertion_claim_format", kind: "message", T: BurnAssertionClaimFormat },
     { no: 4, name: "client_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -332,9 +332,9 @@ export class CommitFinalAssertionRequest extends Message<CommitFinalAssertionReq
  */
 export class CommitFinalAcknowledgementReceiptResponse extends Message<CommitFinalAcknowledgementReceiptResponse> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: cacti.satp.v02.AssignmentAssertionClaim assignment_assertion_claim = 2;
@@ -364,7 +364,7 @@ export class CommitFinalAcknowledgementReceiptResponse extends Message<CommitFin
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.CommitFinalAcknowledgementReceiptResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "assignment_assertion_claim", kind: "message", T: AssignmentAssertionClaim },
     { no: 3, name: "assignment_assertion_claim_format", kind: "message", T: AssignmentAssertionClaimFormat },
     { no: 4, name: "server_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -393,9 +393,9 @@ export class CommitFinalAcknowledgementReceiptResponse extends Message<CommitFin
  */
 export class TransferCompleteRequest extends Message<TransferCompleteRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: string hash_transfer_commence = 2;
@@ -420,7 +420,7 @@ export class TransferCompleteRequest extends Message<TransferCompleteRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.TransferCompleteRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "hash_transfer_commence", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "client_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "client_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },

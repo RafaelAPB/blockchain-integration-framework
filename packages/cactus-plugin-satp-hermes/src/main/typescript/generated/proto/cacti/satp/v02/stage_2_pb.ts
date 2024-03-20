@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { SATPMessage } from "./common/common_messages_pb.js";
+import { CommonSatp } from "./common/common_messages_pb.js";
 
 /**
  * @generated from message cacti.satp.v02.LockAssertionClaim
@@ -74,9 +74,9 @@ export class LockAssertionFormat extends Message<LockAssertionFormat> {
  */
 export class LockAssertionRequest extends Message<LockAssertionRequest> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: cacti.satp.v02.LockAssertionClaim lock_assertion_claim = 2;
@@ -111,7 +111,7 @@ export class LockAssertionRequest extends Message<LockAssertionRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.LockAssertionRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "lock_assertion_claim", kind: "message", T: LockAssertionClaim },
     { no: 3, name: "lock_assertion_format", kind: "message", T: LockAssertionFormat },
     { no: 4, name: "lock_assertion_expiration", kind: "scalar", T: 9 /* ScalarType.STRING */ },
@@ -141,9 +141,9 @@ export class LockAssertionRequest extends Message<LockAssertionRequest> {
  */
 export class LockAssertionReceiptMessage extends Message<LockAssertionReceiptMessage> {
   /**
-   * @generated from field: cacti.satp.v02.common.SATPMessage satp_message = 1;
+   * @generated from field: cacti.satp.v02.common.CommonSatp common = 1;
    */
-  satpMessage?: SATPMessage;
+  common?: CommonSatp;
 
   /**
    * @generated from field: string server_transfer_number = 2;
@@ -163,7 +163,7 @@ export class LockAssertionReceiptMessage extends Message<LockAssertionReceiptMes
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "cacti.satp.v02.LockAssertionReceiptMessage";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "satp_message", kind: "message", T: SATPMessage },
+    { no: 1, name: "common", kind: "message", T: CommonSatp },
     { no: 2, name: "server_transfer_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "server_signature", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);

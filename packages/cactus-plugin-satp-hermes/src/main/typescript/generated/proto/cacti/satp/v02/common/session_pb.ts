@@ -176,9 +176,6 @@ export class SessionData extends Message<SessionData> {
    * @generated from field: string asset_profile_id = 33;
    */
   assetProfileId = "";
-  transferInitClaimsFormat: any;
-  multipleClaimsAllowed: any;
-  multipleCancelsAllowed: any;
 
   constructor(data?: PartialMessage<SessionData>) {
     super();
