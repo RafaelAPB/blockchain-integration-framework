@@ -52,6 +52,7 @@ Class | Method | HTTP request | Description
  - [org.openapitools.client.models.CactusNode](docs/CactusNode.md)
  - [org.openapitools.client.models.CactusNodeAllOf](docs/CactusNodeAllOf.md)
  - [org.openapitools.client.models.CactusNodeMeta](docs/CactusNodeMeta.md)
+ - [org.openapitools.client.models.Capability](docs/Capability.md)
  - [org.openapitools.client.models.ConsensusAlgorithmFamiliesWithOutTxFinality](docs/ConsensusAlgorithmFamiliesWithOutTxFinality.md)
  - [org.openapitools.client.models.ConsensusAlgorithmFamiliesWithTxFinality](docs/ConsensusAlgorithmFamiliesWithTxFinality.md)
  - [org.openapitools.client.models.ConsensusAlgorithmFamily](docs/ConsensusAlgorithmFamily.md)

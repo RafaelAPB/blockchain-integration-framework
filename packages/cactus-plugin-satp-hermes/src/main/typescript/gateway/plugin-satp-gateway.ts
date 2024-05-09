@@ -346,7 +346,7 @@ export abstract class PluginSatpGateway
   }
 
   public getPackageName(): string {
-    return "@hyperledger/cactus-odap-gateway-business-logic-plugin";
+    return "@hyperledger/cactus-plugin-satp-hermes";
   }
 
   public get sessions(): Map<string, SessionData> {

@@ -15,6 +15,7 @@
 
 package org.openapitools.client.models
 
+import org.openapitools.client.models.Capability
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -29,6 +30,7 @@ import com.squareup.moshi.JsonClass
  * @param memberId 
  * @param ledgerIds Stores an array of Ledger entity IDs that are reachable (routable) via this Cactus Node. This information is used by the client side SDK API client to figure out at runtime where to send API requests that are specific to a certain ledger such as requests to execute transactions.
  * @param pluginInstanceIds 
+ * @param capabilities 
  */
 
 
@@ -55,7 +57,10 @@ data class CactusNode (
     val ledgerIds: kotlin.collections.List<kotlin.String> = arrayListOf(),
 
     @Json(name = "pluginInstanceIds")
-    val pluginInstanceIds: kotlin.collections.List<kotlin.String> = arrayListOf()
+    val pluginInstanceIds: kotlin.collections.List<kotlin.String> = arrayListOf(),
+
+    @Json(name = "capabilities")
+    val capabilities: kotlin.collections.List<Capability>? = arrayListOf()
 
 )
 

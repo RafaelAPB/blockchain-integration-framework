@@ -71,6 +71,12 @@ export interface CactusNode {
      * @memberof CactusNode
      */
     'pluginInstanceIds': Array<string>;
+    /**
+     * 
+     * @type {Array<Capability>}
+     * @memberof CactusNode
+     */
+    'capabilities'?: Array<Capability>;
 }
 /**
  * 
@@ -108,6 +114,12 @@ export interface CactusNodeAllOf {
      * @memberof CactusNodeAllOf
      */
     'pluginInstanceIds': Array<string>;
+    /**
+     * 
+     * @type {Array<Capability>}
+     * @memberof CactusNodeAllOf
+     */
+    'capabilities'?: Array<Capability>;
 }
 /**
  * A Cactus node meta information
@@ -128,6 +140,23 @@ export interface CactusNodeMeta {
      */
     'publicKeyPem': string;
 }
+/**
+ * String that represents a capability, i.e. if the gateway has the plugin with a certain capability
+ * @export
+ * @enum {string}
+ */
+
+export const Capability = {
+    SatpHermes: 'org.hyperledger.cactus.capability.SATPHermes',
+    BungeeHermes: 'org.hyperledger.cactus.capability.BUNGEEHermes',
+    FabricConnector: 'org.hyperledger.cactus.capability.FabricConnector',
+    BesuConnector: 'org.hyperledger.cactus.capability.BesuConnector',
+    EthConnector: 'org.hyperledger.cactus.capability.EthConnector'
+} as const;
+
+export type Capability = typeof Capability[keyof typeof Capability];
+
+
 /**
  * Enumerates a list of consensus algorithm families that do not provide immediate finality
  * @export

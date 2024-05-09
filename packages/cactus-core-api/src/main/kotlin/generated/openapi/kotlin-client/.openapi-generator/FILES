@@ -23,6 +23,7 @@ src/main/kotlin/org/openapitools/client/infrastructure/UUIDAdapter.kt
 src/main/kotlin/org/openapitools/client/models/CactusNode.kt
 src/main/kotlin/org/openapitools/client/models/CactusNodeAllOf.kt
 src/main/kotlin/org/openapitools/client/models/CactusNodeMeta.kt
+src/main/kotlin/org/openapitools/client/models/Capability.kt
 src/main/kotlin/org/openapitools/client/models/ConsensusAlgorithmFamiliesWithOutTxFinality.kt
 src/main/kotlin/org/openapitools/client/models/ConsensusAlgorithmFamiliesWithTxFinality.kt
 src/main/kotlin/org/openapitools/client/models/ConsensusAlgorithmFamily.kt

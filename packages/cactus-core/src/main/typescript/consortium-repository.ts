@@ -5,7 +5,11 @@ import {
   LoggerProvider,
 } from "@hyperledger/cactus-common";
 
-import { CactusNode, ConsortiumDatabase } from "@hyperledger/cactus-core-api";
+import {
+  CactusNode,
+  Capability,
+  ConsortiumDatabase,
+} from "@hyperledger/cactus-core-api";
 
 export interface IConsortiumRepositoryOptions {
   logLevel?: LogLevelDesc;
@@ -55,10 +59,19 @@ export class ConsortiumRepository {
    * @param ledgerId The ID of the ledger to filter nodes based on.
    * @throws {Error} If `ledgerId` is falsy or blank.
    */
-  public nodesWithLedger(ledgerId: string): CactusNode[] {
+  public nodesWithLedger(
+    ledgerId: string,
+    capabilities: Capability[] = [],
+  ): CactusNode[] {
     const fnTag = `${this.className}#nodesWithLedger()`;
     Checks.nonBlankString(ledgerId, `${fnTag}:ledgerId`);
-
-    return this.allNodes.filter((cn) => cn.ledgerIds.includes(ledgerId));
+    const pre_filter = this.allNodes.filter((cn) =>
+      cn.ledgerIds.includes(ledgerId),
+    );
+    let final = pre_filter;
+    for (const capability of capabilities) {
+      final = pre_filter.filter((cn) => cn.capabilities?.includes(capability));
+    }
+    return final;
   }
 }

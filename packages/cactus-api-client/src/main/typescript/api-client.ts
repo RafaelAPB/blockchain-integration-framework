@@ -1,6 +1,10 @@
 import { Checks, IAsyncProvider, Objects } from "@hyperledger/cactus-common";
 
-import { ConsortiumDatabase, Ledger } from "@hyperledger/cactus-core-api";
+import {
+  Capability,
+  ConsortiumDatabase,
+  Ledger,
+} from "@hyperledger/cactus-core-api";
 
 import { ConsortiumRepository } from "@hyperledger/cactus-core";
 import { DefaultApi as ApiConsortium } from "@hyperledger/cactus-plugin-consortium-manual";
@@ -83,6 +87,8 @@ export class ApiClient extends BaseAPI {
     ledgerOrId: string | Ledger,
     ctor: new (configuration?: Configuration) => T,
     ctorArgs: Record<string, unknown>,
+    consortiumDbProvider?: IAsyncProvider<ConsortiumDatabase>,
+    capabilities?: Capability[],
   ): Promise<ApiClient & T>;
   /**
    * Constructs a new `ApiClient` object that is tied to whichever Cactus node
@@ -100,12 +106,14 @@ export class ApiClient extends BaseAPI {
    * @param consortiumDbProvider The provider that can be used to retrieve the
    * consortium metadata at runtime for the purposes of looking up ledgers by
    * the provided `ledgerId` parameter.
+   * @param capabilities The capabilities or plugins we want the nodes to have.
    */
   public async ofLedger<T>(
     ledgerOrId: string | Ledger,
     ctor: new (configuration?: Configuration) => T,
     ctorArgs: Record<string, unknown>,
     consortiumDbProvider?: IAsyncProvider<ConsortiumDatabase>,
+    capabilities?: Capability[],
   ): Promise<ApiClient & T> {
     const fnTags = "ApiClient#forLedgerId()";
 
@@ -124,7 +132,7 @@ export class ApiClient extends BaseAPI {
     const db: ConsortiumDatabase = await provider.get();
     const repo = new ConsortiumRepository({ db });
 
-    const nodes = repo.nodesWithLedger(ledgerId);
+    const nodes = repo.nodesWithLedger(ledgerId, capabilities);
 
     // pick a random element from the array of nodes that have a connection to
     // the target ledger (based on the ledger ID)

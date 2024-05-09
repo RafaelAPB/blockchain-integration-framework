@@ -101,6 +101,16 @@
         "description": "String that uniquely identifies a plugin instance within a Cactus consortium so that requests can be addressed/routed  directly to individual plugins when necessary.",
         "$ref": "#/components/schemas/PrimaryKey"
       },
+      "Capability": {
+        "description": "String that represents a capability, i.e. if the gateway has the plugin with a certain capability",
+        "enum": [
+          "org.hyperledger.cactus.capability.SATPHermes",
+          "org.hyperledger.cactus.capability.BUNGEEHermes",
+          "org.hyperledger.cactus.capability.FabricConnector",
+          "org.hyperledger.cactus.capability.BesuConnector",
+          "org.hyperledger.cactus.capability.EthConnector"
+        ]
+      },
       "ConsortiumDatabase": {
         "required": [
           "consortium",
@@ -316,6 +326,16 @@
                 "default": [],
                 "items": {
                   "$ref": "#/components/schemas/PluginInstanceId"
+                }
+              },
+              "capabilities": {
+                "type": "array",
+                "nullable": false,
+                "minItems": 0,
+                "maxItems": 2048,
+                "default": [],
+                "items": {
+                  "$ref": "#/components/schemas/Capability"
                 }
               }
             }
