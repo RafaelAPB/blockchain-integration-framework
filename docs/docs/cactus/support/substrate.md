@@ -1,5 +1,5 @@
 Substrate Support 
------------------
+=================
 
 
 ```{note}
@@ -14,3 +14,7 @@ Substrate chains include Polkadot, Kusama, Rococco, etc. The deployContract feat
   | @polkadot/api 10.9.1 | ✅ [test]() | ✅ [test]() | ✅ [test]() |
 
 </details>
+
+[Previous](xdai.md "xDai Support")
+
+* * *
