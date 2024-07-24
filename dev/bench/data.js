@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1720633535023,
+  "lastUpdate": 1721831421515,
   "repoUrl": "https://github.com/RafaelAPB/blockchain-integration-framework",
   "entries": {
     "Benchmark": [
@@ -67,6 +67,44 @@ window.BENCHMARK_DATA = {
             "name": "cmd-api-server_gRPC_GetOpenApiSpecV1",
             "value": 358,
             "range": "±1.43%",
+            "unit": "ops/sec",
+            "extra": "180 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "peter.somogyvari@accenture.com",
+            "name": "Peter Somogyvari",
+            "username": "petermetz"
+          },
+          "committer": {
+            "email": "sandeepn.official@gmail.com",
+            "name": "Sandeep Nishad",
+            "username": "sandeepnRES"
+          },
+          "distinct": true,
+          "id": "1ce7c605778ef4cc53e78e480e70dc48669ebf5b",
+          "message": "chore(release): publish v2.0.0-rc.3\n\nSigned-off-by: Peter Somogyvari <peter.somogyvari@accenture.com>",
+          "timestamp": "2024-07-24T17:47:00+05:30",
+          "tree_id": "c4097ca89262a035e7a7f101e17e3da0282158a2",
+          "url": "https://github.com/RafaelAPB/blockchain-integration-framework/commit/1ce7c605778ef4cc53e78e480e70dc48669ebf5b"
+        },
+        "date": 1721831419830,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "cmd-api-server_HTTP_GET_getOpenApiSpecV1",
+            "value": 581,
+            "range": "±1.54%",
+            "unit": "ops/sec",
+            "extra": "177 samples"
+          },
+          {
+            "name": "cmd-api-server_gRPC_GetOpenApiSpecV1",
+            "value": 344,
+            "range": "±1.31%",
             "unit": "ops/sec",
             "extra": "180 samples"
           }
