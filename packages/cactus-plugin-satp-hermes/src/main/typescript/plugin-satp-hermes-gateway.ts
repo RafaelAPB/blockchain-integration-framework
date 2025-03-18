@@ -62,9 +62,11 @@ import {
 } from "./services/gateway/crash-manager";
 import cors from "cors";
 
-import * as OAS from "../json/openapi-blo-bundled.json";
+import * as OAS from "../json/openapi-api1-bundled.json";
 import type { NetworkId } from "./services/network-identification/chainid-list";
 import { knexLocalInstance } from "./database/knexfile";
+
+import { SATPManager } from "./services/gateway/satp-manager";
 
 export class SATPGateway implements IPluginWebService, ICactusPlugin {
   @IsDefined()
@@ -104,6 +106,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
   public remoteRepository?: IRemoteLogRepository;
   private readonly shutdownHooks: ShutdownHook[];
   private crashManager?: CrashManager;
+  monitorService: any;
 
   constructor(public readonly options: SATPGatewayConfig) {
     const fnTag = `${this.className}#constructor()`;
@@ -647,6 +650,46 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
       }
     } else {
       this.logger.warn("Server is not running.");
+    }
+  }
+
+  public async executeHealthCheck(request: {
+    networkId: string;
+    contractAddress: string;
+    isSatpVerify: boolean;
+    functionName: string;
+    params: string[];
+  }): Promise<unknown> {
+    const fnTag = `${SATPManager.CLASS_NAME}#executeHealthCheck()`;
+    const span = this.monitorService.startSpan(fnTag);
+    
+    try {
+      const bridge = this.bridgesManager.getBridge(request.networkId);
+      if (!bridge) {
+        throw new Error(`No bridge found for network ${request.networkId}`);
+      }
+
+      if (request.isSatpVerify) {
+        // For SATP verify requests, use verifyAssetExistence with just the args
+        return await bridge.verifyAssetExistence(
+          request.contractAddress,
+          request.params
+        );
+      } else {
+        // For custom function calls, include function name and args
+        return await bridge.verifyAssetExistence(
+          request.contractAddress,
+          {
+            functionName: request.functionName,
+            args: request.params,
+          }
+        );
+      }
+    } catch (error) {
+      span.recordException(error);
+      throw error;
+    } finally {
+      span.end();
     }
   }
 }

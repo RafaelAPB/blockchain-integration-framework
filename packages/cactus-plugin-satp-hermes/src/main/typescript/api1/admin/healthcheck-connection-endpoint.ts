@@ -16,14 +16,19 @@ import {
   handleRestEndpointException,
   registerWebServiceEndpoint,
 } from "@hyperledger/cactus-core";
+import {
+  HealthCheckConnectionRequest,
+  HealthCheckConnectionRequestDltProtocolEnum,
+  HealthCheckConnectionResponse,
+} from "../../generated/gateway-client/typescript-axios";
 
-export class HealthCheckEndpointV1 implements IWebServiceEndpoint {
-  public static readonly CLASS_NAME = "HealthCheckEndpointV1";
+export class HealthCheckConnectionEndpointV1 implements IWebServiceEndpoint {
+  public static readonly CLASS_NAME = "HealthCheckConnectionEndpointV1";
 
   private readonly log: Logger;
 
   public get className(): string {
-    return HealthCheckEndpointV1.CLASS_NAME;
+    return HealthCheckConnectionEndpointV1.CLASS_NAME;
   }
 
   constructor(public readonly options: IRequestOptions) {
@@ -36,9 +41,9 @@ export class HealthCheckEndpointV1 implements IWebServiceEndpoint {
     this.log = LoggerProvider.getOrCreate({ level, label });
   }
 
-  public get oasPath(): (typeof OAS.paths)["/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck"] {
+  public get oasPath(): (typeof OAS.paths)["/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck-connection"] {
     return OAS.paths[
-      "/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck"
+      "/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck-connection"
     ];
   }
 
@@ -50,21 +55,15 @@ export class HealthCheckEndpointV1 implements IWebServiceEndpoint {
   }
 
   public getPath(): string {
-    const apiPath =
-      OAS.paths["/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck"];
-    return apiPath.get["x-hyperledger-cacti"].http.path;
+    return this.oasPath.get["x-hyperledger-cacti"].http.path;
   }
 
   public getVerbLowerCase(): string {
-    const apiPath =
-      OAS.paths["/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck"];
-    return apiPath.get["x-hyperledger-cacti"].http.verbLowerCase;
+    return this.oasPath.get["x-hyperledger-cacti"].http.verbLowerCase;
   }
 
   public getOperationId(): string {
-    return OAS.paths[
-      "/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck"
-    ].get.operationId;
+    return this.oasPath.get.operationId;
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {
@@ -86,11 +85,37 @@ export class HealthCheckEndpointV1 implements IWebServiceEndpoint {
     this.log.debug(reqTag);
 
     try {
-      const result = await this.options.dispatcher.healthCheck();
+      // Validate and parse query parameters
+      const dltProtocol = req.query.dltProtocol;
+      const contractAddress = req.query.contractAddress;
+      const contractFunction = req.query.contractFunction;
+      const methodArgs = req.query.methodArgs;
+
+      // Type check and validation
+      if (
+        typeof dltProtocol !== 'string' || 
+        typeof contractAddress !== 'string' || 
+        typeof contractFunction !== 'string'
+      ) {
+        res.status(400).json({
+          success: false,
+          message: "Missing or invalid required parameters",
+        } as HealthCheckConnectionResponse);
+        return;
+      }
+
+      const request: HealthCheckConnectionRequest = {
+        dltProtocol: dltProtocol as HealthCheckConnectionRequestDltProtocolEnum,
+        contractAddress,
+        contractFunction,
+        methodArgs: typeof methodArgs === 'string' ? methodArgs : undefined,
+      };
+
+      const result = await this.options.dispatcher.healthCheckConnection(request);
       res.json(result);
     } catch (ex) {
-      const errorMsg = `${reqTag} ${fnTag} Failed to ping:`;
+      const errorMsg = `${reqTag} ${fnTag} Failed to check connection:`;
       handleRestEndpointException({ errorMsg, log: this.log, error: ex, res });
     }
   }
-}
+} 

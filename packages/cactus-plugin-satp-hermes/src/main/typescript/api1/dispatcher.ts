@@ -36,6 +36,12 @@ import type {
   ILocalLogRepository,
   IRemoteLogRepository,
 } from "../database/repository/interfaces/repository";
+import { HealthCheckConnectionEndpointV1 } from "./admin/healthcheck-connection-endpoint";
+import { 
+  HealthCheckConnectionRequest,
+  HealthCheckConnectionResponse,
+} from "../generated/gateway-client/typescript-axios";
+import { executeGetHealthCheckConnection } from "./admin/get-healthcheck-connection-handler-service";
 
 export interface BLODispatcherOptions {
   logger: Logger;
@@ -116,6 +122,7 @@ export class BLODispatcher {
     if (Array.isArray(this.endpoints)) {
       return this.endpoints;
     }
+    
     const getStatusEndpointV1 = new GetStatusEndpointV1({
       dispatcher: this,
       logLevel: this.options.logLevel,
@@ -136,12 +143,17 @@ export class BLODispatcher {
       logLevel: this.options.logLevel,
     });
 
-    // TODO: keep getter; add an admin endpoint to get identity of connected gateway to BLO
+    const healthCheckConnectionEndpoint = new HealthCheckConnectionEndpointV1({
+      dispatcher: this,
+      logLevel: this.options.logLevel,
+    });
+
     const endpoints = [
       getStatusEndpointV1,
       getHealthCheckEndpoint,
       getIntegrationsEndpointV1,
       getSessionIdsEndpointV1,
+      healthCheckConnectionEndpoint,
     ];
     this.endpoints = endpoints;
     return endpoints;
@@ -215,7 +227,12 @@ export class BLODispatcher {
     const res = Array.from(await this.manager.getSessions().keys());
     return res;
   }
-  // get channel by caller; give needed client from orchestrator to handler to call
-  // for all channels, find session id on request
+
+  public async healthCheckConnection(
+    request: HealthCheckConnectionRequest
+  ): Promise<HealthCheckConnectionResponse> {
+    return executeGetHealthCheckConnection(this.level, request, this.manager);
+  }
+
   // TODO implement handlers GetAudit, Transact, Cancel, Routes
 }

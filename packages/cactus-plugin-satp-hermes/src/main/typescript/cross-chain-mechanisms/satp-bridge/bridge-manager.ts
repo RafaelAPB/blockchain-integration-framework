@@ -57,16 +57,18 @@ export abstract class BridgeManager {
     amount: number,
   ): Promise<string>;
   /**
-   * Verifies the existence of an asset on the blockchain
-   * @param assetId
-   * @returns boolean
+   * Verifies the existence of an asset on the blockchain or executes a custom verification
+   * @param assetId The asset ID or contract address
+   * @param invocationType Either an array of parameters for SATP verification or an object with function details
+   * @returns Result of the verification
    **/
-
-  //TODO create-rollback
   public abstract verifyAssetExistence(
     assetId: string,
-    invocationType: unknown,
-  ): Promise<boolean | undefined>;
+    invocationType: string[] | {
+      functionName: string;
+      args: string[];
+    },
+  ): Promise<unknown>;
   /**
    * Verifies if an asset is locked on the blockchain
    * @param assetId

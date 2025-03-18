@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SATP Gateway Client (Business Logic Orchestrator)
- * SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.  This API defines the gateway client facing API (business logic orchestrator, or BLO), which is named API-Type 1 in the SATP-Core specification.  **Additional Resources**: - [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/) - [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core) - [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/) - [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/) - [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/) - [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing) - [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)
+ * SATP Gateway Client (AP1)
+ * SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.  This API defines the gateway client facing API), API-Type 1 in the SATP-Core specification.  **Additional Resources**: - [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/) - [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core) - [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/) - [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/) - [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/) - [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing) - [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)
  *
  * The version of the OpenAPI document: 0.0.2
  * 
@@ -569,6 +569,31 @@ export const GetHealthCheck200ResponseStatusEnum = {
 
 export type GetHealthCheck200ResponseStatusEnum = typeof GetHealthCheck200ResponseStatusEnum[keyof typeof GetHealthCheck200ResponseStatusEnum];
 
+/**
+ * 
+ * @export
+ * @interface GetHealthCheckConnection200Response
+ */
+export interface GetHealthCheckConnection200Response {
+    /**
+     * Whether the health check was successful
+     * @type {boolean}
+     * @memberof GetHealthCheckConnection200Response
+     */
+    'success': boolean;
+    /**
+     * Description of the health check result
+     * @type {string}
+     * @memberof GetHealthCheckConnection200Response
+     */
+    'message': string;
+    /**
+     * Optional response data from the health check
+     * @type {{ [key: string]: any; }}
+     * @memberof GetHealthCheckConnection200Response
+     */
+    'data'?: { [key: string]: any; };
+}
 /**
  * List of chains or systems and related metadata
  * @export
@@ -1153,6 +1178,71 @@ export interface GetRoutes200ResponseRoutesInnerStepsInnerToolDetails {
      * @memberof GetRoutes200ResponseRoutesInnerStepsInnerToolDetails
      */
     'logoURI': string;
+}
+/**
+ * 
+ * @export
+ * @interface HealthCheckConnectionRequest
+ */
+export interface HealthCheckConnectionRequest {
+    /**
+     * The DLT protocol to check
+     * @type {string}
+     * @memberof HealthCheckConnectionRequest
+     */
+    'dltProtocol': HealthCheckConnectionRequestDltProtocolEnum;
+    /**
+     * Smart contract address to call
+     * @type {string}
+     * @memberof HealthCheckConnectionRequest
+     */
+    'contractAddress': string;
+    /**
+     * Function name to call
+     * @type {string}
+     * @memberof HealthCheckConnectionRequest
+     */
+    'contractFunction': string;
+    /**
+     * Arguments for the method call (comma-separated)
+     * @type {string}
+     * @memberof HealthCheckConnectionRequest
+     */
+    'methodArgs'?: string;
+}
+
+export const HealthCheckConnectionRequestDltProtocolEnum = {
+    Fabric: 'fabric',
+    Besu: 'besu',
+    Ethereum: 'ethereum'
+} as const;
+
+export type HealthCheckConnectionRequestDltProtocolEnum = typeof HealthCheckConnectionRequestDltProtocolEnum[keyof typeof HealthCheckConnectionRequestDltProtocolEnum];
+
+/**
+ * 
+ * @export
+ * @interface HealthCheckConnectionResponse
+ */
+export interface HealthCheckConnectionResponse {
+    /**
+     * Whether the health check was successful
+     * @type {boolean}
+     * @memberof HealthCheckConnectionResponse
+     */
+    'success': boolean;
+    /**
+     * Description of the health check result
+     * @type {string}
+     * @memberof HealthCheckConnectionResponse
+     */
+    'message': string;
+    /**
+     * Optional response data from the health check
+     * @type {{ [key: string]: any; }}
+     * @memberof HealthCheckConnectionResponse
+     */
+    'data'?: { [key: string]: any; };
 }
 /**
  * 
@@ -2172,6 +2262,62 @@ export const AdminApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
+         * Checks connection health by making a read transaction to the specified DLT
+         * @summary Health check connection endpoint
+         * @param {'fabric' | 'besu' | 'ethereum'} dltProtocol The DLT protocol to check
+         * @param {string} contractAddress Smart contract address to call
+         * @param {string} contractFunction Function name to call
+         * @param {string} [methodArgs] Arguments for the method call (comma-separated)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHealthCheckConnection: async (dltProtocol: 'fabric' | 'besu' | 'ethereum', contractAddress: string, contractFunction: string, methodArgs?: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'dltProtocol' is not null or undefined
+            assertParamExists('getHealthCheckConnection', 'dltProtocol', dltProtocol)
+            // verify required parameter 'contractAddress' is not null or undefined
+            assertParamExists('getHealthCheckConnection', 'contractAddress', contractAddress)
+            // verify required parameter 'contractFunction' is not null or undefined
+            assertParamExists('getHealthCheckConnection', 'contractFunction', contractFunction)
+            const localVarPath = `/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck-connection`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (dltProtocol !== undefined) {
+                localVarQueryParameter['dltProtocol'] = dltProtocol;
+            }
+
+            if (contractAddress !== undefined) {
+                localVarQueryParameter['contractAddress'] = contractAddress;
+            }
+
+            if (contractFunction !== undefined) {
+                localVarQueryParameter['contractFunction'] = contractFunction;
+            }
+
+            if (methodArgs !== undefined) {
+                localVarQueryParameter['methodArgs'] = methodArgs;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Retrieve the all SATP session IDs
          * @summary Get SATP session ids
          * @param {object} [sessionsRequest] 
@@ -2324,6 +2470,20 @@ export const AdminApiFp = function(configuration?: Configuration) {
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
+         * Checks connection health by making a read transaction to the specified DLT
+         * @summary Health check connection endpoint
+         * @param {'fabric' | 'besu' | 'ethereum'} dltProtocol The DLT protocol to check
+         * @param {string} contractAddress Smart contract address to call
+         * @param {string} contractFunction Function name to call
+         * @param {string} [methodArgs] Arguments for the method call (comma-separated)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getHealthCheckConnection(dltProtocol: 'fabric' | 'besu' | 'ethereum', contractAddress: string, contractFunction: string, methodArgs?: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetHealthCheckConnection200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getHealthCheckConnection(dltProtocol, contractAddress, contractFunction, methodArgs, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
          * Retrieve the all SATP session IDs
          * @summary Get SATP session ids
          * @param {object} [sessionsRequest] 
@@ -2396,6 +2556,19 @@ export const AdminApiFactory = function (configuration?: Configuration, basePath
          */
         getHealthCheck(options?: any): AxiosPromise<GetHealthCheck200Response> {
             return localVarFp.getHealthCheck(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Checks connection health by making a read transaction to the specified DLT
+         * @summary Health check connection endpoint
+         * @param {'fabric' | 'besu' | 'ethereum'} dltProtocol The DLT protocol to check
+         * @param {string} contractAddress Smart contract address to call
+         * @param {string} contractFunction Function name to call
+         * @param {string} [methodArgs] Arguments for the method call (comma-separated)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getHealthCheckConnection(dltProtocol: 'fabric' | 'besu' | 'ethereum', contractAddress: string, contractFunction: string, methodArgs?: string, options?: any): AxiosPromise<GetHealthCheckConnection200Response> {
+            return localVarFp.getHealthCheckConnection(dltProtocol, contractAddress, contractFunction, methodArgs, options).then((request) => request(axios, basePath));
         },
         /**
          * Retrieve the all SATP session IDs
@@ -2472,6 +2645,21 @@ export class AdminApi extends BaseAPI {
      */
     public getHealthCheck(options?: AxiosRequestConfig) {
         return AdminApiFp(this.configuration).getHealthCheck(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Checks connection health by making a read transaction to the specified DLT
+     * @summary Health check connection endpoint
+     * @param {'fabric' | 'besu' | 'ethereum'} dltProtocol The DLT protocol to check
+     * @param {string} contractAddress Smart contract address to call
+     * @param {string} contractFunction Function name to call
+     * @param {string} [methodArgs] Arguments for the method call (comma-separated)
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AdminApi
+     */
+    public getHealthCheckConnection(dltProtocol: 'fabric' | 'besu' | 'ethereum', contractAddress: string, contractFunction: string, methodArgs?: string, options?: AxiosRequestConfig) {
+        return AdminApiFp(this.configuration).getHealthCheckConnection(dltProtocol, contractAddress, contractFunction, methodArgs, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

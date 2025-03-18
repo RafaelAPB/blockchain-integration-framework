@@ -1,11 +1,11 @@
 openapi: 3.0.3
 info:
-  title: SATP Gateway Client (Business Logic Orchestrator)
+  title: SATP Gateway Client (AP1)
   version: 0.0.2
   description: |-
     SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.
 
-    This API defines the gateway client facing API (business logic orchestrator, or BLO), which is named API-Type 1 in the SATP-Core specification.
+    This API defines the gateway client facing API), API-Type 1 in the SATP-Core specification.
 
     **Additional Resources**:
     - [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/)
@@ -370,6 +370,65 @@ paths:
             application/json:
               schema:
                 $ref: ./schemas.yml#/getAuditResponse
+  /api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck-connection:
+    get:
+      tags:
+        - admin
+      summary: Health check connection endpoint
+      description: Checks connection health by making a read transaction to the specified DLT
+      operationId: GetHealthCheckConnection
+      x-hyperledger-cacti:
+        http:
+          verbLowerCase: get
+          path: /api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck-connection
+      parameters:
+        - name: dltProtocol
+          in: query
+          required: true
+          description: The DLT protocol to check
+          schema:
+            type: string
+            enum:
+              - fabric
+              - besu
+              - ethereum
+        - name: contractAddress
+          in: query
+          required: true
+          description: Smart contract address to call
+          schema:
+            type: string
+        - name: contractFunction
+          in: query
+          required: true
+          description: Function name to call
+          schema:
+            type: string
+        - name: methodArgs
+          in: query
+          required: false
+          description: Arguments for the method call (comma-separated)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful health check
+          content:
+            application/json:
+              schema:
+                $ref: './schemas.yml#/HealthCheckConnectionResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
 components:
   schemas:
     $ref: ./schemas.yml

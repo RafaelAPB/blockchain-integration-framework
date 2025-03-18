@@ -748,3 +748,43 @@ GasCost:
       pattern: ^(0(\.[0-9]+)?|[1-9][0-9]*(\.[0-9]+)?)$
     token:
       $ref: ./schemas.yml#/Token
+HealthCheckConnectionRequest:
+  type: object
+  required:
+    - dltProtocol
+    - contractAddress
+    - contractFunction
+  properties:
+    dltProtocol:
+      type: string
+      enum:
+        - fabric
+        - besu
+        - ethereum
+      description: The DLT protocol to check
+    contractAddress:
+      type: string
+      description: Smart contract address to call
+    contractFunction:
+      type: string
+      description: Function name to call
+    methodArgs:
+      type: string
+      description: Arguments for the method call (comma-separated)
+
+HealthCheckConnectionResponse:
+  type: object
+  required:
+    - success
+    - message
+  properties:
+    success:
+      type: boolean
+      description: Whether the health check was successful
+    message:
+      type: string
+      description: Description of the health check result
+    data:
+      type: object
+      description: Optional response data from the health check
+      additionalProperties: true

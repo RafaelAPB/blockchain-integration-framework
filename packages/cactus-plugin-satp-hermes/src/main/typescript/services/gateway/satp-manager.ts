@@ -1077,4 +1077,44 @@ export class SATPManager {
       throw new TransactError(fnTag, error);
     }
   }
+
+  public async executeHealthCheck(request: {
+    networkId: string;
+    contractAddress: string;
+    isSatpVerify: boolean;
+    functionName: string;
+    params: string[];
+  }): Promise<unknown> {
+    const fnTag = `${SATPManager.CLASS_NAME}#executeHealthCheck()`;
+    const span = this.monitorService.startSpan(fnTag);
+    
+    try {
+      const bridge = this.bridgesManager.getBridge(request.networkId);
+      if (!bridge) {
+        throw new Error(`No bridge found for network ${request.networkId}`);
+      }
+
+      if (request.isSatpVerify) {
+        // For SATP verify requests, use verifyAssetExistence with just the args
+        return await bridge.verifyAssetExistence(
+          request.contractAddress, // Using as assetId
+          request.params
+        );
+      } else {
+        // For custom function calls, include function name and args
+        return await bridge.verifyAssetExistence(
+          request.contractAddress,
+          {
+            functionName: request.functionName,
+            args: request.params,
+          }
+        );
+      }
+    } catch (error) {
+      span.recordException(error as Error);
+      throw error;
+    } finally {
+      span.end();
+    }
+  }
 }

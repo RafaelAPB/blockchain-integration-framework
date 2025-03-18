@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "SATP Gateway Client (Business Logic Orchestrator)",
+    "title": "SATP Gateway Client (AP1)",
     "version": "0.0.2",
-    "description": "SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.\n\nThis API defines the gateway client facing API (business logic orchestrator, or BLO), which is named API-Type 1 in the SATP-Core specification.\n\n**Additional Resources**:\n- [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/)\n- [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core)\n- [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/)\n- [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/)\n- [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/)\n- [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing)\n- [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)",
+    "description": "SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.\n\nThis API defines the gateway client facing API), API-Type 1 in the SATP-Core specification.\n\n**Additional Resources**:\n- [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/)\n- [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core)\n- [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/)\n- [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/)\n- [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/)\n- [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing)\n- [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)",
     "contact": {
       "name": "Hyperledger Cacti"
     },
@@ -2435,6 +2435,192 @@
                       "format": "date-time",
                       "description": "The end datetime of the audit period.",
                       "example": "2023-01-31T23:59:59Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck-connection": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Health check connection endpoint",
+        "description": "Checks connection health by making a read transaction to the specified DLT",
+        "operationId": "GetHealthCheckConnection",
+        "x-hyperledger-cacti": {
+          "http": {
+            "verbLowerCase": "get",
+            "path": "/api/v1/@hyperledger/cactus-plugin-satp-hermes/healthcheck-connection"
+          }
+        },
+        "parameters": [
+          {
+            "name": "dltProtocol",
+            "in": "query",
+            "required": true,
+            "description": "The DLT protocol to check",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "fabric",
+                "besu",
+                "ethereum"
+              ]
+            }
+          },
+          {
+            "name": "contractAddress",
+            "in": "query",
+            "required": true,
+            "description": "Smart contract address to call",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contractFunction",
+            "in": "query",
+            "required": true,
+            "description": "Function name to call",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "methodArgs",
+            "in": "query",
+            "required": false,
+            "description": "Arguments for the method call (comma-separated)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful health check",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the health check was successful"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Description of the health check result"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "Optional response data from the health check",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "x-category": "response",
+                  "type": "object",
+                  "x-go-type": "ApiError",
+                  "x-go-name": "ApiError",
+                  "description": "An Error",
+                  "required": [
+                    "message",
+                    "type",
+                    "code",
+                    "status",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "description": "HTTP error type",
+                      "example": "bad-request"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "Numeric error code",
+                      "example": 16384
+                    },
+                    "status": {
+                      "type": "integer",
+                      "description": "HTTP status of the error",
+                      "example": 500
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Long error description",
+                      "example": "Oops there's been an internal error handling"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "description": "Timestamp of the error",
+                      "example": "2021-07-21T17:32:28Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "x-category": "response",
+                  "type": "object",
+                  "x-go-type": "ApiError",
+                  "x-go-name": "ApiError",
+                  "description": "An Error",
+                  "required": [
+                    "message",
+                    "type",
+                    "code",
+                    "status",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "description": "HTTP error type",
+                      "example": "bad-request"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "Numeric error code",
+                      "example": 16384
+                    },
+                    "status": {
+                      "type": "integer",
+                      "description": "HTTP status of the error",
+                      "example": 500
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Long error description",
+                      "example": "Oops there's been an internal error handling"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "description": "Timestamp of the error",
+                      "example": "2021-07-21T17:32:28Z"
                     }
                   }
                 }
@@ -6380,6 +6566,59 @@
                 }
               }
             }
+          }
+        }
+      },
+      "HealthCheckConnectionRequest": {
+        "type": "object",
+        "required": [
+          "dltProtocol",
+          "contractAddress",
+          "contractFunction"
+        ],
+        "properties": {
+          "dltProtocol": {
+            "type": "string",
+            "enum": [
+              "fabric",
+              "besu",
+              "ethereum"
+            ],
+            "description": "The DLT protocol to check"
+          },
+          "contractAddress": {
+            "type": "string",
+            "description": "Smart contract address to call"
+          },
+          "contractFunction": {
+            "type": "string",
+            "description": "Function name to call"
+          },
+          "methodArgs": {
+            "type": "string",
+            "description": "Arguments for the method call (comma-separated)"
+          }
+        }
+      },
+      "HealthCheckConnectionResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the health check was successful"
+          },
+          "message": {
+            "type": "string",
+            "description": "Description of the health check result"
+          },
+          "data": {
+            "type": "object",
+            "description": "Optional response data from the health check",
+            "additionalProperties": true
           }
         }
       }
