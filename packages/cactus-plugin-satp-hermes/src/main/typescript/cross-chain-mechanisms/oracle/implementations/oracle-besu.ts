@@ -5,7 +5,7 @@ import {
   type LogLevelDesc,
   Secp256k1Keys,
 } from "@hyperledger/cactus-common";
-import { SatpLoggerProvider as LoggerProvider } from "../../../core/satp-logger-provider";
+import { SATPLoggerProvider as LoggerProvider } from "../../../core/satp-logger-provider";
 import type { SATPLogger as Logger } from "../../../core/satp-logger";
 import { PluginBungeeHermes } from "@hyperledger/cactus-plugin-bungee-hermes";
 import { IOracleEntryBase, IOracleListenerBase } from "../oracle-types";
@@ -98,7 +98,7 @@ export class OracleBesu extends OracleAbstract {
     this.id = this.options.leafId || this.createId(OracleBesu.CLASS_NAME);
     this.keyPair = options.keyPair || Secp256k1Keys.generateKeyPairsBuffer();
 
-    this.claimFormats = !!options.claimFormats
+    this.claimFormats = options.claimFormats
       ? options.claimFormats.concat(ClaimFormat.DEFAULT)
       : [ClaimFormat.DEFAULT];
 

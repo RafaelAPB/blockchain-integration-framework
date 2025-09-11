@@ -5,7 +5,7 @@ import {
 } from "./database/repository/interfaces/repository";
 import { JsObjectSigner, LogLevelDesc } from "@hyperledger/cactus-common";
 import { SATPLogger as Logger } from "./core/satp-logger";
-import { SatpLoggerProvider as LoggerProvider } from "./core/satp-logger-provider";
+import { SATPLoggerProvider as LoggerProvider } from "./core/satp-logger-provider";
 import { SHA256 } from "crypto-js";
 import { stringify as safeStableStringify } from "safe-stable-stringify";
 import { bufArray2HexStr, getSatpLogKey, sign } from "./gateway-utils";
@@ -204,7 +204,7 @@ export class GatewayPersistence {
     const { span, context: ctx } = this.monitorService.startSpan(fnTag);
     await context.with(ctx, async () => {
       try {
-        if (!!this.remoteRepository) {
+        if (this.remoteRepository) {
           this.log.info(
             `${fnTag} - Storing remote log with key: ${key} and hash: ${hash}`,
           );

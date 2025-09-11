@@ -15,7 +15,7 @@ import { PluginBungeeHermes } from "@hyperledger/cactus-plugin-bungee-hermes";
 import { StrategyBesu } from "@hyperledger/cactus-plugin-bungee-hermes/dist/lib/main/typescript/strategy/strategy-besu";
 import { EvmAsset } from "../ontology/assets/evm-asset";
 import { LogLevelDesc } from "@hyperledger/cactus-common";
-import { SatpLoggerProvider as LoggerProvider } from "../../../core/satp-logger-provider";
+import { SATPLoggerProvider as LoggerProvider } from "../../../core/satp-logger-provider";
 import { SATPLogger as Logger } from "../../../core/satp-logger";
 import {
   ClaimFormat,
@@ -207,7 +207,7 @@ export class BesuLeaf
     this.id = this.options.leafId || this.createId(BesuLeaf.CLASS_NAME);
     this.keyPair = options.keyPair || Secp256k1Keys.generateKeyPairsBuffer();
 
-    this.claimFormats = !!options.claimFormats
+    this.claimFormats = options.claimFormats
       ? options.claimFormats.concat(ClaimFormat.DEFAULT)
       : [ClaimFormat.DEFAULT];
 

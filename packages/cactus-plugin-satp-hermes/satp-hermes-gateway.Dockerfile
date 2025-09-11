@@ -59,12 +59,29 @@ RUN mkdir -p \
     ${APP_DIR}/ontologies \
     ${APP_DIR}/database/migrations
 
-# Copy application files
-COPY ./dist/bundle/ncc/ ${APP_DIR}
+# Copy package files first for better layer caching
+COPY ./package.json ./yarn.lock ./tsconfig.json ./
+COPY ./src ./src
+
+# Install dependencies
+RUN yarn install --immutable
+
+# Build the TypeScript code
+RUN yarn build
+
+# Create ncc bundle
+RUN mkdir -p dist/bundle/ncc && \
+    npx ncc build dist/lib/main/typescript/plugin-satp-hermes-gateway-cli.js -o dist/bundle/ncc --external=fabric-common --external=bufferutil --external=pg-cloudflare
+
+# Copy the built bundle to the app directory
+RUN cp -r dist/bundle/ncc/* ${APP_DIR}/
+
+# Copy other necessary files
 COPY ./src/main/typescript/cross-chain-mechanisms/bridge/fabric-contracts ${APP_DIR}/../fabric-contracts
 COPY ./satp-hermes-gateway.Dockerfile.healthcheck.mjs ${APP_DIR}/
 COPY ./supervisord.conf /etc/supervisord.conf
-#COPY ./start-satp.sh ${APP_DIR}/start-satp.sh
+COPY ./gateway_log_controller.sh ${APP_DIR}/gateway_log_controller.sh
+RUN chmod +x ${APP_DIR}/gateway_log_controller.sh
 
 # Install required npm packages
 RUN npm install fabric-common bufferutil
