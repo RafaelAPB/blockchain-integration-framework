@@ -196,6 +196,97 @@ jobs:
           name: SATP-Integration-Tests-Bridge-${{ github.job }}
           path: packages/cactus-plugin-satp-hermes/reports/junit/satp-hermes-tests-integration-bridge.xml
 
+  run-satp-tests-integration-adapter:
+    if: inputs.skip_tests != true
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    env:
+      FULL_BUILD_DISABLED: true
+      JEST_TEST_RUNNER_DISABLED: false
+      RUN_CODE_COVERAGE: "true"
+      SATP_ENABLE_CRASH_RECOVERY: false
+      SATP_LOG_LEVEL: DEBUG
+      SATP_ENABLE_LOCAL_REPOSITORY: true
+      SATP_ENABLE_REMOTE_REPOSITORY: false
+
+    steps:
+      - uses: actions/checkout@v4.1.7
+      - name: Use Node.js
+        uses: actions/setup-node@v4.0.2
+        with:
+          node-version: v22.18.0
+
+      - name: Download SATP build artifacts
+        uses: ./.github/actions/satp-download-build-artifacts
+
+      - name: Download generated artifacts
+        uses: ./.github/actions/satp-download-generated-artifacts
+
+      - name: Install dependencies
+        run: yarn install
+
+      - run: ./tools/ci-env-clean-up.sh
+
+      - name: Configure and build all packages
+        run: yarn configure
+
+      - name: Run SATP integration tests (adapter) (with optional coverage)
+        run: |
+          set -euo pipefail
+          if [ "${{ env.RUN_CODE_COVERAGE }}" = "true" ]; then
+            echo "Running integration adapter tests with coverage"
+            yarn workspace @hyperledger/cactus-plugin-satp-hermes test:integration:adapter --coverage --coverageDirectory=./code-coverage-ts/satp-hermes-integration-adapter
+          else
+            echo "Running integration adapter tests without coverage"
+            yarn workspace @hyperledger/cactus-plugin-satp-hermes test:integration:adapter
+          fi
+
+      - name: Upload SATP integration test report - adapter
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: satp-integration-junit-report-adapter-${{ github.job }}
+          path: packages/cactus-plugin-satp-hermes/reports/junit/satp-hermes-tests-integration-adapter.xml
+
+      - name: Check for SATP adapter junit report
+        id: check_adapter_junit
+        run: |
+          if [ -f packages/cactus-plugin-satp-hermes/reports/junit/satp-hermes-tests-integration-adapter.xml ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report SATP integration (adapter) test results (annotate)
+        if: always() && steps.check_adapter_junit.outputs.found == 'true'
+        uses: dorny/test-reporter@v1.9.1
+        with:
+          name: "SATP Integration Tests (Adapter)"
+          path: packages/cactus-plugin-satp-hermes/reports/junit/satp-hermes-tests-integration-adapter.xml
+          reporter: jest-junit
+          list-tests: all
+          max-annotations: 50
+          fail-on-error: false
+          only-summary: false
+
+      - name: Check for SATP adapter integration coverage artifacts
+        id: check_adapter_coverage
+        run: |
+          if [ -d packages/cactus-plugin-satp-hermes/code-coverage-ts ] || [ -f packages/cactus-plugin-satp-hermes/coverage/coverage-final.json ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload SATP integration coverage - adapter (if present)
+        if: always() && steps.check_adapter_coverage.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SATP-Integration-Tests-Adapter-${{ github.job }}
+          path: |
+            packages/cactus-plugin-satp-hermes/code-coverage-ts/**/
+            packages/cactus-plugin-satp-hermes/coverage/**/
+
   run-satp-tests-integration-oracle:
     if: inputs.skip_tests != true
     runs-on: ubuntu-22.04

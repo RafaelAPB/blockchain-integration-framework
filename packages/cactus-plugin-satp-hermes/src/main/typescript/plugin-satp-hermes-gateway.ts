@@ -74,7 +74,7 @@ import {
   type ICrashRecoveryManagerOptions,
 } from "./services/gateway/crash-manager";
 
-import * as OAS from "../json/openapi-blo-bundled.json";
+import * as OAS from "../json/oapi-api1-bundled.json";
 import { knexLocalInstance } from "./database/knexfile";
 import schedule, { Job } from "node-schedule";
 import { BLODispatcherErraneousError } from "./core/errors/satp-errors";
@@ -98,6 +98,8 @@ import { MonitorService } from "./services/monitoring/monitor";
 import { Context, context, Span, SpanStatusCode } from "@opentelemetry/api";
 import { SATPManager } from "./services/gateway/satp-manager";
 import { ExtensionConfig } from "./services/validation/config-validating-functions/validate-extensions";
+import { AdapterManager } from "./adapters/adapter-manager";
+import type { AdapterLayerConfiguration } from "./adapters/adapter-config";
 
 /**
  * SATP Gateway Configuration Interface - Complete configuration for fault-tolerant gateway.
@@ -319,6 +321,15 @@ export interface SATPGatewayConfig extends ICactusPluginOptions {
   extensions?: ExtensionConfig[];
 
   /**
+   * API3 adapter configuration used to bootstrap the adapter manager.
+   * @description
+   * Optional configuration describing inbound/outbound webhook adapters per SATP
+   * stage. When provided, the gateway instantiates an {@link AdapterManager}
+   * that can later be leveraged by the AdapterHookService when running hooks.
+   */
+  adapterConfig?: AdapterLayerConfiguration;
+
+  /**
    * Plugin registry for extensibility.
    * @description
    * Registry of Hyperledger Cacti plugins extending gateway functionality.
@@ -459,6 +470,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
   private SATPCCManager?: SATPCrossChainManager;
 
   private extensionsManager?: ExtensionsManager;
+  private adapterManager?: AdapterManager;
 
   private BLODispatcher?: BLODispatcher;
   private GOLApplication?: Express;
@@ -670,6 +682,15 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
           extensionsConfig: this.config.extensions || [],
         });
 
+        if (this.config.adapterConfig) {
+          this.adapterManager = new AdapterManager({
+            config: this.config.adapterConfig,
+            logLevel: this.config.logLevel,
+            monitorService: this.monitorService,
+          });
+          this.logger.info("AdapterManager has been initialized.");
+        }
+
         if (!this.SATPCCManager) {
           throw new Error("SATPCCManager is not defined");
         }
@@ -689,6 +710,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
           remoteRepository: this.remoteRepository,
           claimFormat: this.claimFormat,
           monitorService: this.monitorService,
+          adapterManager: this.adapterManager,
         };
 
         if (!this.config.gid || !dispatcherOps.instanceId) {
@@ -800,6 +822,10 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
     return this.BLODispatcher;
   }
 
+  public get AdapterManagerInstance(): AdapterManager | undefined {
+    return this.adapterManager;
+  }
+
   public get SignerInstance(): JsObjectSigner {
     return this.signer;
   }
@@ -807,6 +833,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
   public get ConnectedDLTs(): NetworkId[] {
     return this.connectedDLTs;
   }
+
   public get gatewaySigner(): JsObjectSigner {
     return this.signer;
   }
