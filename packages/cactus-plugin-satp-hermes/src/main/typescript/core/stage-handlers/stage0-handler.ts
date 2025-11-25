@@ -39,6 +39,14 @@
  * - Error tracking and diagnostic information capture
  * - Session lifecycle monitoring and audit trail creation
  *
+ * **Adapter Security:**
+ * - API3 adapters invoke outbound and inbound webhooks exclusively over
+ *   mutually authenticated TLS channels between gateways and operator systems.
+ * - Client certificates are validated before honoring inbound approvals,
+ *   ensuring only trusted controllers can resume paused sessions.
+ * - Outbound notifications inherit the same TLS requirement so that
+ *   intermediate systems cannot tamper with transfer telemetry.
+ *
  * @example
  * Server-side stage 0 handler setup:
  * ```typescript

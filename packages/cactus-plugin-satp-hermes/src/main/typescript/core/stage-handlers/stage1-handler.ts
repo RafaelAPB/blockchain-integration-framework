@@ -44,6 +44,14 @@
  * - Implements distributed tracing for cross-gateway operation correlation
  * - Provides comprehensive error tracking and diagnostic information
  *
+ * **Adapter Security:**
+ * - All Stage 1 adapter callbacks (outbound notifications and inbound
+ *   approvals) traverse mutually authenticated TLS connections.
+ * - The gateway rejects inbound approvals when the client certificate cannot
+ *   be chained to a configured trust anchor.
+ * - Outbound deliveries attach the caller certificate fingerprint for audit,
+ *   enabling downstream services to verify origin authenticity.
+ *
  * @example
  * Server-side stage 1 handler setup:
  * ```typescript
@@ -515,8 +523,8 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new FailedToCreateMessageError(
             fnTag,
             getMessageTypeName(MessageType.INIT_RECEIPT) +
-              "/" +
-              getMessageTypeName(MessageType.INIT_REJECT),
+            "/" +
+            getMessageTypeName(MessageType.INIT_REJECT),
           );
         }
 
