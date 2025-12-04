@@ -1,0 +1,34 @@
+{
+  "satpStages": {
+    "stage1": {
+      "adapters": [
+        {
+          "id": "fixture-audit",
+          "name": "Fixture Audit",
+          "description": "Records basic adapter executions for integration tests",
+          "active": true,
+          "priority": 1,
+          "outboundWebhook": {
+            "url": "https://adapter.fixture.example/audit",
+            "method": "POST",
+            "timeoutMs": 500,
+            "retryAttempts": 2,
+            "retryDelayMs": 0,
+            "headers": {
+              "content-type": "application/json"
+            }
+          }
+        }
+      ],
+      "steps": {
+        "before": ["fixture-audit"]
+      }
+    }
+  },
+  "global": {
+    "timeoutMs": 1000,
+    "retryAttempts": 3,
+    "retryDelayMs": 0,
+    "logLevel": "info"
+  }
+}

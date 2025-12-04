@@ -139,6 +139,7 @@
     "test:integration:oracle": "NODE_OPTIONS=--max-old-space-size=4096 npx jest ./src/test/typescript/integration/oracle --runInBand --forceExit --config=jest.config-integration-oracle.ts",
     "test:integration:recovery": "NODE_OPTIONS=--max-old-space-size=4096 npx jest ./src/test/typescript/integration/recovery --runInBand --forceExit --config=jest.config-integration.ts",
     "test:integration:rollback": "NODE_OPTIONS=--max-old-space-size=4096 npx jest ./src/test/typescript/integration/rollback --runInBand --forceExit --config=jest.config-integration.ts",
+    "test:integration:adapter": "JEST_JUNIT_OUTPUT_NAME=satp-hermes-tests-integration-adapter.xml NODE_OPTIONS=--max-old-space-size=4096 npx jest ./src/test/typescript/integration/adapter --runInBand --forceExit --config=jest.config-integration.ts",
     "test:unit": "NODE_OPTIONS=--max-old-space-size=4096 npx jest ./src/test/typescript/unit --runInBand --forceExit --config=jest.config-unit.ts",
     "pretsc": "npm run generate-sdk",
     "tsc": "tsc --project ./tsconfig.json",

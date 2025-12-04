@@ -1,0 +1,111 @@
+{
+  "satpStages": {
+    "stage0": {
+      "adapters": [
+        {
+          "id": "stage0-before-outbound",
+          "name": "Stage0 Before Outbound",
+          "description": "Outbound adapter for stage0 before step",
+          "active": true,
+          "priority": 1,
+          "outboundWebhook": {
+            "url": "https://adapter.example/stage0/before/outbound",
+            "method": "POST",
+            "timeoutMs": 500,
+            "retryAttempts": 1,
+            "retryDelayMs": 0
+          }
+        },
+        {
+          "id": "stage0-after-inbound",
+          "name": "Stage0 After Inbound",
+          "description": "Inbound adapter for stage0 after step",
+          "active": true,
+          "priority": 2,
+          "inboundWebhook": {
+            "urlSuffix": "/inbound/stage0/after",
+            "inboundDeadlineMs": 5000
+          }
+        }
+      ],
+      "steps": {
+        "before": ["stage0-before-outbound"],
+        "after": ["stage0-after-inbound"]
+      }
+    },
+    "stage1": {
+      "adapters": [
+        {
+          "id": "stage1-before-outbound",
+          "name": "Stage1 Before Outbound",
+          "description": "Outbound adapter for stage1 before step",
+          "active": true,
+          "priority": 1,
+          "outboundWebhook": {
+            "url": "https://adapter.example/stage1/before/outbound",
+            "method": "POST",
+            "timeoutMs": 500,
+            "retryAttempts": 1,
+            "retryDelayMs": 0
+          }
+        },
+        {
+          "id": "stage1-after-outbound",
+          "name": "Stage1 After Outbound",
+          "description": "Outbound adapter for stage1 after step",
+          "active": true,
+          "priority": 1,
+          "outboundWebhook": {
+            "url": "https://adapter.example/stage1/after/outbound",
+            "method": "POST",
+            "timeoutMs": 500,
+            "retryAttempts": 1,
+            "retryDelayMs": 0
+          }
+        },
+        {
+          "id": "stage1-inactive",
+          "name": "Stage1 Inactive",
+          "description": "Inactive adapter that should be skipped",
+          "active": false,
+          "priority": 10,
+          "outboundWebhook": {
+            "url": "https://adapter.example/stage1/inactive",
+            "method": "POST"
+          }
+        }
+      ],
+      "steps": {
+        "before": ["stage1-before-outbound"],
+        "after": ["stage1-after-outbound", "stage1-inactive"]
+      }
+    },
+    "stage2": {
+      "adapters": [
+        {
+          "id": "stage2-during-outbound",
+          "name": "Stage2 During Outbound",
+          "description": "Outbound adapter for stage2 during step",
+          "active": true,
+          "priority": 1,
+          "outboundWebhook": {
+            "url": "https://adapter.example/stage2/during/outbound",
+            "method": "POST",
+            "timeoutMs": 500,
+            "retryAttempts": 1,
+            "retryDelayMs": 0
+          }
+        }
+      ],
+      "steps": {
+        "during": ["stage2-during-outbound"]
+      }
+    }
+  },
+  "global": {
+    "timeoutMs": 1000,
+    "retryAttempts": 2,
+    "retryDelayMs": 100,
+    "logLevel": "debug"
+  }
+}

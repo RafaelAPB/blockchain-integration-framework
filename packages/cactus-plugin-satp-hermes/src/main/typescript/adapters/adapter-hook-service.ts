@@ -231,9 +231,9 @@ export class AdapterHookService {
       outboundResult,
       metrics: outboundResult
         ? {
-          latencyMs: outboundResult.latencyMs,
-          retriesAttempted: outboundResult.retriesAttempted,
-        }
+            latencyMs: outboundResult.latencyMs,
+            retriesAttempted: outboundResult.retriesAttempted,
+          }
         : undefined,
     };
   }

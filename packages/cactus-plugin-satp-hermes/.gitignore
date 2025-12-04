@@ -10,7 +10,7 @@ src/main/typescript/database/*
 !src/main/typescript/database/*.ts
 reports/junit/satp-hermes-tests-unit.xml
 reports/junit/satp-hermes-tests-integration.xml
-
+reports/junit/satp-hermes-tests-integration.xml
 # TypeDoc generated documentation
 public/typedoc/
 
@@ -21,3 +21,4 @@ assets/diagrams/*.pdf
 src/test/solidity/generated/build-info
 typedoc/** */
 docs/assets/diagrams
+
