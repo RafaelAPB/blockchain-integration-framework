@@ -132,6 +132,10 @@ import {
 import { BridgeManagerClientInterface } from "../../cross-chain-mechanisms/bridge/interfaces/bridge-manager-client-interface";
 import { MonitorService } from "../../services/monitoring/monitor";
 import { context, SpanStatusCode } from "@opentelemetry/api";
+import type { AdapterManager } from "../../adapters/adapter-manager";
+import { AdapterHookService } from "../../adapters/adapter-hook-service";
+import type { SatpStageKey } from "../../adapters/api3-adapter-types";
+import { AdapterHookRunner } from "./utils/adapter-hook-runner";
 
 /**
  * SATP Stage 1 Handler for Transfer Proposal and Commencement Operations.
@@ -255,6 +259,7 @@ export class Stage1SATPHandler implements SATPHandler {
    * @readonly
    */
   public static readonly CLASS_NAME = SATPHandlerType.STAGE1;
+  private static readonly ADAPTER_STAGE_KEY: SatpStageKey = "stage1";
 
   /**
    * Active SATP transfer sessions managed by this handler.
@@ -292,6 +297,14 @@ export class Stage1SATPHandler implements SATPHandler {
    * @readonly
    */
   private readonly monitorService: MonitorService;
+  /** Adapter manager reference for invoking API3 hooks. */
+  private readonly adapterManager?: AdapterManager;
+  /** Unique identifier for the hosting gateway instance. */
+  private readonly gatewayId: string;
+  /** Adapter hook orchestrator for outbound/inbound webhooks. */
+  private readonly adapterHooks: AdapterHookService;
+  /** Shared adapter hook runner enforcing deadlines and context capture. */
+  private readonly adapterHookRunner: AdapterHookRunner;
 
   /**
    * Creates a new Stage 1 SATP handler instance.
@@ -364,10 +377,25 @@ export class Stage1SATPHandler implements SATPHandler {
     this.clientService = ops.clientService as Stage1ClientService;
     this.bridgeManagerClient = ops.bridgeClient;
     this.monitorService = ops.monitorService;
+    this.adapterManager = ops.adapterManager;
+    this.gatewayId = ops.gatewayId;
     this.logger = LoggerProvider.getOrCreate(
       ops.loggerOptions,
       this.monitorService,
     );
+    this.adapterHooks = new AdapterHookService({
+      adapterManager: this.adapterManager,
+      logger: this.logger,
+      monitorService: this.monitorService,
+    });
+    this.adapterHookRunner = new AdapterHookRunner({
+      adapterManager: this.adapterManager,
+      adapterHooks: this.adapterHooks,
+      logger: this.logger,
+      gatewayId: this.gatewayId,
+      stageKey: Stage1SATPHandler.ADAPTER_STAGE_KEY,
+      stage: Stage.STAGE1,
+    });
     this.logger.trace(`Initialized ${Stage1SATPHandler.CLASS_NAME}`);
   }
 
@@ -500,6 +528,11 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new SessionNotFoundError(fnTag);
         }
 
+        await this.adapterHookRunner.dispatch("inbound", "before", session, {
+          operation: "transferProposal",
+          role: "server",
+        });
+
         span.setAttribute("sessionId", session.getSessionId() || "");
 
         await this.serverService.checkTransferProposalRequestMessage(
@@ -523,8 +556,8 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new FailedToCreateMessageError(
             fnTag,
             getMessageTypeName(MessageType.INIT_RECEIPT) +
-            "/" +
-            getMessageTypeName(MessageType.INIT_REJECT),
+              "/" +
+              getMessageTypeName(MessageType.INIT_REJECT),
           );
         }
 
@@ -570,6 +603,11 @@ export class Stage1SATPHandler implements SATPHandler {
             `${fnTag}, Missing timestamps for operation duration calculation`,
           );
         }
+
+        await this.adapterHookRunner.dispatch("outbound", "after", session, {
+          operation: "transferProposal",
+          role: "server",
+        });
 
         return message;
       } catch (error) {
@@ -679,6 +717,11 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new SessionNotFoundError(fnTag);
         }
 
+        await this.adapterHookRunner.dispatch("inbound", "before", session, {
+          operation: "transferCommence",
+          role: "server",
+        });
+
         span.setAttribute("sessionId", session.getSessionId());
         span.setAttribute(
           "senderNetworkId",
@@ -746,6 +789,11 @@ export class Stage1SATPHandler implements SATPHandler {
             `${fnTag}, Missing timestamps for operation duration calculation`,
           );
         }
+
+        await this.adapterHookRunner.dispatch("outbound", "after", session, {
+          operation: "transferCommence",
+          role: "server",
+        });
 
         return message;
       } catch (error) {
@@ -958,6 +1006,11 @@ export class Stage1SATPHandler implements SATPHandler {
             throw new Error(`${fnTag}, Session not found`);
           }
 
+          await this.adapterHookRunner.dispatch("inbound", "before", session, {
+            operation: "transferProposal",
+            role: "client",
+          });
+
           await this.clientService.checkPreSATPTransferResponse(
             response,
             session,
@@ -982,6 +1035,11 @@ export class Stage1SATPHandler implements SATPHandler {
             session.getClientSessionData(),
             requestTransferProposal,
           );
+
+          await this.adapterHookRunner.dispatch("outbound", "after", session, {
+            operation: "transferProposal",
+            role: "client",
+          });
 
           return requestTransferProposal;
         } catch (error) {
@@ -1126,6 +1184,11 @@ export class Stage1SATPHandler implements SATPHandler {
             throw new Error(`${fnTag}, Session not found`);
           }
 
+          await this.adapterHookRunner.dispatch("inbound", "before", session, {
+            operation: "transferCommence",
+            role: "client",
+          });
+
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.clientService.checkTransferProposalResponse(
@@ -1149,6 +1212,11 @@ export class Stage1SATPHandler implements SATPHandler {
             session.getClientSessionData(),
             requestTransferCommence,
           );
+
+          await this.adapterHookRunner.dispatch("outbound", "after", session, {
+            operation: "transferCommence",
+            role: "client",
+          });
 
           return requestTransferCommence;
         } catch (error) {

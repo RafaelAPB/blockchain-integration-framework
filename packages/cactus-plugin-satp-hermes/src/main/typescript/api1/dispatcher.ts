@@ -121,6 +121,7 @@ import { executeAudit } from "./admin/get-audit-handler-service";
 import { AuditEndpointV1 } from "./admin/audit-endpoint";
 import { MonitorService } from "../services/monitoring/monitor";
 import { context, SpanStatusCode } from "@opentelemetry/api";
+import type { AdapterManager } from "../adapters/adapter-manager";
 
 /**
  * Configuration options for BLODispatcher initialization.
@@ -172,6 +173,8 @@ export interface BLODispatcherOptions {
   claimFormat?: ClaimFormat;
   /** Monitoring service for telemetry and metrics */
   monitorService: MonitorService;
+  /** Optional adapter manager instance for SATP hooks */
+  adapterManager?: AdapterManager;
 }
 
 /**
@@ -241,6 +244,8 @@ export class BLODispatcher {
   private isShuttingDown = false;
   /** Monitoring service for telemetry and metrics */
   private readonly monitorService: MonitorService;
+  /** Adapter manager reference forwarded to SATP handlers */
+  private readonly adapterManager?: AdapterManager;
 
   /**
    * Initialize the BLO Dispatcher with required dependencies.
@@ -276,6 +281,7 @@ export class BLODispatcher {
     this.level = this.options.logLevel || "INFO";
     this.label = this.className;
     this.monitorService = options.monitorService;
+    this.adapterManager = options.adapterManager;
     this.logger = LoggerProvider.getOrCreate(
       {
         level: this.level,
@@ -307,6 +313,7 @@ export class BLODispatcher {
           remoteRepository: this.remoteRepository,
           claimFormat: options.claimFormat,
           monitorService: this.monitorService,
+          adapterManager: this.adapterManager,
         };
 
         this.manager = new SATPManager(SATPManagerOpts);

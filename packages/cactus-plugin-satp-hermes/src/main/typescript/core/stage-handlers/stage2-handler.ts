@@ -117,6 +117,10 @@ import {
 } from "../session-utils";
 import { MonitorService } from "../../services/monitoring/monitor";
 import { context, SpanStatusCode } from "@opentelemetry/api";
+import type { AdapterManager } from "../../adapters/adapter-manager";
+import { AdapterHookService } from "../../adapters/adapter-hook-service";
+import type { SatpStageKey } from "../../adapters/api3-adapter-types";
+import { AdapterHookRunner } from "./utils/adapter-hook-runner";
 /**
  * SATP Stage 2 Handler for Lock Assertion and Asset Locking Operations.
  *
@@ -249,6 +253,7 @@ export class Stage2SATPHandler implements SATPHandler {
    * @readonly
    */
   public static readonly CLASS_NAME = SATPHandlerType.STAGE2;
+  private static readonly ADAPTER_STAGE_KEY: SatpStageKey = "stage2";
 
   /**
    * Active SATP transfer sessions managed by this handler.
@@ -280,6 +285,10 @@ export class Stage2SATPHandler implements SATPHandler {
    * @readonly
    */
   private readonly monitorService: MonitorService;
+  private readonly adapterManager?: AdapterManager;
+  private readonly gatewayId: string;
+  private readonly adapterHooks: AdapterHookService;
+  private readonly adapterHookRunner: AdapterHookRunner;
 
   /**
    * Creates a new Stage 2 SATP handler instance.
@@ -357,11 +366,26 @@ export class Stage2SATPHandler implements SATPHandler {
     this.serverService = ops.serverService as Stage2ServerService;
     this.clientService = ops.clientService as Stage2ClientService;
     this.monitorService = ops.monitorService;
+    this.adapterManager = ops.adapterManager;
+    this.gatewayId = ops.gatewayId;
     this.logger = LoggerProvider.getOrCreate(
       ops.loggerOptions,
       this.monitorService,
     );
     this.logger.trace(`Initialized ${Stage2SATPHandler.CLASS_NAME}`);
+    this.adapterHooks = new AdapterHookService({
+      adapterManager: this.adapterManager,
+      logger: this.logger,
+      monitorService: this.monitorService,
+    });
+    this.adapterHookRunner = new AdapterHookRunner({
+      adapterManager: this.adapterManager,
+      adapterHooks: this.adapterHooks,
+      logger: this.logger,
+      gatewayId: this.gatewayId,
+      stageKey: Stage2SATPHandler.ADAPTER_STAGE_KEY,
+      stage: Stage.STAGE2,
+    });
   }
 
   /**
@@ -519,6 +543,11 @@ export class Stage2SATPHandler implements SATPHandler {
 
         span.setAttribute("sessionId", session.getSessionId() || "");
 
+        await this.adapterHookRunner.dispatch("inbound", "before", session, {
+          operation: "lockAssertion",
+          role: "server",
+        });
+
         await this.serverService.checkLockAssertionRequest(req, session);
 
         saveMessageInSessionData(session.getServerSessionData(), req);
@@ -560,6 +589,11 @@ export class Stage2SATPHandler implements SATPHandler {
         }
 
         saveMessageInSessionData(session.getServerSessionData(), message);
+
+        await this.adapterHookRunner.dispatch("outbound", "after", session, {
+          operation: "lockAssertion",
+          role: "server",
+        });
 
         return message;
       } catch (error) {
@@ -800,6 +834,11 @@ export class Stage2SATPHandler implements SATPHandler {
 
           span.setAttribute("sessionId", session.getSessionId() || "");
 
+          await this.adapterHookRunner.dispatch("inbound", "before", session, {
+            operation: "lockAssertion",
+            role: "client",
+          });
+
           await this.clientService.checkTransferCommenceResponse(
             response,
             session,
@@ -822,6 +861,11 @@ export class Stage2SATPHandler implements SATPHandler {
           }
 
           saveMessageInSessionData(session.getClientSessionData(), request);
+
+          await this.adapterHookRunner.dispatch("outbound", "after", session, {
+            operation: "lockAssertion",
+            role: "client",
+          });
 
           return request;
         } catch (error) {

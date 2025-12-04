@@ -394,6 +394,62 @@ export { CrashManager } from "./services/gateway/crash-manager";
 export { OracleManager } from "./cross-chain-mechanisms/oracle/oracle-manager";
 
 /**
+ * Adapter Hook Contracts - Configuration structures and execution results for API3 adapters.
+ */
+export {
+  WebhookHttpMethod,
+  RetryPolicy,
+  BaseWebhookConfig,
+  OutboundWebhookConfig,
+  InboundWebhookConfig,
+  AdapterWebhookConfig,
+  AdapterDefinition,
+  SatpStageAdapterSet,
+  SatpStageKey,
+  StageExecutionStep,
+  Api3AdapterConfiguration,
+  GlobalAdapterDefaults,
+  AdapterExecutionBinding,
+  AdapterExecutionPlan,
+} from "./adapters/api3-adapter-types";
+export {
+  AdapterWebhookDisposition,
+  AdapterWebhookMetrics,
+  AdapterWebhookInputBase,
+  PreStageWebhookInput,
+  DuringStageWebhookInput,
+  PostStageWebhookInput,
+  AdapterWebhookOutputBase,
+  PreStageWebhookOutput,
+  DuringStageWebhookOutput,
+  PostStageWebhookOutput,
+  AdapterWebhookResult,
+  AdapterWebhookRetryDirective,
+  AdapterWebhookErrorOptions,
+  AdapterWebhookError,
+  AdapterWebhook,
+  PreStageWebhook,
+  DuringStageWebhook,
+  PostStageWebhook,
+} from "./adapters/adapter-webhook-contracts";
+export {
+  AdapterHookDirection,
+  AdapterInvocationContext,
+  OutboundWebhookInvocationResult,
+  AdapterHookStepResult,
+  AdapterHookResult,
+  AdapterHookExecutionParams,
+} from "./adapters/adapter-hook-types";
+export {
+  InboundWebhookDecisionPayload,
+  InboundWebhookDecisionResponse,
+} from "./adapters/inbound-webhooks";
+export {
+  OutboundWebhookEventType,
+  OutboundWebhookPayload,
+} from "./adapters/outbound-webhooks";
+
+/**
  * Business Logic Operations Dispatcher - Central dispatcher for SATP business logic operations.
  *
  * @description
