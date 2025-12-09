@@ -688,6 +688,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             logLevel: this.config.logLevel,
             monitorService: this.monitorService,
           });
+          this.logger.info("AdapterManager has been initialized.");
         }
 
         if (!this.SATPCCManager) {

@@ -451,7 +451,10 @@ export class Stage0ServerService extends SATPService {
           data: safeStableStringify(sessionData),
           sequenceNumber: Number(sessionData.lastSequenceNumber),
         });
+
         try {
+
+          // todo execute before inbound / outbound hook here
           this.Log.info(`exec-${messageType}`);
           await this.dbLogger.persistLogEntry({
             sessionId: sessionData.id,

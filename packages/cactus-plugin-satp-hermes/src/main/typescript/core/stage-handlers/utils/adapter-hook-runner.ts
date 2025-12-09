@@ -3,22 +3,37 @@
  * Shared utility that orchestrates adapter hook execution for SATP handlers.
  *
  * @description
- * Each SATP stage handler wires this helper to guarantee consistent inbound and
- * outbound adapter hook execution semantics. The runner centralizes logic for
- * deadline enforcement, context enrichment (session/gateway identifiers), and
- * graceful logging so individual handlers remain focused on business logic.
+ * Each SATP stage handler wires this helper to guarantee consistent adapter
+ * hook execution semantics. The runner centralizes logic for deadline enforcement,
+ * context enrichment (session/gateway identifiers), and graceful logging so
+ * individual handlers remain focused on business logic.
+ * 
+ * Adapters are executed at specific execution points defined by:
+ * - stage (0-3)
+ * - stepTag (stage-specific step identifier)
+ * - stepOrder (before/during/after/rollback)
  */
 
-import { Stage } from "../../../types/satp-protocol";
 import type { SATPLogger as Logger } from "../../satp-logger";
 import type { AdapterHookService } from "../../../adapters/adapter-hook-service";
-import type { AdapterHookDirection } from "../../../adapters/adapter-types";
 import type {
-  SatpStageKey,
   StageExecutionStep,
 } from "../../../adapters/api3-adapter-types";
 import type { AdapterManager } from "../../../adapters/adapter-manager";
 import type { SATPSession } from "../../satp-session";
+
+/**
+ * Execution point identification for adapter hook execution.
+ * 
+ * @property stage - Stage number (0-3).
+ * @property stepTag - Stage-specific step identifier (e.g., "checkNewSessionRequest").
+ * @property stepOrder - Execution order (before/during/after/rollback).
+ */
+export interface ExecutionPointIdentification {
+  stage: number;
+  stepTag: string;
+  stepOrder: StageExecutionStep;
+}
 
 /**
  * Dependency bundle required by {@link AdapterHookRunner}.
@@ -27,16 +42,14 @@ import type { SATPSession } from "../../satp-session";
  * @property adapterHooks - Low-level service responsible for HTTP/webhook calls.
  * @property logger - Stage-specific logger for diagnostics.
  * @property gatewayId - Unique identifier of the hosting gateway instance.
- * @property stageKey - Stage identifier ("stage0".."stage3").
- * @property stage - {@link Stage} enum counterpart used by adapter payloads.
+ * @property stage - Stage number (0-3).
  */
 export interface AdapterHookRunnerContext {
   adapterManager?: AdapterManager;
   adapterHooks: AdapterHookService;
   logger: Logger;
   gatewayId: string;
-  stageKey: SatpStageKey;
-  stage: Stage;
+  stage: number;
 }
 
 /**
@@ -45,26 +58,25 @@ export interface AdapterHookRunnerContext {
  * @description
  * The runner augments hook invocations with session metadata, enforces inbound
  * deadlines configured per adapter, and emits uniform diagnostics when a hook
- * fails. Outbound hooks are treated as best-effort notifications, whereas
- * inbound hooks propagate failures back to the caller so handlers can abort the
- * SATP transaction when approvals are missing or expired.
+ * fails. The adapter service automatically handles both outbound and inbound
+ * webhooks based on adapter configuration.
  */
 export class AdapterHookRunner {
   constructor(private readonly ctx: AdapterHookRunnerContext) { }
 
   /**
-   * Dispatches adapter hooks for the provided direction and stage step.
+   * Executes adapters for a specific execution point.
    *
-   * @param direction - "inbound" (blocking approvals) or "outbound" notifications.
-   * @param step - Stage execution step (before/during/after).
+   * @param executionPoint - Execution point identification (stage, stepTag, stepOrder).
    * @param session - Live SATP session containing context IDs; ignored if absent.
    * @param metadata - Optional supplemental metadata forwarded to adapters.
+   * @param payload - Optional payload data to send to adapters.
    */
-  public async dispatch(
-    direction: AdapterHookDirection,
-    step: StageExecutionStep,
+  public async execute(
+    executionPoint: ExecutionPointIdentification,
     session?: SATPSession,
     metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
   ): Promise<void> {
     if (!session) {
       return;
@@ -73,70 +85,138 @@ export class AdapterHookRunner {
     if (!sessionId) {
       return;
     }
-    const contextId = this.getContextIdSafe(session);
-    const invocation = {
-      stage: this.ctx.stage,
-      step,
-      sessionId,
-      contextId,
-      gatewayId: this.ctx.gatewayId,
-      metadata,
-    };
-    try {
-      if (direction === "outbound") {
-        await this.ctx.adapterHooks.triggerOutboundHooks(invocation);
-      } else {
-        await this.runInboundHooksWithDeadline(step, invocation);
-      }
-    } catch (error) {
-      const message = `Adapter hook invocation failed for session ${sessionId} (${direction}/${step}): ${String(error)}`;
-      if (direction === "inbound") {
-        this.ctx.logger.warn(message);
-        throw error;
-      }
-      this.ctx.logger.debug(message);
-    }
-  }
 
-  /** Ensures inbound adapters honor the tightest configured deadline. */
-  private async runInboundHooksWithDeadline(
-    step: StageExecutionStep,
-    invocation: Parameters<AdapterHookService["awaitInboundHooks"]>[0],
-  ): Promise<void> {
-    const deadlineMs = this.resolveInboundDeadlineMs(step);
-    if (!deadlineMs) {
-      await this.ctx.adapterHooks.awaitInboundHooks(invocation);
+    const { stage, stepTag, stepOrder } = executionPoint;
+
+    // Check if we should execute adapters at this point
+    if (!this.ctx.adapterHooks.shouldExecuteAdapters(stage, stepTag, stepOrder)) {
       return;
     }
-    await this.runWithDeadline(
-      () => this.ctx.adapterHooks.awaitInboundHooks(invocation),
-      deadlineMs,
-      () =>
-        new AdapterHookTimeoutError(
-          `Inbound adapter hooks timed out after ${deadlineMs}ms for session ${invocation.sessionId} (${step})`,
-        ),
-    );
+
+    const contextId = this.getContextIdSafe(session);
+
+    try {
+      const deadlineMs = this.resolveInboundDeadlineMs(stepTag, stepOrder);
+
+      const executeAdapters = () => this.ctx.adapterHooks.executeAdapters({
+        stage,
+        stepTag,
+        stepOrder,
+        sessionId,
+        contextId,
+        gatewayId: this.ctx.gatewayId,
+        metadata,
+        payload,
+      });
+
+      if (deadlineMs) {
+        await this.runWithDeadline(
+          executeAdapters,
+          deadlineMs,
+          () =>
+            new AdapterHookTimeoutError(
+              `Adapter hooks timed out after ${deadlineMs}ms for session ${sessionId} at stage=${stage} step=${stepTag} order=${stepOrder}`,
+            ),
+        );
+      } else {
+        await executeAdapters();
+      }
+    } catch (error) {
+      const message = `Adapter hook execution failed for session ${sessionId} at stage=${stage} step=${stepTag} order=${stepOrder}: ${String(error)}`;
+      this.ctx.logger.warn(message);
+      throw error;
+    }
   }
 
-  /** Derives the smallest inbound timeout defined across adapters for a step. */
+  /**
+   * Convenience method to execute adapters at "before" execution point.
+   * 
+   * @param executionPoint - Execution point identification.
+   * @param session - Live SATP session containing context IDs.
+   * @param metadata - Optional supplemental metadata forwarded to adapters.
+   * @param payload - Optional payload data to send to adapters.
+   */
+  public async executeBefore(
+    executionPoint: Omit<ExecutionPointIdentification, "stepOrder">,
+    session?: SATPSession,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    return this.execute({ ...executionPoint, stepOrder: "before" }, session, metadata, payload);
+  }
+
+  /**
+   * Convenience method to execute adapters at "during" execution point.
+   * 
+   * @param executionPoint - Execution point identification.
+   * @param session - Live SATP session containing context IDs.
+   * @param metadata - Optional supplemental metadata forwarded to adapters.
+   * @param payload - Optional payload data to send to adapters.
+   */
+  public async executeDuring(
+    executionPoint: Omit<ExecutionPointIdentification, "stepOrder">,
+    session?: SATPSession,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    return this.execute({ ...executionPoint, stepOrder: "during" }, session, metadata, payload);
+  }
+
+  /**
+   * Convenience method to execute adapters at "after" execution point.
+   * 
+   * @param executionPoint - Execution point identification.
+   * @param session - Live SATP session containing context IDs.
+   * @param metadata - Optional supplemental metadata forwarded to adapters.
+   * @param payload - Optional payload data to send to adapters.
+   */
+  public async executeAfter(
+    executionPoint: Omit<ExecutionPointIdentification, "stepOrder">,
+    session?: SATPSession,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    return this.execute({ ...executionPoint, stepOrder: "after" }, session, metadata, payload);
+  }
+
+  /**
+   * Convenience method to execute adapters at "rollback" execution point.
+   * 
+   * @param executionPoint - Execution point identification.
+   * @param session - Live SATP session containing context IDs.
+   * @param metadata - Optional supplemental metadata forwarded to adapters.
+   * @param payload - Optional payload data to send to adapters.
+   */
+  public async executeRollback(
+    executionPoint: Omit<ExecutionPointIdentification, "stepOrder">,
+    session?: SATPSession,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    return this.execute({ ...executionPoint, stepOrder: "rollback" }, session, metadata, payload);
+  }
+
+  /** Derives the smallest inbound timeout defined across adapters for an execution point. */
   private resolveInboundDeadlineMs(
-    step: StageExecutionStep,
+    stepTag: string,
+    stepOrder: StageExecutionStep,
   ): number | undefined {
     if (!this.ctx.adapterManager) {
       return undefined;
     }
-    const adapters = this.ctx.adapterManager.getAdaptersForStep(
-      this.ctx.stageKey,
-      step,
+    const bindings = this.ctx.adapterManager.getBindingsForExecutionPoint(
+      this.ctx.stage,
+      stepTag,
+      stepOrder,
     );
-    if (adapters.length === 0) {
+    if (bindings.length === 0) {
       return undefined;
     }
     const globalTimeout =
       this.ctx.adapterManager.getConfiguration().global?.timeoutMs;
     let effectiveDeadline: number | undefined;
-    for (const adapter of adapters) {
-      const inbound = adapter.inboundWebhook;
+    for (const binding of bindings) {
+      const inbound = binding.adapter.inboundWebhook;
       if (!inbound) {
         continue;
       }

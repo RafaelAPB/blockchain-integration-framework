@@ -175,7 +175,21 @@ export interface AdapterWebhookConfig {
 }
 
 /**
- * Adapter definition bound to a SATP stage.
+ * Execution point definition - where an adapter should execute.
+ */
+export interface AdapterExecutionPointDefinition {
+  /** Human-readable name for this execution point. */
+  name: string;
+  /** SATP stage number (0-3) */
+  stage: number;
+  /** Stage-specific step identifier (e.g., 'checkNewSessionRequest', 'newSessionResponse') */
+  step: string;
+  /** Execution order within the step (before/during/after/rollback) */
+  point: StageExecutionStep;
+}
+
+/**
+ * Adapter definition - a collection of webhooks for specific execution points.
  */
 export interface AdapterDefinition extends AdapterWebhookConfig {
   /** Stable identifier used for logging and inbound routing. */
@@ -188,6 +202,8 @@ export interface AdapterDefinition extends AdapterWebhookConfig {
   active: boolean;
   /** Lower numbers run earlier when multiple adapters are registered. */
   priority?: number;
+  /** Execution points where this adapter should be invoked. */
+  executionPoints: AdapterExecutionPointDefinition[];
 }
 
 /**
@@ -215,10 +231,9 @@ export type StageExecutionStep = "before" | "during" | "after" | "rollback";
  */
 export interface AdapterLayerConfiguration {
   /**
-   * Stage-specific adapter collections. Missing stages simply do not trigger
-   * adapter hooks.
+   * Flat list of adapters, each defining their own execution points.
    */
-  satpStages: Partial<Record<SatpStageKey, SatpStageAdapterSet>>;
+  adapters: AdapterDefinition[];
   /**
    * Global defaults applied to every adapter unless overridden at adapter level.
    */
@@ -237,18 +252,22 @@ export interface GlobalAdapterDefaults extends RetryPolicy {
 }
 
 /**
- * Flattened mapping between an adapter identifier and its execution location (stage - step - order).
+ * Flattened execution binding - represents one adapter at one execution point.
  */
 export interface AdapterExecutionBinding {
+  /** Reference to the adapter */
   adapterId: string;
-  executionPoints: AdapterExecutionPoint[];
-}
-
-// where exactly is an adapter executed
-export interface AdapterExecutionPoint {
-  stage: SatpStageKey;
-  step: number;
+  adapter: AdapterDefinition;
+  /** Execution stage (0-3) */
+  stage: number;
+  /** Stage-specific step identifier */
+  stepTag: string;
+  /** Execution order (before/during/after/rollback) */
   stepOrder: StageExecutionStep;
+  /** Priority for ordering multiple adapters at same execution point */
+  priority: number;
+  /** Execution point name for logging */
+  executionPointName: string;
 }
 
 /**

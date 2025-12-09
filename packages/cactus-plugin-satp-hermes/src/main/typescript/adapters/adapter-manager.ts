@@ -84,16 +84,15 @@ import {
   AdapterDefinition,
   AdapterExecutionBinding,
   AdapterExecutionPlan,
-  SatpStageAdapterSet,
-  SatpStageKey,
   StageExecutionStep,
 } from "./api3-adapter-types";
 import { AdapterHookService } from "./adapter-hook-service";
-
-interface StageCatalogEntry {
-  definition: SatpStageAdapterSet;
-  adaptersById: Map<string, AdapterDefinition>;
-}
+import { randomUUID } from "crypto";
+import {
+  isValidStepForStage,
+  getStepByTag,
+  type SatpStage,
+} from "../core/satp-protocol-map";
 
 /**
  * Configuration for {@link AdapterManager}.
@@ -127,8 +126,9 @@ export class AdapterManager {
   private readonly log: Logger;
   private readonly config: AdapterLayerConfiguration;
   private readonly monitorService: MonitorService;
-  private readonly stageIndex: Map<SatpStageKey, StageCatalogEntry>;
-  private readonly adapterHookService: AdapterHookService; 
+  private readonly adaptersById: Map<string, AdapterDefinition>;
+  private readonly executionPlan: AdapterExecutionPlan;
+  private readonly adapterHookService: AdapterHookService;
 
   /**
    * Creates a new adapter manager instance using the supplied configuration.
@@ -150,7 +150,8 @@ export class AdapterManager {
       this.monitorService,
     );
     this.config = options.config;
-    this.stageIndex = this.buildStageIndex(this.config.satpStages);
+    this.adaptersById = this.buildAdapterIndex(this.config.adapters || []);
+    this.executionPlan = this.buildExecutionPlan();
 
     // Instantiate the adapter hook service with this manager as the source
     this.adapterHookService = new AdapterHookService({
@@ -160,11 +161,9 @@ export class AdapterManager {
     });
 
     this.log.debug(
-      `${fnTag} Initialized with ${this.stageIndex.size} configured SATP stages`,
+      `${fnTag} Initialized with ${this.adaptersById.size} adapters and ${this.executionPlan.bindings.length} execution bindings`,
     );
-  }
-
-  /**
+  }  /**
    * Returns the adapter hook service instance managed by this manager.
    *
    * @returns {@link AdapterHookService} for executing webhook adapters.
@@ -183,222 +182,151 @@ export class AdapterManager {
   }
 
   /**
-   * Indicates whether the manager currently tracks at least one stage.
+   * Indicates whether the manager currently tracks at least one adapter.
    *
-   * @returns `true` when any SATP stage was configured with adapters.
+   * @returns `true` when any adapters were configured.
    */
   public hasAdaptersConfigured(): boolean {
-    return this.stageIndex.size > 0;
+    return this.adaptersById.size > 0;
   }
 
   /**
-   * Lists all stage identifiers that have adapter definitions.
+   * Lists all adapter identifiers.
    *
-   * @returns Array of {@link SatpStageKey} entries in insertion order.
+   * @returns Array of adapter IDs.
    */
-  public listStages(): SatpStageKey[] {
-    return Array.from(this.stageIndex.keys());
+  public listAdapters(): string[] {
+    return Array.from(this.adaptersById.keys());
   }
 
   /**
-   * Retrieves the full adapter set for the provided stage key.
+   * Returns the adapter definition for the supplied adapter ID.
    *
-   * @param stage - Stage identifier (for example, `"stage1"`).
-   * @returns {@link SatpStageAdapterSet} or `undefined` when missing.
+   * @param adapterId - Adapter identifier.
+   * @returns Matching {@link AdapterDefinition} or `undefined`.
    */
-  public getStageDefinition(
-    stage: SatpStageKey,
-  ): SatpStageAdapterSet | undefined {
-    return this.stageIndex.get(stage)?.definition;
+  public getAdapter(adapterId: string): AdapterDefinition | undefined {
+    return this.adaptersById.get(adapterId);
   }
 
   /**
-   * Returns the adapters for a given stage with optional inclusion of inactive
-   * entries. When no stage configuration exists an empty list is returned.
+   * Returns the complete execution plan.
+   *
+   * @returns {@link AdapterExecutionPlan} with all bindings.
    */
-  public getAdaptersForStage(
-    stage: SatpStageKey,
-    opts: { includeInactive?: boolean } = {},
-  ): AdapterDefinition[] {
-    const entry = this.stageIndex.get(stage);
-    if (!entry) {
-      return [];
-    }
-    const includeInactive = opts.includeInactive ?? false;
-    return entry.definition.adapters.filter((adapter) =>
-      this.shouldIncludeAdapter(adapter, includeInactive),
-    );
+  public getExecutionPlan(): AdapterExecutionPlan {
+    return this.executionPlan;
   }
 
   /**
-   * Retrieves adapters mapped to a specific execution step. When the step
-   * mapping is missing the method falls back to the entire stage order.
+   * Returns bindings for a specific execution point.
+   *
+   * @param stage - Stage number (0-3).
+   * @param stepTag - Stage-specific step identifier.
+   * @param stepOrder - Execution order (before/during/after/rollback).
+   * @param includeInactive - Whether to include inactive adapters.
+   * @returns Array of {@link AdapterExecutionBinding} entries.
+   * @throws Error if stepTag is not valid for the given stage.
    */
-  public getAdaptersForStep(
-    stage: SatpStageKey,
-    step: StageExecutionStep,
-    opts: { includeInactive?: boolean } = {},
-  ): AdapterDefinition[] {
-    const entry = this.stageIndex.get(stage);
-    if (!entry) {
-      return [];
+  public getBindingsForExecutionPoint(
+    stage: number,
+    stepTag: string,
+    stepOrder: StageExecutionStep,
+    includeInactive = false,
+  ): AdapterExecutionBinding[] {
+    // Validate step against protocol map
+    const satpStage = stage as SatpStage;
+    if (!isValidStepForStage(satpStage, stepTag)) {
+      this.log.error(
+        `${AdapterManager.CLASS_NAME}#getBindingsForExecutionPoint() Step "${stepTag}" is not valid for stage ${stage}`,
+      );
+      throw new Error(
+        `Step "${stepTag}" is not a valid SATP protocol step for stage ${stage}`,
+      );
     }
-    const stepIds = entry.definition.steps?.[step];
-    if (!stepIds || stepIds.length === 0) {
-      return this.getAdaptersForStage(stage, opts);
-    }
-    const includeInactive = opts.includeInactive ?? false;
-    const adapters: AdapterDefinition[] = [];
-    for (const adapterId of stepIds) {
-      const adapter = entry.adaptersById.get(adapterId);
-      if (!adapter) {
+
+    return this.executionPlan.bindings.filter((binding) => {
+      const matchesPoint =
+        binding.stage === stage &&
+        binding.stepTag === stepTag &&
+        binding.stepOrder === stepOrder;
+      const shouldInclude = includeInactive || binding.adapter.active;
+      return matchesPoint && shouldInclude;
+    });
+  }
+
+  /**
+   * Checks if any adapters should execute at the given point.
+   *
+   * @param stage - Stage number (0-3).
+   * @param stepTag - Stage-specific step identifier.
+   * @param stepOrder - Execution order (before/during/after/rollback).
+   * @returns `true` if at least one active adapter is configured for this point.
+   */
+  public shouldExecuteAdapters(
+    stage: number,
+    stepTag: string,
+    stepOrder: StageExecutionStep,
+  ): boolean {
+    return this.getBindingsForExecutionPoint(stage, stepTag, stepOrder).length > 0;
+  }
+
+  private buildAdapterIndex(
+    adapters: AdapterDefinition[],
+  ): Map<string, AdapterDefinition> {
+    const index = new Map<string, AdapterDefinition>();
+    for (const adapter of adapters) {
+      if (!adapter.executionPoints || adapter.executionPoints.length === 0) {
         this.log.warn(
-          `Adapter id="${adapterId}" missing from stage="${stage}" configuration`,
+          `Adapter id="${adapter.id}" has no executionPoints; skipping`,
         );
         continue;
       }
-      if (this.shouldIncludeAdapter(adapter, includeInactive)) {
-        adapters.push(adapter);
-      }
-    }
-    return adapters;
-  }
-
-  /**
-   * Returns the adapter definition for the supplied stage/id combination.
-   *
-   * @param stage - Stage identifier.
-   * @param adapterId - Natural adapter identifier configured by the operator.
-   * @returns Matching {@link AdapterDefinition} or `undefined`.
-   */
-  public getAdapter(
-    stage: SatpStageKey,
-    adapterId: string,
-  ): AdapterDefinition | undefined {
-    return this.stageIndex.get(stage)?.adaptersById.get(adapterId);
-  }
-
-  /**
-   * Produces a flattened execution plan that the adapter hook service can consume.
-   *
-   * @param opts - Optional filters limiting the scope of the plan.
-   * @returns Ordered list of {@link AdapterExecutionBinding} entries.
-   */
-  public buildExecutionPlan(
-    opts: {
-      stage?: SatpStageKey;
-      includeInactive?: boolean;
-    } = {},
-  ): AdapterExecutionBinding[] {
-    const includeInactive = opts.includeInactive ?? false;
-    const stages = opts.stage ? [opts.stage] : this.listStages();
-    const bindings: AdapterExecutionBinding[] = [];
-    const missingAdapters = new Set<string>();
-
-    const pushBinding = (
-      stageKey: SatpStageKey,
-      step: StageExecutionStep,
-      adapter: AdapterDefinition,
-      fallbackIndex: number,
-    ) => {
-      if (!this.shouldIncludeAdapter(adapter, includeInactive)) {
-        return;
-      }
-      bindings.push({
-        adapterId: adapter.id,
-        stage: stageKey,
-        step,
-        order: this.calculateBindingOrder(adapter, fallbackIndex),
-      });
-    };
-
-    for (const stageKey of stages) {
-      const entry = this.stageIndex.get(stageKey);
-      if (!entry) {
+      if (index.has(adapter.id)) {
+        this.log.warn(
+          `Duplicate adapter id="${adapter.id}" detected; keeping first definition`,
+        );
         continue;
       }
-      const { definition, adaptersById } = entry;
-      const stepMappings = definition.steps;
-      if (stepMappings && Object.keys(stepMappings).length > 0) {
-        for (const [step, adapterIds] of Object.entries(stepMappings) as Array<
-          [StageExecutionStep, string[]]
-        >) {
-          adapterIds?.forEach((adapterId, idx) => {
-            const adapter = adaptersById.get(adapterId);
-            if (!adapter) {
-              if (!missingAdapters.has(adapterId)) {
-                this.log.warn(
-                  `Adapter id="${adapterId}" missing from stage="${stageKey}" step="${step}" map`,
-                );
-                missingAdapters.add(adapterId);
-              }
-              return;
-            }
-            pushBinding(stageKey, step, adapter, idx);
-          });
-        }
-      } else {
-        definition.adapters.forEach((adapter, idx) => {
-          pushBinding(stageKey, "during", adapter, idx);
-        });
-      }
-    }
-
-    return bindings.sort((a, b) => a.order - b.order);
-  }
-
-  /**
-   * Convenience wrapper returning an {@link AdapterExecutionPlan} snapshot.
-   */
-  public getExecutionPlanSnapshot(
-    opts: {
-      stage?: SatpStageKey;
-      includeInactive?: boolean;
-    } = {},
-  ): AdapterExecutionPlan {
-    return { bindings: this.buildExecutionPlan(opts) };
-  }
-
-  private buildStageIndex(
-    stages?: Partial<Record<SatpStageKey, SatpStageAdapterSet>>,
-  ): Map<SatpStageKey, StageCatalogEntry> {
-    const index = new Map<SatpStageKey, StageCatalogEntry>();
-    if (!stages) {
-      return index;
-    }
-    for (const [stageKey, definition] of Object.entries(stages) as Array<
-      [SatpStageKey, SatpStageAdapterSet]
-    >) {
-      if (!definition || !Array.isArray(definition.adapters)) {
-        continue;
-      }
-      const adaptersById = new Map<string, AdapterDefinition>();
-      for (const adapter of definition.adapters) {
-        if (adaptersById.has(adapter.id)) {
-          this.log.warn(
-            `Duplicate adapter id="${adapter.id}" detected for stage="${stageKey}"; keeping first definition`,
-          );
-          continue;
-        }
-        adaptersById.set(adapter.id, adapter);
-      }
-      index.set(stageKey, { definition, adaptersById });
+      index.set(adapter.id, adapter);
     }
     return index;
   }
 
-  private calculateBindingOrder(
-    adapter: AdapterDefinition,
-    fallbackIndex: number,
-  ): number {
-    const base = typeof adapter.priority === "number" ? adapter.priority : 1000;
-    return base * 1000 + fallbackIndex;
-  }
+  private buildExecutionPlan(): AdapterExecutionPlan {
+    const bindings: AdapterExecutionBinding[] = [];
 
-  private shouldIncludeAdapter(
-    adapter: AdapterDefinition,
-    includeInactive: boolean,
-  ): boolean {
-    return includeInactive || adapter.active;
+    for (const adapter of this.adaptersById.values()) {
+      for (const executionPoint of adapter.executionPoints) {
+        // Validate execution point against protocol map
+        const satpStage = executionPoint.stage as SatpStage;
+        if (!isValidStepForStage(satpStage, executionPoint.step)) {
+          this.log.warn(
+            `Adapter id="${adapter.id}" has invalid execution point: step "${executionPoint.step}" is not valid for stage ${executionPoint.stage}; skipping this execution point`,
+          );
+          continue;
+        }
+
+        bindings.push({
+          adapterId: adapter.id,
+          adapter,
+          stage: executionPoint.stage,
+          stepTag: executionPoint.step,
+          stepOrder: executionPoint.point,
+          priority: adapter.priority ?? 1000,
+          executionPointName: executionPoint.name,
+        });
+      }
+    }
+
+    // Sort by stage, stepTag, stepOrder, then priority
+    bindings.sort((a, b) => {
+      if (a.stage !== b.stage) return a.stage - b.stage;
+      if (a.stepTag !== b.stepTag) return a.stepTag.localeCompare(b.stepTag);
+      if (a.stepOrder !== b.stepOrder) return a.stepOrder.localeCompare(b.stepOrder);
+      return a.priority - b.priority;
+    });
+
+    return { bindings };
   }
 }

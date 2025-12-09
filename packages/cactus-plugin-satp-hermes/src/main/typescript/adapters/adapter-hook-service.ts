@@ -106,13 +106,11 @@ import type { AdapterManager } from "./adapter-manager";
 import type {
   AdapterDefinition,
   OutboundWebhookConfig,
-  SatpStageKey,
   StageExecutionStep,
 } from "./api3-adapter-types";
 import type {
   AdapterHookResult,
   AdapterHookStepResult,
-  AdapterHookDirection,
   AdapterInvocationContext,
   OutboundWebhookInvocationResult,
 } from "./adapter-types";
@@ -120,14 +118,20 @@ import type { MonitorService } from "../services/monitoring/monitor";
 import type { SATPLogger as Logger } from "../core/satp-logger";
 import type { AdapterWebhookMetrics } from "./adapter-webhook-contracts";
 import type { OutboundWebhookPayload } from "./outbound-webhooks";
+import {
+  isValidStepForStage,
+  getStepByTag,
+  type SatpStage,
+} from "../core/satp-protocol-map";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
 
-export interface AdapterHookInvocation {
-  stage: Stage;
-  step: StageExecutionStep;
+export interface AdapterExecutionInput {
+  stage: number;
+  stepTag: string;
+  stepOrder: StageExecutionStep;
   sessionId: string;
   contextId?: string;
   gatewayId: string;
@@ -156,86 +160,160 @@ export class AdapterHookService {
     this.fetchFn = fetchImpl;
   }
 
-  public async triggerOutboundHooks(
-    invocation: AdapterHookInvocation,
-  ): Promise<AdapterHookResult | undefined> {
-    return await this.executeHooks(invocation, "outbound");
-  }
-
-  public async awaitInboundHooks(
-    invocation: AdapterHookInvocation,
-  ): Promise<AdapterHookResult | undefined> {
-    return await this.executeHooks(invocation, "inbound");
-  }
-
-  private async executeHooks(
-    invocation: AdapterHookInvocation,
-    direction: AdapterHookDirection,
-  ): Promise<AdapterHookResult | undefined> {
+  /**
+   * Checks if adapters should execute for the given execution point.
+   */
+  public shouldExecuteAdapters(
+    stage: number,
+    stepTag: string,
+    stepOrder: StageExecutionStep,
+  ): boolean {
     const { adapterManager } = this.options;
+    if (!adapterManager || !adapterManager.hasAdaptersConfigured()) {
+      return false;
+    }
+    return adapterManager.shouldExecuteAdapters(stage, stepTag, stepOrder);
+  }
+
+  /**
+   * Executes all adapters configured for the given execution point.
+   * Handles both outbound (fire-and-forget) and inbound (blocking) webhooks automatically.
+   * This call is blocking - inbound webhooks will pause execution until external response arrives.
+   */
+  public async executeAdapters(
+    input: AdapterExecutionInput,
+  ): Promise<AdapterHookResult | undefined> {
+    const { adapterManager, logger } = this.options;
     if (!adapterManager || !adapterManager.hasAdaptersConfigured()) {
       return undefined;
     }
 
-    const stageKey = this.mapStageToKey(invocation.stage);
-    if (!stageKey) {
-      this.options.logger.warn(
-        `AdapterHookService: unsupported stage lookup for value="${invocation.stage}"`,
+    // Validate execution point against protocol map
+    const satpStage = input.stage as SatpStage;
+    if (!isValidStepForStage(satpStage, input.stepTag)) {
+      logger.error(
+        `AdapterHookService#executeAdapters() Step "${input.stepTag}" is not valid for stage ${input.stage}`,
       );
-      return undefined;
+      throw new Error(
+        `Step "${input.stepTag}" is not a valid SATP protocol step for stage ${input.stage}`,
+      );
     }
 
-    const plan = adapterManager.getExecutionPlanSnapshot({ stage: stageKey });
-    const relevantBindings = plan.bindings.filter(
-      (binding) =>
-        binding.stage === stageKey && binding.step === invocation.step,
+    // Log execution point with protocol metadata for enhanced observability
+    const stepInfo = getStepByTag(satpStage, input.stepTag);
+    if (stepInfo) {
+      logger.debug(
+        `AdapterHookService#executeAdapters() Executing adapters for stage ${input.stage}, step "${input.stepTag}" (${stepInfo.description}), order ${input.stepOrder}`,
+      );
+    }
+
+    const bindings = adapterManager.getBindingsForExecutionPoint(
+      input.stage,
+      input.stepTag,
+      input.stepOrder,
     );
-    if (relevantBindings.length === 0) {
+
+    if (bindings.length === 0) {
       return undefined;
     }
 
     const steps: AdapterHookStepResult[] = [];
-    for (const [index, binding] of relevantBindings.entries()) {
-      const adapter = adapterManager.getAdapter(stageKey, binding.adapterId);
-      if (!adapter || !adapter.active) {
+    for (const binding of bindings) {
+      const adapter = binding.adapter;
+      if (!adapter.active) {
         continue;
       }
+
       const context: AdapterInvocationContext = {
         binding,
         adapter,
-        stage: invocation.stage,
-        sessionId: invocation.sessionId,
-        contextId: invocation.contextId,
-        gatewayId: invocation.gatewayId,
-        attempt: index + 1,
-        direction,
-        metadata: invocation.metadata,
-        payload: invocation.payload,
+        stage: this.numberToStage(binding.stage),
+        sessionId: input.sessionId,
+        contextId: input.contextId,
+        gatewayId: input.gatewayId,
+        attempt: 1,
+        direction: "outbound", // Legacy field, will be removed
+        metadata: input.metadata,
+        payload: input.payload,
       };
+
       let result: AdapterHookStepResult | undefined;
-      if (direction === "outbound") {
+
+      // Execute outbound webhook if configured
+      if (adapter.outboundWebhook) {
         result = await this.runOutboundAdapter(context, adapter);
-      } else {
-        result = await this.runInboundAdapter(context, adapter);
+        if (result) {
+          steps.push(result);
+        }
       }
-      if (result) {
+
+      // Execute inbound webhook if configured (blocking)
+      if (adapter.inboundWebhook) {
+        result = await this.runInboundAdapter(context, adapter);
+        if (result) {
+          steps.push(result);
+        }
+      }
+
+      // If neither is configured, skip
+      if (!adapter.outboundWebhook && !adapter.inboundWebhook) {
+        result = this.buildSkipResult(
+          context,
+          "Adapter has no webhook configuration",
+        );
         steps.push(result);
       }
     }
 
     if (steps.length === 0) {
-      this.options.logger.debug(
-        `AdapterHookService: no executable adapters for stage=${stageKey} step=${invocation.step}`,
+      logger.debug(
+        `AdapterHookService: no executable adapters for stage=${input.stage} stepTag=${input.stepTag} stepOrder=${input.stepOrder}`,
       );
       return undefined;
     }
 
     return {
-      stage: invocation.stage,
-      sessionId: invocation.sessionId,
+      stage: this.numberToStage(input.stage),
+      sessionId: input.sessionId,
       steps,
       completedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Convenience method to execute adapters for "before" step order.
+   */
+  public async executeAdaptersBefore(
+    input: Omit<AdapterExecutionInput, "stepOrder">,
+  ): Promise<AdapterHookResult | undefined> {
+    return this.executeAdapters({ ...input, stepOrder: "before" });
+  }
+
+  /**
+   * Convenience method to execute adapters for "during" step order.
+   */
+  public async executeAdaptersDuring(
+    input: Omit<AdapterExecutionInput, "stepOrder">,
+  ): Promise<AdapterHookResult | undefined> {
+    return this.executeAdapters({ ...input, stepOrder: "during" });
+  }
+
+  /**
+   * Convenience method to execute adapters for "after" step order.
+   */
+  public async executeAdaptersAfter(
+    input: Omit<AdapterExecutionInput, "stepOrder">,
+  ): Promise<AdapterHookResult | undefined> {
+    return this.executeAdapters({ ...input, stepOrder: "after" });
+  }
+
+  /**
+   * Convenience method to execute adapters for "rollback" step order.
+   */
+  public async executeAdaptersRollback(
+    input: Omit<AdapterExecutionInput, "stepOrder">,
+  ): Promise<AdapterHookResult | undefined> {
+    return this.executeAdapters({ ...input, stepOrder: "rollback" });
   }
 
   private async runOutboundAdapter(
@@ -300,7 +378,11 @@ export class AdapterHookService {
       eventType:
         context.direction === "outbound" ? "stage.started" : "stage.completed",
       schemaVersion: "v1",
-      stage: context.stage,
+      executionPoints: {
+        stage: context.binding.stage,
+        stepTag: context.binding.stepTag,
+        stepOrder: context.binding.stepOrder,
+      },
       adapterId: context.adapter.id,
       sessionId: context.sessionId,
       contextId: context.contextId,
@@ -410,14 +492,14 @@ export class AdapterHookService {
     };
   }
 
-  private mapStageToKey(stage: Stage): SatpStageKey | undefined {
-    const stageMap: Partial<Record<Stage, SatpStageKey>> = {
-      [Stage.STAGE0]: "stage0",
-      [Stage.STAGE1]: "stage1",
-      [Stage.STAGE2]: "stage2",
-      [Stage.STAGE3]: "stage3",
+  private numberToStage(stageNumber: number): Stage {
+    const stageMap: Record<number, Stage> = {
+      0: Stage.STAGE0,
+      1: Stage.STAGE1,
+      2: Stage.STAGE2,
+      3: Stage.STAGE3,
     };
-    return stageMap[stage];
+    return stageMap[stageNumber] ?? Stage.STAGE0;
   }
 
   private getGlobalTimeout(): number {

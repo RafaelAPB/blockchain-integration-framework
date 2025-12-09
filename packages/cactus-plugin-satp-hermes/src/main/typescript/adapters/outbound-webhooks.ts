@@ -88,6 +88,7 @@
  */
 
 import { Stage } from "../types/satp-protocol";
+import { AdapterExecutionPoint } from "./api3-adapter-types";
 
 /**
  * Standardized list of outbound webhook events emitted by the SATP gateway when
@@ -117,7 +118,7 @@ export interface OutboundWebhookPayload {
   /** Semantic version of the payload contract (e.g., "v1.0.0"). */
   schemaVersion: string;
   /** The SATP stage associated with the notification. */
-  stage: Stage;
+  executionPoints: AdapterExecutionPoint;
   /** Adapter identifier (matches configuration id). */
   adapterId: string;
   /** SATP session identifier for correlation. */

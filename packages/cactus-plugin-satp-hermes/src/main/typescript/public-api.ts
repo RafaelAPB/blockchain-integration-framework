@@ -195,6 +195,47 @@ export {
 export { GatewayIdentity } from "./core/types";
 
 /**
+ * SATP Protocol Mapping - Type-safe SATP protocol stage and step definitions.
+ *
+ * @description
+ * Provides a comprehensive type system and canonical mapping for SATP protocol execution order.
+ * Includes stage types (0-3), step tag unions for each stage, and a complete protocol map
+ * that defines the total order of execution including step metadata (description, role, sequence).
+ * This is used by adapter managers and services for validating execution points and ensuring
+ * adapters are configured for valid protocol positions.
+ *
+ * @see {@link AdapterManager} for adapter configuration validation using protocol map
+ * @see {@link AdapterHookService} for step execution validation
+ */
+export {
+  SatpStage,
+  Stage0StepTag,
+  Stage1StepTag,
+  Stage2StepTag,
+  Stage3StepTag,
+  SatpStepTag,
+  SATP_PROTOCOL_MAP,
+  getStepTagsForStage,
+  getStepByTag,
+  stageEnumToNumber,
+  stageNumberToEnum,
+  isValidStepForStage,
+} from "./core/satp-protocol-map";
+
+/**
+ * Execution Point Identification - Type for identifying adapter execution points.
+ *
+ * @description
+ * Defines the structure used to identify specific execution points where adapters
+ * should run during SATP protocol execution. Used by stage handlers to invoke
+ * adapter hooks at specific stage-step-order combinations.
+ *
+ * @see {@link AdapterHookRunner} for adapter execution utility
+ * @see {@link SATP_PROTOCOL_MAP} for valid stage-step combinations
+ */
+export { ExecutionPointIdentification } from "./core/stage-handlers/utils/adapter-hook-runner";
+
+/**
  * Fabric Network Validation - Hyperledger Fabric configuration validation utilities.
  *
  * @description
