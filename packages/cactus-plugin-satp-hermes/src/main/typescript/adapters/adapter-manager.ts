@@ -4,17 +4,75 @@
  *
  * @description
  * The adapter manager translates the static API3 adapter configuration into
- * runtime-friendly structures that SATP handlers and webhook services can
+ * runtime structures that SATP handlers and webhook services can
  * consume. It indexes every adapter by stage, step, and identifier so that
- * higher-level orchestration (for example, {@link AdapterHookRunner}) can look
+ * higher-level orchestration (for example, {@link AdapterHookService}) can look
  * up the correct inbound/outbound hooks with minimal overhead.
  *
  * **Responsibilities:**
  * - Validate and cache adapter configuration provided by the gateway operator
- * - Expose lookup helpers scoped by stage, execution step, or adapter id
- * - Produce deterministic execution plans that preserve operator-defined order
- * - Surface configuration anomalies (duplicates, missing references) via logging
+ * - Expose lookup helpers scoped by stage, execution step, or adapter identifier
+ * - Produce deterministic execution plans that preserve operator-defined priority order
  * - Provide monitoring-friendly insights such as configured stage counts
+ *
+ * **Index Architecture:**
+ * The manager maintains a two-level index:
+ * 1. **Stage Index**: Map<SatpStageKey, StageCatalogEntry> for adapters by stage
+ * 2. **Adapter Index**: Map<string, AdapterDefinition> per stage for configuration for each adapter
+ *
+ *
+ * **Execution Plan Generation:**
+ * The {@link buildExecutionPlan} method flattens the hierarchical configuration into
+ * a sorted list of {@link AdapterExecutionBinding} entries. Each binding associates
+ * an adapter with its stage, step, and priority-derived order. The plan respects:
+ * - Operator-defined priority values (lower numbers execute first)
+ * - Index ordering as tiebreaker when priorities are equal
+ * - Step mappings when present (before/during/after/rollback)
+ * - Active/inactive flags for runtime toggling
+ *
+ * **Configuration Validation:**
+ * The manager performs basic structural validation (presence of required fields) but
+ * delegates comprehensive schema validation to {@link validateAdapterConfig}. It logs
+ * warnings for:
+ * - Duplicate adapter IDs within a stage (keeps first, ignores rest)
+ * - Step mappings referencing non-existent adapter IDs
+ * - Empty or malformed stage definitions
+ *
+ * @example
+ * Initializing adapter manager from gateway configuration:
+ * ```typescript
+ * const manager = new AdapterManager({
+ *   config: gatewayConfig.adapterConfig,
+ *   logLevel: "INFO",
+ *   monitorService
+ * });
+ *
+ * // Query adapters for Stage 1 "before" step
+ * const adapters = manager.getAdaptersForStep("stage1", "before");
+ * console.log(`Found ${adapters.length} adapters for stage1/before`);
+ * ```
+ *
+ * @example
+ * Generating execution plan for specific stage:
+ * ```typescript
+ * const plan = manager.buildExecutionPlan({
+ *   stage: "stage2",
+ *   includeInactive: false
+ * });
+ *
+ * // Bindings are sorted by priority then index
+ * plan.forEach(binding => {
+ *   console.log(`Order ${binding.order}: ${binding.adapterId} at ${binding.step}`);
+ * });
+ * ```
+ *
+ * @see {@link AdapterHookService} for runtime execution using this manager
+ * @see {@link AdapterLayerConfiguration} for configuration schema
+ * @see {@link AdapterExecutionPlan} for execution plan structure
+ * @see {@link validateAdapterConfig} for configuration validation
+ *
+ * @module adapter-manager
+ * @since 0.0.3-beta
  */
 
 import { Checks, type LogLevelDesc } from "@hyperledger/cactus-common";
@@ -22,7 +80,7 @@ import type { SATPLogger as Logger } from "../core/satp-logger";
 import { SATPLoggerProvider as LoggerProvider } from "../core/satp-logger-provider";
 import { MonitorService } from "../services/monitoring/monitor";
 import {
-  Api3AdapterConfiguration,
+  AdapterLayerConfiguration,
   AdapterDefinition,
   AdapterExecutionBinding,
   AdapterExecutionPlan,
@@ -30,22 +88,22 @@ import {
   SatpStageKey,
   StageExecutionStep,
 } from "./api3-adapter-types";
+import { AdapterHookService } from "./adapter-hook-service";
 
-/** Metadata cached per SATP stage to enable O(1) adapter lookups. */
 interface StageCatalogEntry {
   definition: SatpStageAdapterSet;
   adaptersById: Map<string, AdapterDefinition>;
 }
 
 /**
- * Configuration contract for {@link AdapterManager} construction.
+ * Configuration for {@link AdapterManager}.
  *
  * @property config - Complete adapter configuration loaded from disk or env.
  * @property logLevel - Optional log verbosity overriding the monitor defaults.
  * @property monitorService - Shared monitoring instance for structured spans.
  */
-export interface AdapterManagerOptions {
-  config: Api3AdapterConfiguration;
+export interface IAdapterManagerOptions {
+  config: AdapterLayerConfiguration;
   logLevel?: LogLevelDesc;
   monitorService: MonitorService;
 }
@@ -55,7 +113,7 @@ export interface AdapterManagerOptions {
  *
  * @description
  * The manager builds an optimized catalog of adapter definitions organized by
- * stage and execution step. This allows webhook coordination layers to quickly
+ * stage and execution step. This allows the webhook service to
  * determine which adapters should fire for a given Stage/Step pair, whether
  * they are currently active, and in which sequence they should be invoked.
  *
@@ -67,16 +125,17 @@ export class AdapterManager {
   public static readonly CLASS_NAME = "AdapterManager";
 
   private readonly log: Logger;
-  private readonly config: Api3AdapterConfiguration;
+  private readonly config: AdapterLayerConfiguration;
   private readonly monitorService: MonitorService;
   private readonly stageIndex: Map<SatpStageKey, StageCatalogEntry>;
+  private readonly adapterHookService: AdapterHookService; 
 
   /**
    * Creates a new adapter manager instance using the supplied configuration.
    *
-   * @param options - {@link AdapterManagerOptions} with configuration + deps.
+   * @param options - {@link IAdapterManagerOptions} with configuration + deps.
    */
-  constructor(options: AdapterManagerOptions) {
+  constructor(options: IAdapterManagerOptions) {
     const fnTag = `${AdapterManager.CLASS_NAME}#constructor()`;
     Checks.truthy(options, `${fnTag} options`);
     Checks.truthy(options.config, `${fnTag} options.config`);
@@ -92,17 +151,34 @@ export class AdapterManager {
     );
     this.config = options.config;
     this.stageIndex = this.buildStageIndex(this.config.satpStages);
+
+    // Instantiate the adapter hook service with this manager as the source
+    this.adapterHookService = new AdapterHookService({
+      adapterManager: this,
+      logger: this.log,
+      monitorService: this.monitorService,
+    });
+
     this.log.debug(
       `${fnTag} Initialized with ${this.stageIndex.size} configured SATP stages`,
     );
   }
 
   /**
+   * Returns the adapter hook service instance managed by this manager.
+   *
+   * @returns {@link AdapterHookService} for executing webhook adapters.
+   */
+  public getAdapterHookService(): AdapterHookService {
+    return this.adapterHookService;
+  }
+
+  /**
    * Returns the raw adapter configuration provided during construction.
    *
-   * @returns Unmodified {@link Api3AdapterConfiguration} reference.
+   * @returns Unmodified {@link AdapterLayerConfiguration} reference.
    */
-  public getConfiguration(): Api3AdapterConfiguration {
+  public getConfiguration(): AdapterLayerConfiguration {
     return this.config;
   }
 
@@ -133,7 +209,7 @@ export class AdapterManager {
   public getStageDefinition(
     stage: SatpStageKey,
   ): SatpStageAdapterSet | undefined {
-    return this.config.satpStages?.[stage];
+    return this.stageIndex.get(stage)?.definition;
   }
 
   /**
@@ -150,7 +226,7 @@ export class AdapterManager {
     }
     const includeInactive = opts.includeInactive ?? false;
     return entry.definition.adapters.filter((adapter) =>
-      includeInactive ? true : adapter.active,
+      this.shouldIncludeAdapter(adapter, includeInactive),
     );
   }
 
@@ -181,10 +257,9 @@ export class AdapterManager {
         );
         continue;
       }
-      if (!includeInactive && !adapter.active) {
-        continue;
+      if (this.shouldIncludeAdapter(adapter, includeInactive)) {
+        adapters.push(adapter);
       }
-      adapters.push(adapter);
     }
     return adapters;
   }
@@ -218,6 +293,24 @@ export class AdapterManager {
     const includeInactive = opts.includeInactive ?? false;
     const stages = opts.stage ? [opts.stage] : this.listStages();
     const bindings: AdapterExecutionBinding[] = [];
+    const missingAdapters = new Set<string>();
+
+    const pushBinding = (
+      stageKey: SatpStageKey,
+      step: StageExecutionStep,
+      adapter: AdapterDefinition,
+      fallbackIndex: number,
+    ) => {
+      if (!this.shouldIncludeAdapter(adapter, includeInactive)) {
+        return;
+      }
+      bindings.push({
+        adapterId: adapter.id,
+        stage: stageKey,
+        step,
+        order: this.calculateBindingOrder(adapter, fallbackIndex),
+      });
+    };
 
     for (const stageKey of stages) {
       const entry = this.stageIndex.get(stageKey);
@@ -233,33 +326,20 @@ export class AdapterManager {
           adapterIds?.forEach((adapterId, idx) => {
             const adapter = adaptersById.get(adapterId);
             if (!adapter) {
-              this.log.warn(
-                `Adapter id="${adapterId}" missing from stage="${stageKey}" step="${step}" map`,
-              );
+              if (!missingAdapters.has(adapterId)) {
+                this.log.warn(
+                  `Adapter id="${adapterId}" missing from stage="${stageKey}" step="${step}" map`,
+                );
+                missingAdapters.add(adapterId);
+              }
               return;
             }
-            if (!includeInactive && !adapter.active) {
-              return;
-            }
-            bindings.push({
-              adapterId,
-              stage: stageKey,
-              step,
-              order: this.calculateBindingOrder(adapter, idx),
-            });
+            pushBinding(stageKey, step, adapter, idx);
           });
         }
       } else {
         definition.adapters.forEach((adapter, idx) => {
-          if (!includeInactive && !adapter.active) {
-            return;
-          }
-          bindings.push({
-            adapterId: adapter.id,
-            stage: stageKey,
-            step: "during",
-            order: this.calculateBindingOrder(adapter, idx),
-          });
+          pushBinding(stageKey, "during", adapter, idx);
         });
       }
     }
@@ -313,5 +393,12 @@ export class AdapterManager {
   ): number {
     const base = typeof adapter.priority === "number" ? adapter.priority : 1000;
     return base * 1000 + fallbackIndex;
+  }
+
+  private shouldIncludeAdapter(
+    adapter: AdapterDefinition,
+    includeInactive: boolean,
+  ): boolean {
+    return includeInactive || adapter.active;
   }
 }

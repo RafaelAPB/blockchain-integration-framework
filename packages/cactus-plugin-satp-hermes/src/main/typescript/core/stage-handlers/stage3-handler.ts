@@ -444,7 +444,7 @@ export class Stage3SATPHandler implements SATPHandler {
       monitorService: this.monitorService,
     };
     this.priceManager = new PriceManager(priceManagerOptions);
-    this.adapterHooks = new AdapterHookService({
+    this.adapterHooks = this.adapterManager?.getAdapterHookService() ?? new AdapterHookService({
       adapterManager: this.adapterManager,
       logger: this.logger,
       monitorService: this.monitorService,
@@ -964,7 +964,7 @@ export class Stage3SATPHandler implements SATPHandler {
           Number(
             JSON.parse(
               session.getServerSessionData().mintAssertionClaim?.receipt ??
-                "{}",
+              "{}",
             ).gas ?? 0,
           ) +
           Number(
@@ -1699,13 +1699,13 @@ export class Stage3SATPHandler implements SATPHandler {
             Number(
               JSON.parse(
                 session.getClientSessionData().lockAssertionClaim?.receipt ??
-                  "{}",
+                "{}",
               ).gas ?? 0,
             ) +
             Number(
               JSON.parse(
                 session.getClientSessionData().burnAssertionClaim?.receipt ??
-                  "{}",
+                "{}",
               ).gas ?? 0,
             );
 
@@ -1731,9 +1731,9 @@ export class Stage3SATPHandler implements SATPHandler {
             `${fnTag}, Error: ${new FailedToProcessError(
               fnTag,
               "Checking " +
-                getMessageTypeName(
-                  MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE,
-                ),
+              getMessageTypeName(
+                MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE,
+              ),
               error,
             )}`,
           );
@@ -1762,7 +1762,7 @@ export class Stage3SATPHandler implements SATPHandler {
           throw new FailedToProcessError(
             fnTag,
             "Checking " +
-              getMessageTypeName(MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE),
+            getMessageTypeName(MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE),
             error,
           );
         }

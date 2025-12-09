@@ -1,3 +1,106 @@
+/**
+ * Adapter Hook Service - Runtime orchestration engine for webhook adapter execution
+ *
+ * @fileoverview
+ * Core execution engine responsible for invoking configured adapter webhooks during
+ * SATP protocol execution. Coordinates outbound notifications and inbound approval
+ * workflows with comprehensive retry logic, timeout enforcement, and telemetry collection.
+ *
+ * @description
+ * **Service Responsibilities:**
+ * - Query {@link AdapterManager} for applicable adapters based on stage/step
+ * - Execute outbound webhooks asynchronously with HTTP client (fetch API)
+ * - Manage inbound webhook lifecycle (pause, await decision, resume/abort)
+ * - Apply retry policies with exponential backoff for transient failures
+ * - Enforce timeouts and deadlines to prevent hung transfers
+ * - Collect execution metrics (latency, attempts, disposition) for observability
+ * - Aggregate multi-adapter results into single {@link AdapterHookResult}
+ *
+ * **Execution Model:**
+ * When a SATP stage reaches a configured step (before/during/after/rollback), the
+ * Business Logic Orchestrator (BLO) invokes this service with stage context. The
+ * service resolves the execution plan, filters active adapters, and invokes them
+ * in priority order. Outbound hooks run fire-and-forget while inbound hooks block
+ * until external decision arrives or timeout expires.
+ *
+ * **Retry Strategy:**
+ * Transient failures (network errors, 5xx responses, timeouts) trigger automatic
+ * retries with configurable attempts and delay. The service respects adapter-level
+ * retry settings but falls back to global defaults when unspecified. Permanent
+ * failures (4xx responses, invalid URLs) do not retry.
+ *
+ * **Timeout Hierarchy:**
+ * 1. Adapter-specific `timeoutMs` (highest precedence)
+ * 2. Global configuration `global.timeoutMs`
+ * 3. Service default `DEFAULT_TIMEOUT_MS` (30 seconds)
+ *
+ * **Integration Points:**
+ * - {@link AdapterManager}: Configuration resolution and execution plan generation
+ * - {@link MonitorService}: Telemetry and distributed tracing integration
+ * - {@link BLODispatcher}: SATP stage coordination and hook invocation
+ * - Fetch API: HTTP client for webhook invocations (node-fetch polyfill for Node < 18)
+ *
+ * @example
+ * Triggering outbound hooks for Stage 1 lock notification:
+ * ```typescript
+ * const service = new AdapterHookService({
+ *   adapterManager,
+ *   logger,
+ *   monitorService
+ * });
+ *
+ * const result = await service.triggerOutboundHooks({
+ *   stage: Stage.STAGE1,
+ *   step: "after",
+ *   sessionId: "sess-abc-123",
+ *   contextId: "ctx-transfer-456",
+ *   gatewayId: "gateway-1",
+ *   payload: {
+ *     lockTxHash: "0x789...",
+ *     lockedAmount: "1000"
+ *   }
+ * });
+ *
+ * if (result) {
+ *   logger.info(`Executed ${result.steps.length} outbound adapters`);
+ *   result.steps.forEach(step => {
+ *     logger.debug(`Adapter ${step.binding.adapterId}: ${step.disposition}`);
+ *   });
+ * }
+ * ```
+ *
+ * @example
+ * Awaiting inbound approval decision:
+ * ```typescript
+ * // Service blocks here until external controller POSTs decision
+ * const result = await service.awaitInboundHooks({
+ *   stage: Stage.STAGE2,
+ *   step: "before",
+ *   sessionId: "sess-xyz-789",
+ *   gatewayId: "gateway-2",
+ *   metadata: { transferAmountUsd: 250000 }
+ * });
+ *
+ * const approvalStep = result?.steps.find(
+ *   s => s.binding.adapterId === "compliance-check"
+ * );
+ *
+ * if (approvalStep?.blockingDecision?.continue === false) {
+ *   logger.warn(`Transfer rejected: ${approvalStep.blockingDecision.reason}`);
+ *   throw new Error("Compliance check failed");
+ * }
+ * ```
+ *
+ * @see {@link AdapterManager} for configuration and execution plan management
+ * @see {@link AdapterHookInvocation} for invocation context structure
+ * @see {@link AdapterHookResult} for aggregated execution results
+ * @see {@link OutboundWebhookPayload} for outbound event schema
+ * @see {@link InboundWebhookDecisionPayload} for inbound decision schema
+ *
+ * @module adapter-hook-service
+ * @since 0.0.3-beta
+ */
+
 import { Stage } from "../types/satp-protocol";
 import type { AdapterManager } from "./adapter-manager";
 import type {
@@ -12,7 +115,7 @@ import type {
   AdapterHookDirection,
   AdapterInvocationContext,
   OutboundWebhookInvocationResult,
-} from "./adapter-hook-types";
+} from "./adapter-types";
 import type { MonitorService } from "../services/monitoring/monitor";
 import type { SATPLogger as Logger } from "../core/satp-logger";
 import type { AdapterWebhookMetrics } from "./adapter-webhook-contracts";
@@ -231,9 +334,9 @@ export class AdapterHookService {
       outboundResult,
       metrics: outboundResult
         ? {
-            latencyMs: outboundResult.latencyMs,
-            retriesAttempted: outboundResult.retriesAttempted,
-          }
+          latencyMs: outboundResult.latencyMs,
+          retriesAttempted: outboundResult.retriesAttempted,
+        }
         : undefined,
     };
   }
@@ -308,18 +411,13 @@ export class AdapterHookService {
   }
 
   private mapStageToKey(stage: Stage): SatpStageKey | undefined {
-    switch (stage) {
-      case Stage.STAGE0:
-        return "stage0";
-      case Stage.STAGE1:
-        return "stage1";
-      case Stage.STAGE2:
-        return "stage2";
-      case Stage.STAGE3:
-        return "stage3";
-      default:
-        return undefined;
-    }
+    const stageMap: Partial<Record<Stage, SatpStageKey>> = {
+      [Stage.STAGE0]: "stage0",
+      [Stage.STAGE1]: "stage1",
+      [Stage.STAGE2]: "stage2",
+      [Stage.STAGE3]: "stage3",
+    };
+    return stageMap[stage];
   }
 
   private getGlobalTimeout(): number {
@@ -376,17 +474,12 @@ export class AdapterHookService {
   }
 
   private toHeaderObject(headers: globalThis.Headers): Record<string, string> {
-    const accumulator: Record<string, string> = {};
-    headers.forEach((value, key) => {
-      accumulator[key] = value;
-    });
-    return accumulator;
+    const result: Record<string, string> = {};
+    headers.forEach((value, key) => (result[key] = value));
+    return result;
   }
 
   private stringifyError(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    return String(error);
+    return error instanceof Error ? error.message : String(error);
   }
 }

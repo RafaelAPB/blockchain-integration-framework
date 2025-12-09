@@ -12,7 +12,7 @@
 import { Stage } from "../../../types/satp-protocol";
 import type { SATPLogger as Logger } from "../../satp-logger";
 import type { AdapterHookService } from "../../../adapters/adapter-hook-service";
-import type { AdapterHookDirection } from "../../../adapters/adapter-hook-types";
+import type { AdapterHookDirection } from "../../../adapters/adapter-types";
 import type {
   SatpStageKey,
   StageExecutionStep,
@@ -50,7 +50,7 @@ export interface AdapterHookRunnerContext {
  * SATP transaction when approvals are missing or expired.
  */
 export class AdapterHookRunner {
-  constructor(private readonly ctx: AdapterHookRunnerContext) {}
+  constructor(private readonly ctx: AdapterHookRunnerContext) { }
 
   /**
    * Dispatches adapter hooks for the provided direction and stage step.

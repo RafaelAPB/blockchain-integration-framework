@@ -383,7 +383,7 @@ export class Stage0SATPHandler implements SATPHandler {
     this.logger.trace(`Initialized ${Stage0SATPHandler.CLASS_NAME}`);
     this.pubKeys = ops.pubkeys;
     this.gatewayId = ops.gatewayId;
-    this.adapterHooks = new AdapterHookService({
+    this.adapterHooks = this.adapterManager?.getAdapterHookService() ?? new AdapterHookService({
       adapterManager: this.adapterManager,
       logger: this.logger,
       monitorService: this.monitorService,

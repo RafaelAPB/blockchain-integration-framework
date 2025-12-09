@@ -383,7 +383,7 @@ export class Stage1SATPHandler implements SATPHandler {
       ops.loggerOptions,
       this.monitorService,
     );
-    this.adapterHooks = new AdapterHookService({
+    this.adapterHooks = this.adapterManager?.getAdapterHookService() ?? new AdapterHookService({
       adapterManager: this.adapterManager,
       logger: this.logger,
       monitorService: this.monitorService,
@@ -556,8 +556,8 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new FailedToCreateMessageError(
             fnTag,
             getMessageTypeName(MessageType.INIT_RECEIPT) +
-              "/" +
-              getMessageTypeName(MessageType.INIT_REJECT),
+            "/" +
+            getMessageTypeName(MessageType.INIT_REJECT),
           );
         }
 

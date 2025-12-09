@@ -99,7 +99,7 @@ import { Context, context, Span, SpanStatusCode } from "@opentelemetry/api";
 import { SATPManager } from "./services/gateway/satp-manager";
 import { ExtensionConfig } from "./services/validation/config-validating-functions/validate-extensions";
 import { AdapterManager } from "./adapters/adapter-manager";
-import type { Api3AdapterConfiguration } from "./adapters/api3-adapter-types";
+import type { AdapterLayerConfiguration } from "./adapters/api3-adapter-types";
 
 /**
  * SATP Gateway Configuration Interface - Complete configuration for fault-tolerant gateway.
@@ -327,7 +327,7 @@ export interface SATPGatewayConfig extends ICactusPluginOptions {
    * stage. When provided, the gateway instantiates an {@link AdapterManager}
    * that can later be leveraged by the AdapterHookService when running hooks.
    */
-  adapterConfig?: Api3AdapterConfiguration;
+  adapterConfig?: AdapterLayerConfiguration;
 
   /**
    * Plugin registry for extensibility.
@@ -688,13 +688,6 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             logLevel: this.config.logLevel,
             monitorService: this.monitorService,
           });
-          this.logger.info(
-            `Adapter manager initialized with ${this.adapterManager.listStages().length} configured SATP stage entries`,
-          );
-        } else {
-          this.logger.debug(
-            "No API3 adapter configuration detected; adapter manager disabled",
-          );
         }
 
         if (!this.SATPCCManager) {
@@ -1105,7 +1098,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
         const address =
           this.options.gid?.address?.includes("localhost") ||
-          this.options.gid?.address?.includes("127.0.0.1")
+            this.options.gid?.address?.includes("127.0.0.1")
             ? "localhost"
             : "0.0.0.0";
 
@@ -1225,7 +1218,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             this.GOLServer = http.createServer(this.GOLApplication);
             const address =
               this.options.gid?.address?.includes("localhost") || // When running a gateway in localhost we don't want to bind it to 0.0.0.0 because if we do it will be accessible from the outside network
-              this.options.gid?.address?.includes("127.0.0.1")
+                this.options.gid?.address?.includes("127.0.0.1")
                 ? "localhost"
                 : "0.0.0.0";
 

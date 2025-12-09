@@ -407,7 +407,7 @@ export {
   SatpStageAdapterSet,
   SatpStageKey,
   StageExecutionStep,
-  Api3AdapterConfiguration,
+  AdapterLayerConfiguration,
   GlobalAdapterDefaults,
   AdapterExecutionBinding,
   AdapterExecutionPlan,
@@ -439,7 +439,7 @@ export {
   AdapterHookStepResult,
   AdapterHookResult,
   AdapterHookExecutionParams,
-} from "./adapters/adapter-hook-types";
+} from "./adapters/adapter-types";
 export {
   InboundWebhookDecisionPayload,
   InboundWebhookDecisionResponse,

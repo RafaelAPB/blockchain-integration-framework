@@ -1,3 +1,72 @@
+/**
+ * Adapter Webhook Contracts - Canonical I/O schemas for adapter hook execution
+ *
+ * @fileoverview
+ * Defines the standardized input/output contracts used by the {@link AdapterHookService}
+ * when executing adapter webhooks. These interfaces establish the data exchange
+ * protocol between the SATP gateway core and external adapter implementations,
+ * ensuring consistent telemetry, error reporting, and control flow semantics.
+ *
+ * @description
+ * **Webhook Execution Model:**
+ * Each adapter hook invocation receives a structured input containing SATP session
+ * context, stage metadata, and optional payload data. The adapter processes this
+ * information and returns an output specifying the disposition (CONTINUE/PAUSE/SKIP/FAIL)
+ * along with optional telemetry and diagnostic messages.
+ *
+ * **Disposition Semantics:**
+ * - `CONTINUE`: Adapter completed successfully; proceed with next adapter or stage
+ * - `PAUSE`: Adapter requests SATP execution halt until external decision arrives
+ *           (inbound webhooks only; outbound webhooks cannot pause execution)
+ * - `SKIP`: Adapter was not applicable or chose not to execute (logged but not an error)
+ * - `FAIL`: Adapter encountered an error; SATP transfer should be aborted or rolled back
+ *
+ * **Input Specialization:**
+ * Different execution steps receive specialized input contracts:
+ * - `PreStageWebhookInput`: Before-stage hooks receive planned changes and stage snapshot
+ * - `DuringStageWebhookInput`: During-stage hooks receive protocol messages and execution context
+ * - `PostStageWebhookInput`: After-stage hooks receive stage results and settlement proofs
+ *
+ * **Metrics Collection:**
+ * All webhook executions record telemetry including latency, retry attempts, and
+ * optional adapter-specific metrics. This data flows into the gateway's monitoring
+ * subsystem for observability and SLA tracking.
+ *
+ * @example
+ * Adapter webhook response indicating successful compliance check:
+ * ```typescript
+ * const output: AdapterWebhookOutputBase = {
+ *   disposition: "CONTINUE",
+ *   message: "AML check passed for session abc-123",
+ *   telemetry: {
+ *     checkDurationMs: 450,
+ *     riskScore: 0.12,
+ *     rulesEvaluated: 15
+ *   }
+ * };
+ * ```
+ *
+ * @example
+ * Adapter requesting manual approval (pause):
+ * ```typescript
+ * const output: AdapterWebhookOutputBase = {
+ *   disposition: "PAUSE",
+ *   message: "High-value transfer requires manager approval",
+ *   telemetry: {
+ *     transferAmountUsd: 250000,
+ *     approverNotified: true
+ *   }
+ * };
+ * ```
+ *
+ * @see {@link AdapterHookService} for webhook invocation orchestration
+ * @see {@link AdapterHookResult} for aggregated multi-adapter execution results
+ * @see {@link OutboundWebhookPayload} for outbound event payload schema
+ *
+ * @module adapter-webhook-contracts
+ * @since 0.0.3-beta
+ */
+
 import type { Stage } from "../types/satp-protocol";
 import type {
   AdapterDefinition,
@@ -7,6 +76,19 @@ import type {
 
 /**
  * Enumerates the possible outcomes returned by an adapter webhook execution.
+ *
+ * @description
+ * Defines the control flow directives that adapters can return to influence
+ * SATP protocol execution. The gateway interprets these dispositions and
+ * adjusts transfer state accordingly.
+ *
+ * **Disposition Behavior:**
+ * - `CONTINUE`: Normal success path; SATP proceeds to next adapter or stage
+ * - `PAUSE`: Request execution halt (inbound only); gateway awaits external decision
+ * - `SKIP`: Adapter chose not to execute; not an error, just informational
+ * - `FAIL`: Critical error; gateway should abort or rollback the transfer
+ *
+ * @since 0.0.3-beta
  */
 export type AdapterWebhookDisposition = "CONTINUE" | "PAUSE" | "SKIP" | "FAIL";
 
@@ -150,7 +232,7 @@ export abstract class AdapterWebhook<
 export abstract class PreStageWebhook extends AdapterWebhook<
   PreStageWebhookInput,
   PreStageWebhookOutput
-> {}
+> { }
 
 /**
  * Abstract hook executed while a SATP stage handler processes its core logic.
@@ -158,7 +240,7 @@ export abstract class PreStageWebhook extends AdapterWebhook<
 export abstract class DuringStageWebhook extends AdapterWebhook<
   DuringStageWebhookInput,
   DuringStageWebhookOutput
-> {}
+> { }
 
 /**
  * Abstract hook executed after a SATP stage handler completes and emits results.
@@ -166,4 +248,4 @@ export abstract class DuringStageWebhook extends AdapterWebhook<
 export abstract class PostStageWebhook extends AdapterWebhook<
   PostStageWebhookInput,
   PostStageWebhookOutput
-> {}
+> { }

@@ -1,11 +1,119 @@
 /**
- * API3 Adapter Type Definitions
+ * API3 Adapter Type Definitions - External integration contracts for SATP gateway webhooks
  *
- * Simple configuration contract aligned with `adapters/example.yml`. Each SATP
- * stage declares a list of adapter definitions (containing outbound/inbound
- * webhook settings). Stages may optionally describe execution *steps* that
- * reference adapters by identifier so that a single adapter can be reused across
- * multiple stage checkpoints (e.g., before & after Stage 0).
+ * @fileoverview
+ * Comprehensive type system for the API3 adapter framework enabling external systems
+ * to integrate with SATP protocol execution through webhook-based event subscriptions
+ * and approval workflows. This module defines the complete configuration contract
+ * that operators use to declare adapter behavior per SATP stage.
+ *
+ * @description
+ * The API3 adapter system allows external controllers, monitoring platforms, and
+ * compliance systems to participate in SATP cross-chain transfers through two
+ * primary mechanisms:
+ *
+ * **Outbound Webhooks (Fire-and-Forget):**
+ * - Gateway notifies external systems when SATP lifecycle events occur
+ * - Used for monitoring, logging, metrics collection, and audit trails
+ * - Non-blocking: SATP execution continues regardless of webhook response
+ * - Supports retry logic with exponential backoff for reliability
+ *
+ * **Inbound Webhooks (Blocking Approval):**
+ * - Gateway pauses SATP execution until external system posts a decision
+ * - Used for manual approvals, compliance checks, and business rule validation
+ * - Blocking: SATP transfer waits for external controller response or timeout
+ * - Enables human-in-the-loop workflows and policy enforcement
+ *
+ * **Configuration Architecture:**
+ * Adapters are organized hierarchically by SATP stage (stage0-stage3, crash) and
+ * optionally by execution step (before/during/after/rollback). Each adapter declares:
+ * - Unique identifier and human-readable metadata
+ * - Webhook endpoints (outbound URLs or inbound path suffixes)
+ * - HTTP settings (method, headers, timeout, retry policy)
+ * - Active/inactive flag for runtime toggling without config removal
+ * - Priority ordering for deterministic multi-adapter execution
+ *
+ * **Execution Model:**
+ * When a SATP stage reaches a configured step, the {@link AdapterManager} resolves
+ * the applicable adapters and the {@link AdapterHookService} invokes them in
+ * priority order. Outbound webhooks run concurrently while inbound webhooks
+ * serialize to maintain clear approval semantics.
+ *
+ * @example
+ * Minimal adapter configuration for stage 1 monitoring:
+ * ```typescript
+ * const config: AdapterLayerConfiguration = {
+ *   satpStages: {
+ *     stage1: {
+ *       adapters: [
+ *         {
+ *           id: "lock-monitor",
+ *           name: "Asset Lock Notification",
+ *           active: true,
+ *           outboundWebhook: {
+ *             url: "https://monitor.example.com/satp/lock-detected",
+ *             method: "POST",
+ *             timeoutMs: 5000
+ *           }
+ *         }
+ *       ]
+ *     }
+ *   }
+ * };
+ * ```
+ *
+ * @example
+ * Advanced configuration with step mapping and inbound approval:
+ * ```typescript
+ * const config: AdapterLayerConfiguration = {
+ *   satpStages: {
+ *     stage2: {
+ *       adapters: [
+ *         {
+ *           id: "compliance-check",
+ *           name: "AML/KYC Compliance Verification",
+ *           active: true,
+ *           priority: 100,
+ *           inboundWebhook: {
+ *             urlSuffix: "/adapters/compliance-decision",
+ *             inboundDeadlineMs: 300000, // 5 min timeout
+ *             method: "POST"
+ *           }
+ *         },
+ *         {
+ *           id: "audit-log",
+ *           name: "Commitment Audit Logger",
+ *           active: true,
+ *           priority: 200,
+ *           outboundWebhook: {
+ *             url: "https://audit.example.com/satp/commitments",
+ *             retryAttempts: 5,
+ *             retryDelayMs: 2000
+ *           }
+ *         }
+ *       ],
+ *       steps: {
+ *         before: ["compliance-check"],
+ *         after: ["audit-log"]
+ *       }
+ *     }
+ *   },
+ *   global: {
+ *     timeoutMs: 30000,
+ *     retryAttempts: 3,
+ *     logLevel: "info"
+ *   }
+ * };
+ * ```
+ *
+ * @see {@link AdapterManager} for configuration indexing and lookup
+ * @see {@link AdapterHookService} for webhook execution orchestration
+ * @see {@link OutboundWebhookPayload} for outbound event schema
+ * @see {@link InboundWebhookDecisionPayload} for inbound decision schema
+ * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-02.txt} IETF SATP Specification
+ *
+ * @module api3-adapter-types
+ * @since 0.0.3-beta
  */
 
 /** Supported HTTP methods for adapter webhooks. */
@@ -105,7 +213,7 @@ export type StageExecutionStep = "before" | "during" | "after" | "rollback";
 /**
  * Root configuration structure loaded from adapters/example.yml (or similar files).
  */
-export interface Api3AdapterConfiguration {
+export interface AdapterLayerConfiguration {
   /**
    * Stage-specific adapter collections. Missing stages simply do not trigger
    * adapter hooks.
@@ -129,17 +237,22 @@ export interface GlobalAdapterDefaults extends RetryPolicy {
 }
 
 /**
- * Flattened mapping between an adapter identifier and its stage hook location.
+ * Flattened mapping between an adapter identifier and its execution location (stage - step - order).
  */
 export interface AdapterExecutionBinding {
   adapterId: string;
+  executionPoints: AdapterExecutionPoint[];
+}
+
+// where exactly is an adapter executed
+export interface AdapterExecutionPoint {
   stage: SatpStageKey;
-  step: StageExecutionStep;
-  order: number;
+  step: number;
+  stepOrder: StageExecutionStep;
 }
 
 /**
- * Full execution plan derived from {@link Api3AdapterConfiguration} and used by the AdapterHookService.
+ * Full execution plan derived from {@link AdapterLayerConfiguration} and used by the AdapterHookService.
  */
 export interface AdapterExecutionPlan {
   bindings: AdapterExecutionBinding[];
