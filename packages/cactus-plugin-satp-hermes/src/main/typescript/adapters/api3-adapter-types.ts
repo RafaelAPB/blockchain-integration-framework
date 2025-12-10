@@ -238,8 +238,6 @@ export interface AdapterLayerConfiguration {
    * Global defaults applied to every adapter unless overridden at adapter level.
    */
   global?: GlobalAdapterDefaults;
-  /** Optional precomputed execution bindings consumed by the adapter hook service. */
-  executionPlan?: AdapterExecutionPlan;
 }
 
 /**
