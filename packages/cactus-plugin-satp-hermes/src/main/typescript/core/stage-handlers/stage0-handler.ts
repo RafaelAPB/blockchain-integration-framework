@@ -383,7 +383,7 @@ export class Stage0SATPHandler implements SATPHandler {
     this.logger.trace(`Initialized ${Stage0SATPHandler.CLASS_NAME}`);
     this.pubKeys = ops.pubkeys;
     this.gatewayId = ops.gatewayId;
-    this.adapterHooks = this.adapterManager?.getAdapterHookService() ?? new AdapterHookService({
+    this.adapterHooks = new AdapterHookService({
       adapterManager: this.adapterManager,
       logger: this.logger,
       monitorService: this.monitorService,
@@ -544,13 +544,6 @@ export class Stage0SATPHandler implements SATPHandler {
         if (!this.pubKeys.has(req.gatewayId)) {
           throw new PubKeyError(fnTag);
         }
-
-        session = await this.serverService.checkNewSessionRequest(
-          req,
-          session,
-          this.pubKeys.get(req.gatewayId)!,
-        );
-
         await this.adapterHookRunner.executeBefore(
           { stage: 0, stepTag: "checkNewSessionRequest" },
           session,
@@ -559,6 +552,13 @@ export class Stage0SATPHandler implements SATPHandler {
             role: "server",
           },
         );
+        session = await this.serverService.checkNewSessionRequest(
+          req,
+          session,
+          this.pubKeys.get(req.gatewayId)!,
+        );
+
+
 
         this.sessions.set(session.getSessionId(), session);
 

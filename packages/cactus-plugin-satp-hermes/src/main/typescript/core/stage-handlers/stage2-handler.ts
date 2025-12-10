@@ -373,7 +373,7 @@ export class Stage2SATPHandler implements SATPHandler {
       this.monitorService,
     );
     this.logger.trace(`Initialized ${Stage2SATPHandler.CLASS_NAME}`);
-    this.adapterHooks = this.adapterManager?.getAdapterHookService() ?? new AdapterHookService({
+    this.adapterHooks = new AdapterHookService({
       adapterManager: this.adapterManager,
       logger: this.logger,
       monitorService: this.monitorService,

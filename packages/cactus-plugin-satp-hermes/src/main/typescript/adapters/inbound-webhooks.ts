@@ -89,7 +89,7 @@
  */
 
 import { Stage } from "../types/satp-protocol";
-import { AdapterExecutionPoint } from "./api3-adapter-types";
+import { AdapterExecutionPointDefinition } from "./api3-adapter-types";
 
 /**
  * Payload schema that external controllers must POST to the gateway's inbound
@@ -116,7 +116,7 @@ export interface InboundWebhookDecisionPayload {
   /** Adapter identifier that originally paused the SATP stage. */
   adapterId: string;
   /** SATP stage awaiting approval. */
-  executionPoints: AdapterExecutionPoint;
+  executionPoints: AdapterExecutionPointDefinition;
   /** Unique SATP session identifier. */
   sessionId: string;
   /** Business context identifier propagated across stages. */

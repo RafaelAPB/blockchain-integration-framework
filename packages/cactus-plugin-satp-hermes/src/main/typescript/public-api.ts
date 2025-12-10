@@ -219,7 +219,11 @@ export {
   getStepByTag,
   stageEnumToNumber,
   stageNumberToEnum,
+  isValidStage,
   isValidStepForStage,
+  assertValidStepForStage,
+  validateStepTagForStage,
+  type StepTagValidationResult,
 } from "./core/satp-protocol-map";
 
 /**

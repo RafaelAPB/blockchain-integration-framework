@@ -8,18 +8,21 @@
  *
  * The SATP protocol follows a strict order:
  * - Stage 0: Transfer initiation and session negotiation
+ * 	Note that stage 0 does not follow the core draft version 2. As this stage is not standardized yet,
+ * consider the implementation for stage 0 experimental and subject to change.
  * - Stage 1: Asset proposal and transfer commencement
  * - Stage 2: Asset locking and escrow
  * - Stage 3: Commitment, finalization, and completion
  *
  * Each stage contains multiple steps executed by both client and server gateways.
  * Step tags identify specific protocol messages and operations.
- *
+ * @url https://www.ietf.org/archive/id/draft-ietf-satp-core-12.txt
  * @module satp-protocol-map
  * @since 0.0.3-beta
  */
 
 import { Stage } from "../types/satp-protocol";
+import { MessageType } from "../generated/proto/cacti/satp/v02/common/message_pb";
 
 /**
  * SATP stage type - numeric representation (0-3)
@@ -28,67 +31,88 @@ export type SatpStage = 0 | 1 | 2 | 3;
 
 /**
  * Step tags for Stage 0 - Transfer Initiation
+ * Ordered according to protocol flow:
+ * 1. Client sends newSessionRequest
+ * 2. Server validates (checkNewSessionRequest) and sends newSessionResponse
+ * 3. Client validates (checkNewSessionResponse)
+ * 4. Client sends preSATPTransferRequest
+ * 5. Server validates (checkPreSATPTransferRequest) and sends preSATPTransferResponse
+ * 6. Client validates (checkPreSATPTransferResponse)
  */
 export type Stage0StepTag =
-	| "checkNewSessionRequest"
-	| "newSessionResponse"
-	| "newSessionRequest"
-	| "checkNewSessionResponse"
-	| "checkPreSATPTransferRequest"
-	| "preSATPTransferResponse"
-	| "preSATPTransferRequest"
-	| "checkPreSATPTransferResponse";
+	| "newSessionRequest" // Client
+	| "checkNewSessionRequest" // Server
+	| "newSessionResponse" // Server
+	| "checkNewSessionResponse" // Client
+	| "preSATPTransferRequest" // Client
+	| "checkPreSATPTransferRequest" // Server
+	| "preSATPTransferResponse" // Server
+	| "checkPreSATPTransferResponse"; // Client
 
 /**
- * Step tags for Stage 1 - Transfer Proposal and Commencement
- * 
- * Per IETF SATP Core spec section 7, Stage 1 includes:
- * - 7.3-7.5: Transfer Proposal (Request/Receipt/Reject)
- * - 7.6-7.7: Transfer Commence and ACK-Commence Response
+ * Step tags for Stage 1 - Transfer Initiation and Commencement Flows
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-satp-core-02#section-7
+ *
+ * Ordered according to protocol flow per IETF SATP Core spec section 7:
+ *
+ * 1. Transfer Proposal (sections 7.3-7.5):
+ *    - Note: steps 7.1 and 7.2 are encompassed on stage 0
+ *    - 7.3: Transfer Proposal Request (INIT_PROPOSAL)
+ *    - 7.4: Transfer Proposal Receipt Message
+ *    - 7.5: Transfer Proposal Reject and Conditional Reject Message
+ *
+ * 2. Transfer Commence (sections 7.6-7.7):
+ *    - 7.6: Transfer Commence Message
+ *    - 7.7: Commence Response Message (ACK-Commence)
+ *
+ * Note: checkTransferCommenceResponse is implemented in Stage2ClientService
+ * as it bridges Stage 1 completion to Stage 2 initiation.
  */
 export type Stage1StepTag =
-	| "transferProposalRequest"
-	| "checkTransferProposalRequestMessage"
-	| "transferProposalResponse"
-	| "checkTransferProposalResponse"
-	| "transferCommenceRequest"
-	| "checkTransferCommenceRequestMessage"
-	| "transferCommenceResponse"
-	| "checkTransferCommenceResponse";
+	// === Transfer Proposal Flow (sections 7.3-7.5) ===
+	| "transferProposalRequest" // Client: sends INIT_PROPOSAL (7.3)
+	| "checkTransferProposalRequestMessage" // Server: validates proposal request
+	| "transferProposalResponse" // Server: sends INIT_RECEIPT or INIT_REJECT (7.4/7.5)
+	| "checkTransferProposalResponse" // Client: validates proposal response
+	// === Transfer Commence Flow (sections 7.6-7.7) ===
+	| "transferCommenceRequest" // Client: sends TRANSFER_COMMENCE_REQUEST (7.6)
+	| "checkTransferCommenceRequestMessage" // Server: validates commence request
+	| "transferCommenceResponse" // Server: sends ACK-Commence response (7.7)
+	| "checkTransferCommenceResponse"; // Client: validates ACK-Commence response
 
 /**
  * Step tags for Stage 2 - Asset Locking
- * 
+ *
  * Per IETF SATP Core spec section 8, Stage 2 includes:
  * - 8.1: Lock Assertion Message
  * - 8.2: Lock Assertion Receipt Message
  */
 export type Stage2StepTag =
-	| "lockAsset"
-	| "lockAssertionRequest"
-	| "checkLockAssertionRequest"
-	| "lockAssertionResponse"
-	| "checkLockAssertionResponse";
+	| "lockAsset" // Client
+	| "lockAssertionRequest" // Client
+	| "checkLockAssertionRequest" // Server
+	| "lockAssertionResponse" // Server
+	| "checkLockAssertionResponse"; // Client
 
 /**
  * Step tags for Stage 3 - Commitment and Finalization
  */
 export type Stage3StepTag =
-	| "checkCommitPreparationRequest"
-	| "commitReadyResponse"
-	| "commitPreparation"
-	| "checkCommitReadyResponse"
-	| "checkCommitFinalAssertionRequest"
-	| "commitFinalAcknowledgementReceiptResponse"
-	| "commitFinalAssertion"
-	| "checkCommitFinalAssertionResponse"
-	| "checkTransferCompleteRequest"
-	| "transferCompleteResponse"
-	| "transferComplete"
-	| "checkTransferCompleteResponse"
-	| "mintAsset"
-	| "assignAsset"
-	| "burnAsset";
+	| "commitPreparation" // Client
+	| "checkCommitPreparationRequest" // Server
+	| "mintAsset" // Server
+	| "commitReadyResponse" // Server
+	| "checkCommitReadyResponse" // Client
+	| "burnAsset" // Client
+	| "commitFinalAssertion" // Client
+	| "checkCommitFinalAssertionRequest" // Server
+	| "assignAsset" // Server
+	| "commitFinalAcknowledgementReceiptResponse" // Server
+	| "checkCommitFinalAssertionResponse" // Client
+	| "transferComplete" // Client
+	| "checkTransferCompleteRequest" // Server
+	| "transferCompleteResponse" // Server
+	| "checkTransferCompleteResponse"; // Client
 
 /**
  * Union type of all SATP step tags across all stages
@@ -116,6 +140,12 @@ export interface SatpProtocolStep {
 	role: "client" | "server" | "both";
 	/** Sequence number within the stage */
 	sequence: number;
+	/**
+	 * Protocol message type from MessageType enum.
+	 * Maps to MessageType values in message_pb.ts.
+	 * Undefined for internal operations (validation, asset operations).
+	 */
+	messageType?: MessageType;
 }
 
 /**
@@ -128,6 +158,22 @@ export interface SatpStageDefinition {
 	name: string;
 	/** Ordered list of protocol steps */
 	steps: SatpProtocolStep[];
+}
+
+/**
+ * Result type for step tag validation with detailed information
+ */
+export interface StepTagValidationResult {
+	/** Whether the step tag is valid for the stage */
+	valid: boolean;
+	/** The stage number that was checked */
+	stage: number;
+	/** The step tag that was validated */
+	stepTag: string;
+	/** Error message if validation failed, undefined if valid */
+	errorMessage?: string;
+	/** List of valid step tags for the stage (included on failure) */
+	validStepTags?: SatpStepTag[];
 }
 
 /**
@@ -147,102 +193,120 @@ export const SATP_PROTOCOL_MAP: Record<SatpStage, SatpStageDefinition> = {
 				description: "Client initiates new session request",
 				role: "client",
 				sequence: 1,
+				messageType: MessageType.NEW_SESSION_REQUEST, // 18
 			},
 			{
 				tag: "checkNewSessionRequest",
 				description: "Server validates new session request from client",
 				role: "server",
 				sequence: 2,
+				messageType: MessageType.NEW_SESSION_REQUEST, // 18 (validation of)
 			},
 			{
 				tag: "newSessionResponse",
 				description: "Server sends new session response",
 				role: "server",
 				sequence: 3,
+				messageType: MessageType.NEW_SESSION_RESPONSE, // 19
 			},
 			{
 				tag: "checkNewSessionResponse",
 				description: "Client validates new session response from server",
 				role: "client",
 				sequence: 4,
+				messageType: MessageType.NEW_SESSION_RESPONSE, // 19 (validation of)
 			},
 			{
 				tag: "preSATPTransferRequest",
 				description: "Client sends pre-SATP transfer request",
 				role: "client",
 				sequence: 5,
+				messageType: MessageType.PRE_SATP_TRANSFER_REQUEST, // 20
 			},
 			{
 				tag: "checkPreSATPTransferRequest",
 				description: "Server validates pre-SATP transfer request",
 				role: "server",
 				sequence: 6,
+				messageType: MessageType.PRE_SATP_TRANSFER_REQUEST, // 20 (validation of)
 			},
 			{
 				tag: "preSATPTransferResponse",
 				description: "Server sends pre-SATP transfer response",
 				role: "server",
 				sequence: 7,
+				messageType: MessageType.PRE_SATP_TRANSFER_RESPONSE, // 21
 			},
 			{
 				tag: "checkPreSATPTransferResponse",
 				description: "Client validates pre-SATP transfer response",
 				role: "client",
 				sequence: 8,
+				messageType: MessageType.PRE_SATP_TRANSFER_RESPONSE, // 21 (validation of)
 			},
 		],
 	},
 	1: {
 		stage: 1,
-		name: "Transfer Proposal and Commencement",
+		name: "Transfer Initiation and Commencement Flows",
 		steps: [
+			// Transfer Proposal Flow (sections 7.3-7.5)
 			{
 				tag: "transferProposalRequest",
-				description: "Client sends transfer proposal request",
+				description: "Client sends transfer proposal request (INIT_PROPOSAL) [7.3]",
 				role: "client",
 				sequence: 1,
+				messageType: MessageType.INIT_PROPOSAL, // 6
 			},
 			{
 				tag: "checkTransferProposalRequestMessage",
 				description: "Server validates transfer proposal from client",
 				role: "server",
 				sequence: 2,
+				messageType: MessageType.INIT_PROPOSAL, // 6 (validation of)
 			},
 			{
 				tag: "transferProposalResponse",
-				description: "Server sends transfer proposal response",
+				description: "Server sends transfer proposal response (INIT_RECEIPT/INIT_REJECT) [7.4/7.5]",
 				role: "server",
 				sequence: 3,
+				messageType: MessageType.INIT_RECEIPT, // 7 (or INIT_REJECT=8)
 			},
 			{
 				tag: "checkTransferProposalResponse",
 				description: "Client validates transfer proposal response",
 				role: "client",
 				sequence: 4,
+				messageType: MessageType.INIT_RECEIPT, // 7 (validation of)
 			},
+			// Transfer Commence Flow (sections 7.6-7.7)
 			{
 				tag: "transferCommenceRequest",
-				description: "Client sends transfer commence request",
+				description: "Client sends transfer commence request [7.6]",
 				role: "client",
 				sequence: 5,
+				messageType: MessageType.TRANSFER_COMMENCE_REQUEST, // 9
 			},
 			{
 				tag: "checkTransferCommenceRequestMessage",
 				description: "Server validates transfer commence request",
 				role: "server",
 				sequence: 6,
+				messageType: MessageType.TRANSFER_COMMENCE_REQUEST, // 9 (validation of)
 			},
 			{
 				tag: "transferCommenceResponse",
-				description: "Server sends transfer commence response (ACK-Commence)",
+				description: "Server sends ACK-Commence response [7.7]",
 				role: "server",
 				sequence: 7,
+				messageType: MessageType.TRANSFER_COMMENCE_RESPONSE, // 10
 			},
 			{
 				tag: "checkTransferCommenceResponse",
-				description: "Client validates transfer commence response",
+				description: "Client validates ACK-Commence response",
 				role: "client",
 				sequence: 8,
+				messageType: MessageType.TRANSFER_COMMENCE_RESPONSE, // 10 (validation of)
 			},
 		],
 	},
@@ -255,30 +319,35 @@ export const SATP_PROTOCOL_MAP: Record<SatpStage, SatpStageDefinition> = {
 				description: "Client locks asset in source network",
 				role: "client",
 				sequence: 1,
+				// No messageType - internal blockchain operation
 			},
 			{
 				tag: "lockAssertionRequest",
 				description: "Client sends lock assertion request",
 				role: "client",
 				sequence: 2,
+				messageType: MessageType.LOCK_ASSERT, // 11
 			},
 			{
 				tag: "checkLockAssertionRequest",
 				description: "Server validates lock assertion from client",
 				role: "server",
 				sequence: 3,
+				messageType: MessageType.LOCK_ASSERT, // 11 (validation of)
 			},
 			{
 				tag: "lockAssertionResponse",
 				description: "Server sends lock assertion response (receipt)",
 				role: "server",
 				sequence: 4,
+				messageType: MessageType.ASSERTION_RECEIPT, // 12
 			},
 			{
 				tag: "checkLockAssertionResponse",
 				description: "Client validates lock assertion response",
 				role: "client",
 				sequence: 5,
+				messageType: MessageType.ASSERTION_RECEIPT, // 12 (validation of)
 			},
 		],
 	},
@@ -291,90 +360,105 @@ export const SATP_PROTOCOL_MAP: Record<SatpStage, SatpStageDefinition> = {
 				description: "Client prepares for commitment phase",
 				role: "client",
 				sequence: 1,
+				messageType: MessageType.COMMIT_PREPARE, // 13
 			},
 			{
 				tag: "checkCommitPreparationRequest",
 				description: "Server validates commit preparation from client",
 				role: "server",
 				sequence: 2,
+				messageType: MessageType.COMMIT_PREPARE, // 13 (validation of)
 			},
 			{
 				tag: "mintAsset",
 				description: "Server mints asset in destination network",
 				role: "server",
 				sequence: 3,
+				// No messageType - internal blockchain operation
 			},
 			{
 				tag: "commitReadyResponse",
 				description: "Server sends commit ready response",
 				role: "server",
 				sequence: 4,
+				messageType: MessageType.COMMIT_READY, // 14
 			},
 			{
 				tag: "checkCommitReadyResponse",
 				description: "Client validates commit ready response",
 				role: "client",
 				sequence: 5,
+				messageType: MessageType.COMMIT_READY, // 14 (validation of)
 			},
 			{
 				tag: "burnAsset",
 				description: "Client burns locked asset in source network",
 				role: "client",
 				sequence: 6,
+				// No messageType - internal blockchain operation
 			},
 			{
 				tag: "commitFinalAssertion",
 				description: "Client sends commit final assertion",
 				role: "client",
 				sequence: 7,
+				messageType: MessageType.COMMIT_FINAL, // 15
 			},
 			{
 				tag: "checkCommitFinalAssertionRequest",
 				description: "Server validates commit final assertion",
 				role: "server",
 				sequence: 8,
+				messageType: MessageType.COMMIT_FINAL, // 15 (validation of)
 			},
 			{
 				tag: "assignAsset",
 				description: "Server assigns asset to recipient",
 				role: "server",
 				sequence: 9,
+				// No messageType - internal blockchain operation
 			},
 			{
 				tag: "commitFinalAcknowledgementReceiptResponse",
 				description: "Server sends commit final acknowledgement",
 				role: "server",
 				sequence: 10,
+				messageType: MessageType.ACK_COMMIT_FINAL, // 16
 			},
 			{
 				tag: "checkCommitFinalAssertionResponse",
 				description: "Client validates commit final assertion response",
 				role: "client",
 				sequence: 11,
+				messageType: MessageType.ACK_COMMIT_FINAL, // 16 (validation of)
 			},
 			{
 				tag: "transferComplete",
 				description: "Client sends transfer complete request",
 				role: "client",
 				sequence: 12,
+				messageType: MessageType.COMMIT_TRANSFER_COMPLETE, // 17
 			},
 			{
 				tag: "checkTransferCompleteRequest",
 				description: "Server validates transfer complete request",
 				role: "server",
 				sequence: 13,
+				messageType: MessageType.COMMIT_TRANSFER_COMPLETE, // 17 (validation of)
 			},
 			{
 				tag: "transferCompleteResponse",
 				description: "Server sends transfer complete response",
 				role: "server",
 				sequence: 14,
+				messageType: MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE, // 22
 			},
 			{
 				tag: "checkTransferCompleteResponse",
 				description: "Client validates transfer complete response",
 				role: "client",
 				sequence: 15,
+				messageType: MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE, // 22 (validation of)
 			},
 		],
 	},
@@ -432,11 +516,129 @@ export function stageNumberToEnum(stage: SatpStage): Stage {
 }
 
 /**
- * Validates if a step tag belongs to a specific stage
+ * Valid SATP stage numbers
+ */
+const VALID_STAGES: readonly SatpStage[] = [0, 1, 2, 3] as const;
+
+/**
+ * Checks if a number is a valid SATP stage (0-3).
+ *
+ * @param stage - The stage number to validate
+ * @returns `true` if stage is 0, 1, 2, or 3
+ */
+export function isValidStage(stage: number): stage is SatpStage {
+	return VALID_STAGES.includes(stage as SatpStage);
+}
+
+/**
+ * Validates if a step tag belongs to a specific stage.
+ * This function serves as a type guard, narrowing the stepTag type to SatpStepTag
+ * when validation succeeds.
+ *
+ * @param stage - The SATP stage number (0-3)
+ * @param stepTag - The step tag string to validate
+ * @returns `true` if the stepTag is valid for the given stage, `false` otherwise
+ * @throws Error if stage is not a valid SATP stage (0-3)
+ *
+ * @example
+ * ```typescript
+ * if (isValidStepForStage(1, "transferProposalRequest")) {
+ *   // stepTag is now typed as SatpStepTag
+ * }
+ * ```
  */
 export function isValidStepForStage(
-	stage: SatpStage,
+	stage: number,
 	stepTag: string,
 ): stepTag is SatpStepTag {
+	if (!isValidStage(stage)) {
+		throw new Error(
+			`Invalid SATP stage: ${stage}. Valid stages are: ${VALID_STAGES.join(", ")}`,
+		);
+	}
 	return SATP_PROTOCOL_MAP[stage].steps.some((step) => step.tag === stepTag);
+}
+
+/**
+ * Validates a step tag for a given stage and throws a descriptive error if invalid.
+ * Use this function when you need to enforce validation with detailed error messages.
+ *
+ * @param stage - The SATP stage number (0-3)
+ * @param stepTag - The step tag string to validate
+ * @throws Error if stage is invalid or stepTag is not valid for the stage
+ *
+ * @example
+ * ```typescript
+ * // Will throw if stepTag is not valid for stage 1
+ * assertValidStepForStage(1, stepTag);
+ * // After this point, stepTag is guaranteed to be valid
+ * ```
+ */
+export function assertValidStepForStage(
+	stage: number,
+	stepTag: string,
+): asserts stepTag is SatpStepTag {
+	if (!isValidStage(stage)) {
+		throw new Error(
+			`Invalid SATP stage: ${stage}. Valid stages are: ${VALID_STAGES.join(", ")}`,
+		);
+	}
+	if (!isValidStepForStage(stage, stepTag)) {
+		const validTags = getStepTagsForStage(stage);
+		throw new Error(
+			`Step "${stepTag}" is not a valid SATP protocol step for stage ${stage}. ` +
+			`Valid steps for stage ${stage} (${SATP_PROTOCOL_MAP[stage].name}): ${validTags.join(", ")}`,
+		);
+	}
+}
+
+/**
+ * Validates a step tag for a given stage and returns detailed validation result.
+ * Use this function when you need validation information without throwing errors.
+ *
+ * @param stage - The SATP stage number (0-3)
+ * @param stepTag - The step tag string to validate
+ * @returns A {@link StepTagValidationResult} with validation details
+ *
+ * @example
+ * ```typescript
+ * const result = validateStepTagForStage(1, "invalidStep");
+ * if (!result.valid) {
+ *   console.log(result.errorMessage);
+ *   console.log("Valid options:", result.validStepTags);
+ * }
+ * ```
+ */
+export function validateStepTagForStage(
+	stage: number,
+	stepTag: string,
+): StepTagValidationResult {
+	// Validate stage first
+	if (!isValidStage(stage)) {
+		return {
+			valid: false,
+			stage,
+			stepTag,
+			errorMessage: `Invalid SATP stage: ${stage}. Valid stages are: ${VALID_STAGES.join(", ")}`,
+		};
+	}
+
+	if (isValidStepForStage(stage, stepTag)) {
+		return {
+			valid: true,
+			stage,
+			stepTag,
+		};
+	}
+
+	const validTags = getStepTagsForStage(stage);
+	return {
+		valid: false,
+		stage,
+		stepTag,
+		errorMessage:
+			`Step "${stepTag}" is not a valid SATP protocol step for stage ${stage}. ` +
+			`Valid steps for stage ${stage} (${SATP_PROTOCOL_MAP[stage].name}): ${validTags.join(", ")}`,
+		validStepTags: validTags,
+	};
 }

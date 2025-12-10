@@ -444,7 +444,7 @@ export class Stage3SATPHandler implements SATPHandler {
       monitorService: this.monitorService,
     };
     this.priceManager = new PriceManager(priceManagerOptions);
-    this.adapterHooks = this.adapterManager?.getAdapterHookService() ?? new AdapterHookService({
+    this.adapterHooks = new AdapterHookService({
       adapterManager: this.adapterManager,
       logger: this.logger,
       monitorService: this.monitorService,

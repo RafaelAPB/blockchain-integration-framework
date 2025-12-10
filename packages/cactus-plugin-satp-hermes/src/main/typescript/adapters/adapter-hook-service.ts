@@ -188,9 +188,8 @@ export class AdapterHookService {
       return undefined;
     }
 
-    // Validate execution point against protocol map
-    const satpStage = input.stage as SatpStage;
-    if (!isValidStepForStage(satpStage, input.stepTag)) {
+    // Validate execution point against protocol map (validates both stage and stepTag)
+    if (!isValidStepForStage(input.stage, input.stepTag)) {
       logger.error(
         `AdapterHookService#executeAdapters() Step "${input.stepTag}" is not valid for stage ${input.stage}`,
       );
@@ -200,7 +199,7 @@ export class AdapterHookService {
     }
 
     // Log execution point with protocol metadata for enhanced observability
-    const stepInfo = getStepByTag(satpStage, input.stepTag);
+    const stepInfo = getStepByTag(input.stage as SatpStage, input.stepTag);
     if (stepInfo) {
       logger.debug(
         `AdapterHookService#executeAdapters() Executing adapters for stage ${input.stage}, step "${input.stepTag}" (${stepInfo.description}), order ${input.stepOrder}`,
@@ -379,9 +378,10 @@ export class AdapterHookService {
         context.direction === "outbound" ? "stage.started" : "stage.completed",
       schemaVersion: "v1",
       executionPoints: {
+        name: context.binding.executionPointName ?? `${context.binding.stepTag}-${context.binding.stepOrder}`,
         stage: context.binding.stage,
-        stepTag: context.binding.stepTag,
-        stepOrder: context.binding.stepOrder,
+        step: context.binding.stepTag,
+        point: context.binding.stepOrder,
       },
       adapterId: context.adapter.id,
       sessionId: context.sessionId,
