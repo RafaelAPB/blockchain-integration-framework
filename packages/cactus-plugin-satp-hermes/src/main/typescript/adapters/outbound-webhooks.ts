@@ -80,7 +80,7 @@
  * ```
  *
  * @see {@link AdapterHookService} for outbound webhook invocation
- * @see {@link InboundWebhookDecisionPayload} for inbound webhook schema
+ * @see {@link InboundWebhookDecisionResponse} for inbound webhook schema
  * @see {@link OutboundWebhookConfig} for endpoint configuration
  *
  * @module outbound-webhooks

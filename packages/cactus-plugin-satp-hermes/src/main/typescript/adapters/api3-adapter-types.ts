@@ -109,7 +109,7 @@
  * @see {@link AdapterManager} for configuration indexing and lookup
  * @see {@link AdapterHookService} for webhook execution orchestration
  * @see {@link OutboundWebhookPayload} for outbound event schema
- * @see {@link InboundWebhookDecisionPayload} for inbound decision schema
+ * @see {@link InboundWebhookDecisionResponse} for inbound decision schema
  * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-02.txt} IETF SATP Specification
  *
  * @module api3-adapter-types

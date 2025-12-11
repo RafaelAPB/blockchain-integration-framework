@@ -19,7 +19,6 @@
  * - `continue: true`: Approve transfer continuation; gateway proceeds to next stage
  * - `continue: false`: Reject transfer; gateway aborts and may trigger rollback
  * - `reason`: Human-readable justification stored in audit logs
- * - `metadata`: Opaque context from external system (approval IDs, timestamps, etc.)
  *
  * **Timeout Handling:**
  * Each inbound webhook declares an `inboundDeadlineMs` timeout. If no decision arrives
@@ -29,27 +28,16 @@
  *
  * **Security Considerations:**
  * - Inbound endpoints should use authentication (API keys, mTLS, JWT validation)
- * - Decision payloads must include session/context IDs to prevent replay attacks
- * - Gateway validates that adapter ID and stage match the paused session state
+ * - Decision payloads must include adapter ID to match the paused session state
  * - All decisions are logged with timestamps for non-repudiation
  *
  * @example
- * External controller approving a high-value transfer after manual review:
+ * External controller approving a transfer after manual review:
  * ```typescript
- * const decision: InboundWebhookDecisionPayload = {
+ * const decision: InboundWebhookDecisionResponse = {
  *   adapterId: "manager-approval",
- *   stage: Stage.STAGE2,
- *   sessionId: "sess-abc-123",
- *   contextId: "ctx-transfer-456",
- *   timestamp: new Date().toISOString(),
- *   metadata: {
- *     approverUserId: "manager@example.com",
- *     approvalTicketId: "TICKET-789",
- *     reviewDurationMs: 120000
- *   },
  *   continue: true,
  *   reason: "Transfer approved by operations manager after KYC verification",
- *   schemaVersion: "v1.0.0"
  * };
  *
  * // POST to: https://gateway.example.com/api/v1/adapters/inbound/manager-approval
@@ -63,20 +51,10 @@
  * @example
  * Automated compliance system rejecting a sanctioned transfer:
  * ```typescript
- * const rejection: InboundWebhookDecisionPayload = {
+ * const rejection: InboundWebhookDecisionResponse = {
  *   adapterId: "sanctions-check",
- *   stage: Stage.STAGE1,
- *   sessionId: "sess-xyz-789",
- *   contextId: "ctx-transfer-999",
- *   timestamp: new Date().toISOString(),
- *   metadata: {
- *     sanctionListMatch: "OFAC-SDN",
- *     matchedEntity: "entity-12345",
- *     complianceRuleId: "RULE-AML-001"
- *   },
  *   continue: false,
  *   reason: "Transfer rejected: counterparty matches OFAC sanctions list",
- *   schemaVersion: "v1.0.0"
  * };
  * ```
  *
@@ -88,43 +66,18 @@
  * @since 0.0.3-beta
  */
 
-import { Stage } from "../types/satp-protocol";
-import { AdapterExecutionPointDefinition } from "./api3-adapter-types";
-
 /**
- * Payload schema that external controllers must POST to the gateway's inbound
- * webhook in order to either resume or halt a paused SATP session.
+ * Simplified payload schema for inbound webhook decisions.
  *
- * @description
- * This contract establishes the decision interface between external approval
- * systems and the SATP gateway. All fields are required unless marked optional
- * to ensure auditability and prevent ambiguous approvals.
- *
- * **Required Fields:**
- * - `adapterId`, `stage`, `sessionId`, `contextId`: Must match the paused session
- * - `continue`: Boolean decision (true = approve, false = reject)
- * - `timestamp`: ISO 8601 timestamp when decision was made
- * - `schemaVersion`: Payload version for client compatibility checks
- *
- * **Optional Fields:**
- * - `reason`: Human-readable justification (recommended for audit trails)
- * - `metadata`: Opaque context from external system (approval IDs, user info, etc.)
+ * External controllers POST this payload to approve or reject a paused SATP transfer.
+ * The gateway validates the `adapterId` matches the waiting adapter, then uses
+ * `continue` to determine whether to proceed or abort.
  *
  * @since 0.0.3-beta
  */
-export interface InboundWebhookDecisionPayload {
+export interface InboundWebhookDecisionResponse {
   /** Adapter identifier that originally paused the SATP stage. */
   adapterId: string;
-  /** SATP stage awaiting approval. */
-  executionPoints: AdapterExecutionPointDefinition;
-  /** Unique SATP session identifier. */
-  sessionId: string;
-  /** Business context identifier propagated across stages. */
-  contextId: string;
-  /** ISO 8601 timestamp representing when the decision was produced. */
-  timestamp: string;
-  /** Optional opaque metadata provided by the external system. */
-  metadata?: Record<string, unknown>;
   /**
    * When true the gateway resumes the paused stage; otherwise the transfer is
    * rejected and the provided reason is logged.
@@ -132,18 +85,6 @@ export interface InboundWebhookDecisionPayload {
   continue: boolean;
   /** Human-readable justification for auditing and operator visibility. */
   reason?: string;
-  /** Semantic version of the payload schema (e.g., "v1.0.0"). */
-  schemaVersion: string;
-}
-
-/**
- * Standardized acknowledgement returned to inbound webhook callers.
- */
-export interface InboundWebhookDecisionResponse {
-  /** Indicates whether the decision was accepted for processing. */
-  accepted: boolean;
-  /** Server-side timestamp (ISO 8601) for traceability. */
-  processedAt: string;
-  /** Optional diagnostic message explaining acceptance or rejection. */
-  message?: string;
+  /** Optional data payload from external system. */
+  data?: Record<string, unknown>;
 }

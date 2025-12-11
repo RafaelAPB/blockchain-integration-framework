@@ -1,0 +1,48 @@
+# Adapter configuration for newSessionRequest step in Stage 0
+# This configuration defines:
+# - 1 outbound webhook at "before" point (calls external validation service)
+# - 1 inbound webhook at "after" point (mocked, with 3 second timeout)
+adapters:
+  - id: "newSessionRequest-outbound-validator"
+    name: "New Session Request Validator"
+    description: "Validates new session request before processing"
+    executionPoints:
+      - name: "validate newSessionRequest - before"
+        stage: 0
+        step: newSessionRequest
+        point: "before"
+    outboundWebhook:
+      url: "https://webhook.phase0.omnumi.com/validate"
+      method: "POST"
+      timeoutMs: 5000
+      retryAttempts: 3
+      retryDelayMs: 1000
+      headers:
+        Content-Type: "application/json"
+        X-API-Version: "v1"
+    active: true
+    priority: 1
+
+  - id: "newSessionRequest-inbound-approval"
+    name: "New Session Request Approval"
+    description: "Awaits external approval after session request processing"
+    executionPoints:
+      - name: "await approval newSessionRequest - after"
+        stage: 0
+        step: newSessionRequest
+        point: "after"
+    inboundWebhook:
+      urlSuffix: "/inbound/newSessionRequest-approval"
+      timeoutMs: 3000  # 3 second timeout for inbound webhook
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+    active: true
+    priority: 2
+
+# Global configuration
+global:
+  timeoutMs: 5000
+  retryAttempts: 3
+  retryDelayMs: 500
+  logLevel: "debug"

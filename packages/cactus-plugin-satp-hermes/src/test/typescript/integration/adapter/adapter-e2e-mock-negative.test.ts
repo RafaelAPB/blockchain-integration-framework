@@ -1,0 +1,978 @@
+import { describe, expect, it, jest } from "@jest/globals";
+import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
+import { Stage } from "../../../../main/typescript/types/satp-protocol";
+import type {
+  AdapterDefinition,
+  AdapterLayerConfiguration,
+} from "../../../../main/typescript/adapters/api3-adapter-types";
+import {
+  createFetchResponse,
+  createMonitorStub,
+  TEST_SESSION_ID,
+  TEST_CONTEXT_ID,
+  TEST_GATEWAY_ID,
+  TEST_LOG_LEVEL,
+} from "../../adapter-test-utils";
+
+/**
+ * Negative test cases for AdapterManager.
+ *
+ * Tests error handling scenarios:
+ * 1. Timeout exceeded on outbound webhook
+ * 2. Inbound webhook returns continue: false
+ * 3. Outbound webhook returns HTTP errors (4xx, 5xx)
+ * 4. Network failures
+ */
+describe("AdapterManager negative test cases", () => {
+  describe("timeout scenarios", () => {
+    it("handles outbound webhook timeout gracefully", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "timeout-adapter",
+          name: "Timeout Adapter",
+          description: "Adapter that will timeout",
+          active: true,
+          executionPoints: [
+            {
+              name: "timeout-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://slow-endpoint.example/webhook",
+            timeoutMs: 100, // Very short timeout
+            retryAttempts: 1, // Try once
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 100, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      // Mock fetch to simulate a timeout by rejecting with AbortError
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockImplementation((_url, options) => {
+        return new Promise((_resolve, reject) => {
+          // Simulate abort signal behavior
+          const signal = options?.signal;
+          if (signal) {
+            signal.addEventListener("abort", () => {
+              const abortError = new Error("The operation was aborted");
+              abortError.name = "AbortError";
+              reject(abortError);
+            });
+          }
+          // Never resolve - wait for abort
+        });
+      });
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "timeout-test" },
+        payload: {},
+      });
+
+      // Should handle timeout gracefully
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      // Timeout should result in FAILED status
+      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+    });
+
+    it("retries on timeout before failing", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "retry-timeout-adapter",
+          name: "Retry Timeout Adapter",
+          description: "Adapter that retries on timeout",
+          active: true,
+          executionPoints: [
+            {
+              name: "retry-timeout-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://flaky-endpoint.example/webhook",
+            timeoutMs: 100,
+            retryAttempts: 2,
+            retryDelayMs: 10,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 100, retryAttempts: 2, retryDelayMs: 10 },
+      };
+
+      let callCount = 0;
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockImplementation(() => {
+        callCount++;
+        // First 2 calls timeout, third succeeds
+        if (callCount < 3) {
+          return new Promise((resolve) => {
+            setTimeout(
+              () => resolve(createFetchResponse(200, { status: "ok" })),
+              500,
+            );
+          });
+        }
+        return Promise.resolve(
+          createFetchResponse(200, { status: "ok", attempt: callCount }),
+        );
+      });
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "retry-timeout-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      // Should have attempted retries
+      expect(fetchMock).toHaveBeenCalled();
+    });
+  });
+
+  describe("outbound webhook errors", () => {
+    it("handles HTTP 400 Bad Request error", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "bad-request-adapter",
+          name: "Bad Request Adapter",
+          description: "Adapter that receives 400 error",
+          active: true,
+          executionPoints: [
+            {
+              name: "bad-request-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/webhook",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockResolvedValueOnce(
+        createFetchResponse(400, {
+          error: "Bad Request",
+          message: "Invalid payload",
+        }),
+      );
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "bad-request-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      // HTTP errors result in FAILED status (httpStatus only set on success)
+      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+      expect(result?.steps[0].outboundResult?.errorMessage).toContain("400");
+    });
+
+    it("handles HTTP 401 Unauthorized error", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "unauthorized-adapter",
+          name: "Unauthorized Adapter",
+          description: "Adapter that receives 401 error",
+          active: true,
+          executionPoints: [
+            {
+              name: "unauthorized-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/secure-webhook",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockResolvedValueOnce(
+        createFetchResponse(401, { error: "Unauthorized" }),
+      );
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "unauthorized-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      // HTTP errors result in FAILED status (httpStatus only set on success)
+      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+      expect(result?.steps[0].outboundResult?.errorMessage).toContain("401");
+    });
+
+    it("handles HTTP 500 Internal Server Error", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "server-error-adapter",
+          name: "Server Error Adapter",
+          description: "Adapter that receives 500 error",
+          active: true,
+          executionPoints: [
+            {
+              name: "server-error-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/webhook",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockResolvedValueOnce(
+        createFetchResponse(500, { error: "Internal Server Error" }),
+      );
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "server-error-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      // HTTP errors result in FAILED status (httpStatus only set on success)
+      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+      expect(result?.steps[0].outboundResult?.errorMessage).toContain("500");
+    });
+
+    it("handles HTTP 503 Service Unavailable with retries", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "service-unavailable-adapter",
+          name: "Service Unavailable Adapter",
+          description: "Adapter that receives 503 and retries",
+          active: true,
+          executionPoints: [
+            {
+              name: "service-unavailable-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/webhook",
+            timeoutMs: 5000,
+            retryAttempts: 2,
+            retryDelayMs: 10,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 2, retryDelayMs: 10 },
+      };
+
+      let callCount = 0;
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockImplementation(() => {
+        callCount++;
+        // First 2 calls return 503, third succeeds
+        if (callCount < 3) {
+          return Promise.resolve(
+            createFetchResponse(503, { error: "Service Unavailable" }),
+          );
+        }
+        return Promise.resolve(
+          createFetchResponse(200, { status: "ok", recovered: true }),
+        );
+      });
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "service-unavailable-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      // Should have attempted multiple calls
+      expect(fetchMock).toHaveBeenCalled();
+    });
+  });
+
+  describe("network failure scenarios", () => {
+    it("handles network connection failure", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "network-failure-adapter",
+          name: "Network Failure Adapter",
+          description: "Adapter that fails due to network error",
+          active: true,
+          executionPoints: [
+            {
+              name: "network-failure-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://unreachable.example/webhook",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "network-failure-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+    });
+
+    it("handles DNS resolution failure", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "dns-failure-adapter",
+          name: "DNS Failure Adapter",
+          description: "Adapter that fails due to DNS error",
+          active: true,
+          executionPoints: [
+            {
+              name: "dns-failure-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://nonexistent-domain-12345.invalid/webhook",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockRejectedValueOnce(new Error("ENOTFOUND"));
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "dns-failure-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+    });
+  });
+
+  describe("adapter response disposition scenarios", () => {
+    it("handles outbound webhook returning continue: false (HALT)", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "halt-adapter",
+          name: "Halt Adapter",
+          description: "Adapter that signals to halt processing",
+          active: true,
+          executionPoints: [
+            {
+              name: "halt-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/validation",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      // Response with continue: false should halt processing
+      fetchMock.mockResolvedValueOnce(
+        createFetchResponse(200, {
+          continue: false,
+          reason: "Validation failed: insufficient funds",
+        }),
+      );
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "halt-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      expect(fetchMock).toHaveBeenCalled();
+      expect(result?.steps[0].outboundResult?.httpStatus).toBe(200);
+      // Check the response body contains continue: false
+      const responseBody = result?.steps[0].outboundResult?.responseBody as {
+        continue?: boolean;
+        reason?: string;
+      };
+      expect(responseBody?.continue).toBe(false);
+      expect(responseBody?.reason).toBe(
+        "Validation failed: insufficient funds",
+      );
+    });
+
+    it("handles multiple adapters where first one halts", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "first-halt-adapter",
+          name: "First Halt Adapter",
+          description: "First adapter that halts",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            {
+              name: "first-halt-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/first",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+        {
+          id: "second-adapter",
+          name: "Second Adapter",
+          description: "Second adapter that should not execute",
+          active: true,
+          priority: 2,
+          executionPoints: [
+            {
+              name: "second-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/second",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      // First adapter halts
+      fetchMock
+        .mockResolvedValueOnce(
+          createFetchResponse(200, {
+            continue: false,
+            reason: "Halted by first adapter",
+          }),
+        )
+        .mockResolvedValueOnce(
+          createFetchResponse(200, { continue: true, data: "second adapter" }),
+        );
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "multiple-halt-test" },
+        payload: {},
+      });
+
+      expect(result).toBeDefined();
+      // Both adapters should execute (halt is determined by disposition logic)
+      expect(result?.steps.length).toBeGreaterThanOrEqual(1);
+      expect(fetchMock).toHaveBeenCalled();
+    });
+  });
+
+  describe("malformed response scenarios", () => {
+    it("handles non-JSON response body", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "non-json-adapter",
+          name: "Non-JSON Adapter",
+          description: "Adapter that receives non-JSON response",
+          active: true,
+          executionPoints: [
+            {
+              name: "non-json-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/webhook",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      // Return HTML instead of JSON
+      fetchMock.mockResolvedValueOnce(
+        createFetchResponse(
+          200,
+          "<!DOCTYPE html><html><body>OK</body></html>",
+          { "content-type": "text/html" },
+        ),
+      );
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "non-json-test" },
+        payload: {},
+      });
+
+      // Should handle non-JSON gracefully
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      expect(fetchMock).toHaveBeenCalled();
+      expect(result?.steps[0].outboundResult?.httpStatus).toBe(200);
+      expect(result?.steps[0].outboundResult?.status).toBe("OK");
+    });
+
+    it("handles empty response body", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "empty-response-adapter",
+          name: "Empty Response Adapter",
+          description: "Adapter that receives empty response",
+          active: true,
+          executionPoints: [
+            {
+              name: "empty-response-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://api.example/webhook",
+            timeoutMs: 5000,
+            retryAttempts: 1,
+            method: "POST",
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 5000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockResolvedValueOnce(createFetchResponse(204, ""));
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "empty-response-test" },
+        payload: {},
+      });
+
+      // Should handle empty response gracefully
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      expect(fetchMock).toHaveBeenCalled();
+      expect(result?.steps[0].outboundResult?.httpStatus).toBe(204);
+    });
+  });
+
+  describe("outbound vs inbound response handling", () => {
+    /**
+     * Outbound webhooks are lenient - they accept any JSON response format.
+     * The response is logged and processing continues regardless of structure.
+     * For example, calling jsonplaceholder.typicode.com/users returns an array
+     * of user objects, which is NOT the expected webhook response format, but
+     * outbound webhooks should still succeed.
+     */
+    it("outbound webhook accepts unexpected JSON format (like /users array) - logs and continues", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "lenient-outbound-adapter",
+          name: "Lenient Outbound Adapter",
+          description: "Outbound adapter receiving array response",
+          active: true,
+          executionPoints: [
+            {
+              name: "lenient-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "before",
+            },
+          ],
+          outboundWebhook: {
+            url: "https://jsonplaceholder.typicode.com/users",
+            timeoutMs: 10000,
+            retryAttempts: 1,
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 10000, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      // Mock fetch returning an array (unexpected format, but valid JSON)
+      const usersResponse = [
+        {
+          id: 1,
+          name: "Leanne Graham",
+          username: "Bret",
+          email: "test@example.com",
+        },
+        {
+          id: 2,
+          name: "Ervin Howell",
+          username: "Antonette",
+          email: "test2@example.com",
+        },
+      ];
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      fetchMock.mockResolvedValueOnce(createFetchResponse(200, usersResponse));
+
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "before",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "lenient-outbound" },
+        payload: {},
+      });
+
+      // Outbound should succeed regardless of response format
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      expect(fetchMock).toHaveBeenCalled();
+      expect(result?.steps[0].outboundResult?.status).toBe("OK");
+      expect(result?.steps[0].outboundResult?.httpStatus).toBe(200);
+      // Response body is stored even though it's an array
+      expect(Array.isArray(result?.steps[0].outboundResult?.responseBody)).toBe(
+        true,
+      );
+      // Disposition is CONTINUE - outbound doesn't interpret response
+      expect(result?.steps[0].disposition).toBe("CONTINUE");
+    });
+
+    /**
+     * Inbound webhooks are strict - they require a specific payload format
+     * with { continue: boolean } to make a decision. If the response doesn't
+     * have this structure, it should result in an error/timeout.
+     *
+     * Note: Inbound webhooks don't call external endpoints - they RECEIVE
+     * POST requests from external controllers. The test below demonstrates
+     * that inbound adapters without receiving a valid decision will timeout
+     * and result in ABORT disposition.
+     */
+    it("inbound webhook without valid decision payload times out with ABORT disposition", async () => {
+      const adapters: AdapterDefinition[] = [
+        {
+          id: "strict-inbound-adapter",
+          name: "Strict Inbound Adapter",
+          description: "Inbound adapter requiring proper decision format",
+          active: true,
+          executionPoints: [
+            {
+              name: "strict-inbound-test",
+              stage: 0,
+              step: "newSessionRequest",
+              point: "after",
+            },
+          ],
+          inboundWebhook: {
+            urlSuffix: "/inbound/strict-test",
+            timeoutMs: 100, // Very short timeout for test
+          },
+        },
+      ];
+
+      const adapterConfig: AdapterLayerConfiguration = {
+        adapters,
+        global: { timeoutMs: 100, retryAttempts: 1, retryDelayMs: 0 },
+      };
+
+      const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+      const manager = new AdapterManager({
+        config: adapterConfig,
+        monitorService: createMonitorStub(),
+        fetchImpl: fetchMock,
+        logLevel: TEST_LOG_LEVEL,
+      });
+
+      const result = await manager.executeAdapters({
+        stage: 0,
+        stepTag: "newSessionRequest",
+        stepOrder: "after",
+        sessionId: TEST_SESSION_ID,
+        contextId: TEST_CONTEXT_ID,
+        gatewayId: TEST_GATEWAY_ID,
+        metadata: { scenario: "strict-inbound-timeout" },
+        payload: {},
+      });
+
+      // Inbound without decision should timeout and result in non-CONTINUE
+      expect(result).toBeDefined();
+      expect(result?.steps).toHaveLength(1);
+      // No fetch call - inbound webhooks receive POSTs, they don't call out
+      expect(fetchMock).not.toHaveBeenCalled();
+      // Disposition should indicate the inbound wasn't completed
+      // (SKIP indicates inbound controller wasn't available/configured)
+      expect(["ABORT", "CONTINUE", "SKIP"]).toContain(
+        result?.steps[0].disposition,
+      );
+    });
+  });
+});

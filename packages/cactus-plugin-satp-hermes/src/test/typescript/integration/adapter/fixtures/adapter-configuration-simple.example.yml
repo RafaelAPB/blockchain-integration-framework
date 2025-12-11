@@ -39,4 +39,4 @@ global:
   timeoutMs: 3000
   retryAttempts: 5
   retryDelayMs: 500
-  logLevel: "info"
+  logLevel: "debug"

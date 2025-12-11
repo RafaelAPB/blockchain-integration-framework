@@ -43,7 +43,7 @@ import type {
   AdapterWebhookMetrics,
 } from "./adapter-webhook-contracts";
 import type { OutboundWebhookPayload } from "./outbound-webhooks";
-import type { InboundWebhookDecisionPayload } from "./inbound-webhooks";
+import type { InboundWebhookDecisionResponse } from "./inbound-webhooks";
 
 export type AdapterHookDirection = "outbound" | "inbound";
 
@@ -79,7 +79,7 @@ export interface AdapterHookStepResult {
   disposition: AdapterWebhookDisposition;
   message?: string;
   metrics?: AdapterWebhookMetrics;
-  blockingDecision?: InboundWebhookDecisionPayload;
+  blockingDecision?: InboundWebhookDecisionResponse;
   outboundResult?: OutboundWebhookInvocationResult;
 }
 

@@ -474,7 +474,6 @@ export {
   AdapterHookExecutionParams,
 } from "./adapters/adapter-types";
 export {
-  InboundWebhookDecisionPayload,
   InboundWebhookDecisionResponse,
 } from "./adapters/inbound-webhooks";
 export {

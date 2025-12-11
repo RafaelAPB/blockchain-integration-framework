@@ -554,6 +554,47 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
 			expect(result.global?.retryAttempts).toBe(5);
 		});
 
+		it("should load the newSessionRequest YAML configuration", () => {
+			const configPath = path.join(FIXTURES_DIR, "adapter-configuration-newSessionRequest.yml");
+
+			const result = loadAdapterConfigFromYaml(configPath);
+
+			expect(result).toBeDefined();
+			expect(result.adapters).toBeDefined();
+			expect(result.adapters).toHaveLength(2);
+
+			// Verify outbound webhook adapter (before)
+			const outboundAdapter = result.adapters[0];
+			expect(outboundAdapter.id).toBe("newSessionRequest-outbound-validator");
+			expect(outboundAdapter.name).toBe("New Session Request Validator");
+			expect(outboundAdapter.active).toBe(true);
+			expect(outboundAdapter.executionPoints).toHaveLength(1);
+			expect(outboundAdapter.executionPoints[0].stage).toBe(0);
+			expect(outboundAdapter.executionPoints[0].step).toBe("newSessionRequest");
+			expect(outboundAdapter.executionPoints[0].point).toBe("before");
+			expect(outboundAdapter.outboundWebhook).toBeDefined();
+			expect(outboundAdapter.outboundWebhook?.url).toBe(
+				"https://webhook.phase0.omnumi.com/validate",
+			);
+
+			// Verify inbound webhook adapter (after)
+			const inboundAdapter = result.adapters[1];
+			expect(inboundAdapter.id).toBe("newSessionRequest-inbound-approval");
+			expect(inboundAdapter.name).toBe("New Session Request Approval");
+			expect(inboundAdapter.active).toBe(true);
+			expect(inboundAdapter.executionPoints).toHaveLength(1);
+			expect(inboundAdapter.executionPoints[0].stage).toBe(0);
+			expect(inboundAdapter.executionPoints[0].step).toBe("newSessionRequest");
+			expect(inboundAdapter.executionPoints[0].point).toBe("after");
+			expect(inboundAdapter.inboundWebhook).toBeDefined();
+			expect(inboundAdapter.inboundWebhook?.timeoutMs).toBe(3000);
+
+			// Verify global config
+			expect(result.global).toBeDefined();
+			expect(result.global?.timeoutMs).toBe(5000);
+			expect(result.global?.retryAttempts).toBe(3);
+		});
+
 		it("should throw when file does not exist", () => {
 			const nonExistentPath = path.join(FIXTURES_DIR, "non-existent.yml");
 
@@ -586,6 +627,29 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
 			const complianceAdapter = result?.adapters.find(a => a.id === "stage1-compliance-adapter");
 			expect(complianceAdapter).toBeDefined();
 			expect(complianceAdapter?.name).toBe("Compliance Check Webhook");
+		});
+
+		it("should load and validate the newSessionRequest configuration", () => {
+			const configPath = path.join(FIXTURES_DIR, "adapter-configuration-newSessionRequest.yml");
+
+			const result = loadAndValidateAdapterConfig(configPath);
+
+			expect(result).toBeDefined();
+			expect(result?.adapters).toHaveLength(2);
+
+			// Verify both adapters are valid
+			const outboundAdapter = result?.adapters.find(
+				(a) => a.id === "newSessionRequest-outbound-validator",
+			);
+			expect(outboundAdapter).toBeDefined();
+			expect(outboundAdapter?.outboundWebhook).toBeDefined();
+
+			const inboundAdapter = result?.adapters.find(
+				(a) => a.id === "newSessionRequest-inbound-approval",
+			);
+			expect(inboundAdapter).toBeDefined();
+			expect(inboundAdapter?.inboundWebhook).toBeDefined();
+			expect(inboundAdapter?.inboundWebhook?.timeoutMs).toBe(3000);
 		});
 
 		it("should return undefined for optional missing file", () => {
