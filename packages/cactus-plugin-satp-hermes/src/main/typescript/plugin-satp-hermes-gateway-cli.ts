@@ -231,22 +231,23 @@ interface LaunchGatewayOptions {
   adapterConfigPath?: string;
 }
 
-export async function launchGateway(opts?: LaunchGatewayOptions): Promise<void> {
+export async function launchGateway(
+  opts?: LaunchGatewayOptions,
+): Promise<void> {
   const logger = LoggerProvider.getOrCreate({
     level: "DEBUG",
     label: "SATP-Gateway",
   });
 
   const workDir = opts?.workDir ?? "/opt/cacti/satp-hermes";
-  const configPath = opts?.configPath ?? path.join(workDir, "config/config.json");
-  const adapterConfigPath = opts?.adapterConfigPath ?? path.join(workDir, "config/adapter-config.yml");
-
+  const configPath =
+    opts?.configPath ?? path.join(workDir, "config/config.json");
+  const adapterConfigPath =
+    opts?.adapterConfigPath ?? path.join(workDir, "config/adapter-config.yml");
 
   logger.debug("Checking for configuration file...");
   if (!fs.existsSync(configPath)) {
-    throw new Error(
-      `Could not find gateway-config.json at ${configPath}`,
-    );
+    throw new Error(`Could not find gateway-config.json at ${configPath}`);
   }
 
   logger.debug(`Reading configuration from: ${configPath}`);
@@ -255,7 +256,6 @@ export async function launchGateway(opts?: LaunchGatewayOptions): Promise<void> 
   logger.info("Configuration read OK");
 
   logger.debug(`Config: ${JSON.stringify(config, null, 2)}`);
-
 
   // Load adapter configuration from YAML file (optional - won't fail if file missing)
   logger.debug(`Loading adapter configuration from: ${adapterConfigPath}`);
@@ -273,17 +273,14 @@ export async function launchGateway(opts?: LaunchGatewayOptions): Promise<void> 
   }
   logger.debug(`Config: ${JSON.stringify(adapterConfigRaw, null, 2)}`);
 
-
   const instanceId = await runValidation(
     "SATP Gateway instanceId",
     logger,
     () => validateInstanceId({ configValue: config.instanceId }),
   );
 
-  const gid = await runValidation(
-    "SATP Gateway Identity",
-    logger,
-    () => validateSatpGatewayIdentity({ configValue: config.gid }, logger),
+  const gid = await runValidation("SATP Gateway Identity", logger, () =>
+    validateSatpGatewayIdentity({ configValue: config.gid }, logger),
   );
 
   const counterPartyGateways = await runValidation(
@@ -296,22 +293,19 @@ export async function launchGateway(opts?: LaunchGatewayOptions): Promise<void> 
       ),
   );
 
-  const logLevel = await runValidation(
-    "SATP Log Level",
-    logger,
-    () => validateSatpLogLevel({ configValue: config.logLevel }),
+  const logLevel = await runValidation("SATP Log Level", logger, () =>
+    validateSatpLogLevel({ configValue: config.logLevel }),
   );
 
-  const environment = await runValidation(
-    "SATP Environment",
-    logger,
-    () => validateSatpEnvironment({ configValue: config.environment }),
+  const environment = await runValidation("SATP Environment", logger, () =>
+    validateSatpEnvironment({ configValue: config.environment }),
   );
 
   const validationOptions = await runValidation(
     "SATP Validation Options",
     logger,
-    () => validateSatpValidationOptions({ configValue: config.validationOptions }),
+    () =>
+      validateSatpValidationOptions({ configValue: config.validationOptions }),
   );
 
   const privacyPolicies = await runValidation(
@@ -323,25 +317,19 @@ export async function launchGateway(opts?: LaunchGatewayOptions): Promise<void> 
     logger.debug("Privacy Policy #%d => %o", i, p),
   );
 
-  const mergePolicies = await runValidation(
-    "SATP Merge Policies",
-    logger,
-    () => validateSatpMergePolicies({ configValue: config.mergePolicies }),
+  const mergePolicies = await runValidation("SATP Merge Policies", logger, () =>
+    validateSatpMergePolicies({ configValue: config.mergePolicies }),
   );
   mergePolicies.forEach((p: unknown, i: unknown) =>
     logger.debug("Merge Policy #%d => %o", i, p),
   );
 
-  const keyPair = await runValidation(
-    "SATP KeyPair",
-    logger,
-    () => validateSatpKeyPairJSON({ configValue: config.keyPair }, logger),
+  const keyPair = await runValidation("SATP KeyPair", logger, () =>
+    validateSatpKeyPairJSON({ configValue: config.keyPair }, logger),
   );
 
-  const ccConfig = await runValidation(
-    "Cross Chain Config",
-    logger,
-    () => validateCCConfig({ configValue: config.ccConfig || null }, logger),
+  const ccConfig = await runValidation("Cross Chain Config", logger, () =>
+    validateCCConfig({ configValue: config.ccConfig || null }, logger),
   );
 
   const localRepository = await runValidation(
@@ -353,25 +341,25 @@ export async function launchGateway(opts?: LaunchGatewayOptions): Promise<void> 
   const remoteRepository = await runValidation(
     "Remote Repository Config",
     logger,
-    () => validateKnexRepositoryConfig({ configValue: config.remoteRepository }),
+    () =>
+      validateKnexRepositoryConfig({ configValue: config.remoteRepository }),
   );
 
   const enableCrashRecovery = await runValidation(
     "SATP Enable Crash Recovery",
     logger,
-    () => validateSatpEnableCrashRecovery({ configValue: config.enableCrashRecovery }),
+    () =>
+      validateSatpEnableCrashRecovery({
+        configValue: config.enableCrashRecovery,
+      }),
   );
 
-  const ontologyPath = await runValidation(
-    "Ontologies Path",
-    logger,
-    () => validateOntologyPath({ configValue: config.ontologyPath }),
+  const ontologyPath = await runValidation("Ontologies Path", logger, () =>
+    validateOntologyPath({ configValue: config.ontologyPath }),
   );
 
-  const extensions = await runValidation(
-    "Extensions",
-    logger,
-    () => validateExtensions({ configValue: config.extensions }),
+  const extensions = await runValidation("Extensions", logger, () =>
+    validateExtensions({ configValue: config.extensions }),
   );
 
   const adapterConfig = await runValidation(
@@ -380,11 +368,15 @@ export async function launchGateway(opts?: LaunchGatewayOptions): Promise<void> 
     () => validateAdapterConfig({ configValue: adapterConfigRaw }),
   );
 
-  const toKeyPairBuffers = (kp: { publicKey: string; privateKey: string } | undefined) =>
-    kp ? {
-      publicKey: Buffer.from(kp.publicKey, "hex"),
-      privateKey: Buffer.from(kp.privateKey, "hex"),
-    } : undefined;
+  const toKeyPairBuffers = (
+    kp: { publicKey: string; privateKey: string } | undefined,
+  ) =>
+    kp
+      ? {
+          publicKey: Buffer.from(kp.publicKey, "hex"),
+          privateKey: Buffer.from(kp.privateKey, "hex"),
+        }
+      : undefined;
 
   logger.debug("Creating SATPGatewayConfig...");
   const gatewayConfig: SATPGatewayConfig = {

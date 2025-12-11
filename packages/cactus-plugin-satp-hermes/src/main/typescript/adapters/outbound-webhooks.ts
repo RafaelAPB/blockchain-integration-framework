@@ -87,8 +87,22 @@
  * @since 0.0.3-beta
  */
 
-import { Stage } from "../types/satp-protocol";
-import { AdapterExecutionPointDefinition } from "./api3-adapter-types";
+import type { StageExecutionStep } from "./api3-adapter-types";
+
+/**
+ * Execution point info embedded in outbound webhook payloads.
+ * Includes a computed `name` for logging/display purposes.
+ */
+export interface OutboundWebhookExecutionPoint {
+  /** Computed name for the execution point (stepTag-point format) */
+  name: string;
+  /** SATP stage number (0-3) */
+  stage: number;
+  /** Stage-specific step identifier */
+  step: string;
+  /** Execution order within the step */
+  point: StageExecutionStep;
+}
 
 /**
  * Standardized list of outbound webhook events emitted by the SATP gateway when
@@ -118,7 +132,7 @@ export interface OutboundWebhookPayload {
   /** Semantic version of the payload contract (e.g., "v1.0.0"). */
   schemaVersion: string;
   /** The SATP execution point associated with the notification. */
-  executionPoints: AdapterExecutionPointDefinition;
+  executionPoints: OutboundWebhookExecutionPoint;
   /** Adapter identifier (matches configuration id). */
   adapterId: string;
   /** SATP session identifier for correlation. */

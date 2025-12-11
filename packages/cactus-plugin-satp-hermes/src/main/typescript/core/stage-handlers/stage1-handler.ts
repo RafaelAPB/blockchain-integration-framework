@@ -495,7 +495,6 @@ export class Stage1SATPHandler implements SATPHandler {
     req: TransferProposalRequest,
     //context: HandlerContext, This gives error when when trying to stringify will be commented until there is not usage of it
   ): Promise<TransferProposalResponse> {
-    const stageTag = "1";
     const stepTag = `TransferProposalImplementation()`;
     const fnTag = `${this.getHandlerIdentifier()}#${stepTag}`;
     const { span, context: ctx } = this.monitorService.startSpan(fnTag);
@@ -511,7 +510,14 @@ export class Stage1SATPHandler implements SATPHandler {
         }
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE1, "checkTransferProposalRequestMessage", "before", session, this.gatewayId, { operation: "transferProposal", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE1,
+            "checkTransferProposalRequestMessage",
+            "before",
+            session,
+            this.gatewayId,
+            { operation: "transferProposal", role: "server" },
+          ),
         );
 
         span.setAttribute("sessionId", session.getSessionId() || "");
@@ -586,7 +592,14 @@ export class Stage1SATPHandler implements SATPHandler {
         }
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE1, "transferProposalResponse", "after", session, this.gatewayId, { operation: "transferProposal", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE1,
+            "transferProposalResponse",
+            "after",
+            session,
+            this.gatewayId,
+            { operation: "transferProposal", role: "server" },
+          ),
         );
 
         return message;
@@ -698,7 +711,14 @@ export class Stage1SATPHandler implements SATPHandler {
         }
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE1, "checkTransferCommenceRequestMessage", "before", session, this.gatewayId, { operation: "transferCommence", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE1,
+            "checkTransferCommenceRequestMessage",
+            "before",
+            session,
+            this.gatewayId,
+            { operation: "transferCommence", role: "server" },
+          ),
         );
 
         span.setAttribute("sessionId", session.getSessionId());
@@ -770,7 +790,14 @@ export class Stage1SATPHandler implements SATPHandler {
         }
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE1, "transferCommenceResponse", "after", session, this.gatewayId, { operation: "transferCommence", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE1,
+            "transferCommenceResponse",
+            "after",
+            session,
+            this.gatewayId,
+            { operation: "transferCommence", role: "server" },
+          ),
         );
 
         return message;
@@ -985,7 +1012,14 @@ export class Stage1SATPHandler implements SATPHandler {
           }
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE1, "transferProposalRequest", "before", session, this.gatewayId, { operation: "transferProposal", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE1,
+              "transferProposalRequest",
+              "before",
+              session,
+              this.gatewayId,
+              { operation: "transferProposal", role: "client" },
+            ),
           );
 
           await this.clientService.checkPreSATPTransferResponse(
@@ -1014,7 +1048,14 @@ export class Stage1SATPHandler implements SATPHandler {
           );
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE1, "transferProposalRequest", "after", session, this.gatewayId, { operation: "transferProposal", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE1,
+              "transferProposalRequest",
+              "after",
+              session,
+              this.gatewayId,
+              { operation: "transferProposal", role: "client" },
+            ),
           );
 
           return requestTransferProposal;
@@ -1161,7 +1202,14 @@ export class Stage1SATPHandler implements SATPHandler {
           }
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE1, "transferCommenceRequest", "before", session, this.gatewayId, { operation: "transferCommence", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE1,
+              "transferCommenceRequest",
+              "before",
+              session,
+              this.gatewayId,
+              { operation: "transferCommence", role: "client" },
+            ),
           );
 
           span.setAttribute("sessionId", session.getSessionId() || "");
@@ -1189,7 +1237,14 @@ export class Stage1SATPHandler implements SATPHandler {
           );
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE1, "transferCommenceRequest", "after", session, this.gatewayId, { operation: "transferCommence", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE1,
+              "transferCommenceRequest",
+              "after",
+              session,
+              this.gatewayId,
+              { operation: "transferCommence", role: "client" },
+            ),
           );
 
           return requestTransferCommence;

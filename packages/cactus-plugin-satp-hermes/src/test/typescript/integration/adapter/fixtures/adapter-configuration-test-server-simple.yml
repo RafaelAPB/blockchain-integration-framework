@@ -1,3 +1,6 @@
+# Simple adapter configuration using local test server
+# Uses localhost:9223 endpoints from adapter-test-server.ts
+# Reduced timeouts: 1 second for outbound, 3 seconds for inbound
 adapters:
   - id: "phase0-adapter-1"
     name: "Transfer Validation Webhook"
@@ -10,10 +13,10 @@ adapters:
         step: checkPreSATPTransferRequest
         point: "before"
     outboundWebhook:
-      url: "http://localhost:9223/webhook/outbound/validate"
+      url: "http://localhost:9223/webhook/outbound"
       timeoutMs: 5000
       retryAttempts: 3
-      retryDelayMs: 1000
+      retryDelayMs: 500
       method: "POST"
       headers:
         Content-Type: "application/json"
@@ -25,11 +28,9 @@ adapters:
           "sourceAsset": {{.sourceAsset | toJson}},
           "timestamp": "{{.timestamp}}"
         }
-    # if defined, the transaction will be automatically paused in SATP 
-    # until the inboundWebhook has been called for the specific contextId
     inboundWebhook:
       urlSuffix: "/inbound/phase0-adapter-1"
-      timeoutMs: 300000   # 5 minutes, if not called by then, transaction is cancelled
+      timeoutMs: 3000
       method: "POST"
       headers:
         Content-Type: "application/json"
@@ -55,26 +56,19 @@ adapters:
         step: preSATPTransferResponse
         point: "after"
     outboundWebhook:
-      url: "http://localhost:9223/webhook/outbound/inform"
-      timeoutMs: 3000
+      url: "http://localhost:9223/webhook/outbound/approve"
+      timeoutMs: 5000
       retryAttempts: 2
       method: "POST"
       headers:
-        Content-Type: "application/xml"
+        Content-Type: "application/json"
         X-API-Version: "v1"
-        X-Data-Format: "xml"
       payloadTemplate: |
-        <?xml version="1.0" encoding="UTF-8"?>
-        <BusinessDashboardUpdate>
-          <Phase>0</Phase>
-          <Transaction>
-            <ContextId>{{.contextID}}</ContextId>
-            <SourceAsset>
-              <Id>{{.sourceAsset.id}}</Id>
-              <ReferenceId>{{.sourceAsset.referenceId}}</ReferenceId>
-            </SourceAsset>
-          </Transaction>
-        </BusinessDashboardUpdate>
+        {
+          "phase": 0,
+          "contextId": "{{.contextID}}",
+          "event": "dashboard-update"
+        }
     active: true
     priority: 2
 
@@ -89,16 +83,16 @@ adapters:
         step: checkTransferCommenceRequestMessage
         point: "before"
     outboundWebhook:
-      url: "http://localhost:9223/webhook/outbound/check"
-      timeoutMs: 10000
+      url: "http://localhost:9223/webhook/outbound"
+      timeoutMs: 5000
       retryAttempts: 2
-      retryDelayMs: 2000
+      retryDelayMs: 500
       method: "POST"
       headers:
         Content-Type: "application/json"
     inboundWebhook:
       urlSuffix: "/inbound/compliance"
-      timeoutMs: 600000   # 10 minutes for manual compliance review
+      timeoutMs: 3000
     active: true
     priority: 1
 
@@ -113,8 +107,8 @@ adapters:
         step: checkLockAssertionResponse
         point: "after"
     outboundWebhook:
-      url: "http://localhost:9223/webhook/outbound/lock-events"
-      timeoutMs: 3000
+      url: "http://localhost:9223/webhook/outbound"
+      timeoutMs: 5000
       retryAttempts: 3
       method: "POST"
       headers:
@@ -136,10 +130,10 @@ adapters:
         step: checkTransferCompleteResponse
         point: "after"
     outboundWebhook:
-      url: "http://localhost:9223/webhook/outbound/complete"
+      url: "http://localhost:9223/webhook/outbound"
       timeoutMs: 5000
       retryAttempts: 3
-      retryDelayMs: 1000
+      retryDelayMs: 500
       method: "POST"
       headers:
         Content-Type: "application/json"
@@ -148,8 +142,7 @@ adapters:
 
 # Global configuration
 global:
-  timeoutMs: 3000
-  retryAttempts: 5
+  timeoutMs: 5000
+  retryAttempts: 3
   retryDelayMs: 500
   logLevel: "debug"
-

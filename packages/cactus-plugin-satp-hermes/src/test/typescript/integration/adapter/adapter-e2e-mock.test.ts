@@ -31,7 +31,6 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
           active: true,
           executionPoints: [
             {
-              name: "audit-before-transfer",
               stage: 1,
               step: "transferProposalRequest",
               point: "before",
@@ -48,7 +47,6 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
           active: true,
           executionPoints: [
             {
-              name: "risk-before-transfer",
               stage: 1,
               step: "transferProposalRequest",
               point: "before",
@@ -227,7 +225,6 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
           active: true,
           executionPoints: [
             {
-              name: "combined-before",
               stage: 0,
               step: "newSessionRequest",
               point: "before",

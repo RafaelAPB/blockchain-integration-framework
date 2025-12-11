@@ -3,18 +3,16 @@ adapters:
     name: "Transfer Validation Webhook"
     description: "Validates transfer initiation request"
     executionPoints:
-      - name: "check stage 0 before transfer - server"
-        stage: 0
+      - stage: 0
         step: checkNewSessionRequest #session request received by the server
         point: "before" # at the end of the execution
         # https://gitkraken.dev/link/dnNjb2RlOi8vZWFtb2Rpby5naXRsZW5zL2xpbmsvci8xNGQ3YjRhNzA0YTNmZDY2ZTU5ODMyMGY5ZWFlODg3NzM1OGFkM2RjL2YvcGFja2FnZXMvY2FjdHVzLXBsdWdpbi1zYXRwLWhlcm1lcy9zcmMvbWFpbi90eXBlc2NyaXB0L2NvcmUvc3RhZ2Utc2VydmljZXMvc2VydmVyL3N0YWdlMC1zZXJ2ZXItc2VydmljZS50cz91cmw9Z2l0JTQwZ2l0aHViLmNvbSUzQVJhZmFlbEFQQiUyRmJsb2NrY2hhaW4taW50ZWdyYXRpb24tZnJhbWV3b3JrLmdpdCZsaW5lcz00NTc%3D?origin=gitlens
-      - name: "check stage 0 before transfer - client"
-        stage: 0
+      - stage: 0
         step: newSessionResponse
         point: "before" # right before the processing of the session response, output of session request processing by the server    
         # executed here https://gitkraken.dev/link/dnNjb2RlOi8vZWFtb2Rpby5naXRsZW5zL2xpbmsvci8xNGQ3YjRhNzA0YTNmZDY2ZTU5ODMyMGY5ZWFlODg3NzM1OGFkM2RjL2YvcGFja2FnZXMvY2FjdHVzLXBsdWdpbi1zYXRwLWhlcm1lcy9zcmMvbWFpbi90eXBlc2NyaXB0L2NvcmUvc3RhZ2Utc2VydmljZXMvc2VydmVyL3N0YWdlMC1zZXJ2ZXItc2VydmljZS50cz91cmw9Z2l0JTQwZ2l0aHViLmNvbSUzQVJhZmFlbEFQQiUyRmJsb2NrY2hhaW4taW50ZWdyYXRpb24tZnJhbWV3b3JrLmdpdCZsaW5lcz00NTc%3D?origin=gitlens
     outboundWebhook:
-      url: "https://webhook.phase0.omnumi.com/validate"
+      url: "http://localhost:9223/webhook/outbound/validate"
       timeoutMs: 5000
       retryAttempts: 3
       retryDelayMs: 1000
@@ -29,7 +27,7 @@ adapters:
     name: "Business dashboard Webhook"
     description: "Updated some business dashboard with a value"
     outboundWebhook:
-      url: "https://bd.phase0.omnumi.com/inform"
+      url: "http://localhost:9223/webhook/outbound/inform"
       timeoutMs: 3000
       retryAttempts: 2
     active: true

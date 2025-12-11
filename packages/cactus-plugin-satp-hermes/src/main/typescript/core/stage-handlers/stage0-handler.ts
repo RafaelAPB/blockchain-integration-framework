@@ -605,7 +605,14 @@ export class Stage0SATPHandler implements SATPHandler {
           throw new PubKeyError(fnTag);
         }
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "checkNewSessionRequest", "before", session, this.gatewayId, { operation: "newSession", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "checkNewSessionRequest",
+            "before",
+            session,
+            this.gatewayId,
+            { operation: "newSession", role: "server" },
+          ),
         );
         session = await this.serverService.checkNewSessionRequest(
           req,
@@ -614,7 +621,14 @@ export class Stage0SATPHandler implements SATPHandler {
         );
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "checkNewSessionRequest", "after", session, this.gatewayId, { operation: "newSession", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "checkNewSessionRequest",
+            "after",
+            session,
+            this.gatewayId,
+            { operation: "newSession", role: "server" },
+          ),
         );
 
         this.sessions.set(session.getSessionId(), session);
@@ -622,7 +636,14 @@ export class Stage0SATPHandler implements SATPHandler {
         saveMessageInSessionData(session.getServerSessionData(), req);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "newSessionResponse", "before", session, this.gatewayId, { operation: "newSession", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "newSessionResponse",
+            "before",
+            session,
+            this.gatewayId,
+            { operation: "newSession", role: "server" },
+          ),
         );
 
         const message = await this.serverService.newSessionResponse(
@@ -642,7 +663,14 @@ export class Stage0SATPHandler implements SATPHandler {
         saveMessageInSessionData(session.getServerSessionData(), message);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "newSessionResponse", "after", session, this.gatewayId, { operation: "newSession", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "newSessionResponse",
+            "after",
+            session,
+            this.gatewayId,
+            { operation: "newSession", role: "server" },
+          ),
         );
 
         const attributes: Record<
@@ -781,13 +809,27 @@ export class Stage0SATPHandler implements SATPHandler {
         span.setAttribute("sessionId", session.getSessionId() || "");
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "checkPreSATPTransferRequest", "before", session, this.gatewayId, { operation: "preSATPTransfer", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "checkPreSATPTransferRequest",
+            "before",
+            session,
+            this.gatewayId,
+            { operation: "preSATPTransfer", role: "server" },
+          ),
         );
 
         await this.serverService.checkPreSATPTransferRequest(req, session);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "checkPreSATPTransferRequest", "after", session, this.gatewayId, { operation: "preSATPTransfer", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "checkPreSATPTransferRequest",
+            "after",
+            session,
+            this.gatewayId,
+            { operation: "preSATPTransfer", role: "server" },
+          ),
         );
 
         saveMessageInSessionData(session.getServerSessionData(), req);
@@ -795,7 +837,14 @@ export class Stage0SATPHandler implements SATPHandler {
         await this.serverService.wrapToken(session);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "preSATPTransferResponse", "before", session, this.gatewayId, { operation: "preSATPTransfer", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "preSATPTransferResponse",
+            "before",
+            session,
+            this.gatewayId,
+            { operation: "preSATPTransfer", role: "server" },
+          ),
         );
 
         const message = await this.serverService.preSATPTransferResponse(
@@ -815,7 +864,14 @@ export class Stage0SATPHandler implements SATPHandler {
         saveMessageInSessionData(session.getServerSessionData(), message);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE0, "preSATPTransferResponse", "after", session, this.gatewayId, { operation: "preSATPTransfer", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE0,
+            "preSATPTransferResponse",
+            "after",
+            session,
+            this.gatewayId,
+            { operation: "preSATPTransfer", role: "server" },
+          ),
         );
 
         attributes = collectSessionAttributes(session, "server");
@@ -976,7 +1032,14 @@ export class Stage0SATPHandler implements SATPHandler {
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE0, "newSessionRequest", "before", session, this.gatewayId, { operation: "newSession", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE0,
+              "newSessionRequest",
+              "before",
+              session,
+              this.gatewayId,
+              { operation: "newSession", role: "client" },
+            ),
           );
 
           const message = await this.clientService.newSessionRequest(
@@ -994,7 +1057,14 @@ export class Stage0SATPHandler implements SATPHandler {
           saveMessageInSessionData(session.getClientSessionData(), message);
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE0, "newSessionRequest", "after", session, this.gatewayId, { operation: "newSession", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE0,
+              "newSessionRequest",
+              "after",
+              session,
+              this.gatewayId,
+              { operation: "newSession", role: "client" },
+            ),
           );
 
           return message;
@@ -1135,7 +1205,14 @@ export class Stage0SATPHandler implements SATPHandler {
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE0, "checkNewSessionResponse", "before", session, this.gatewayId, { operation: "preSATPTransfer", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE0,
+              "checkNewSessionResponse",
+              "before",
+              session,
+              this.gatewayId,
+              { operation: "preSATPTransfer", role: "client" },
+            ),
           );
 
           const newSession = await this.clientService.checkNewSessionResponse(
@@ -1145,7 +1222,14 @@ export class Stage0SATPHandler implements SATPHandler {
           );
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE0, "checkNewSessionResponse", "after", session, this.gatewayId, { operation: "preSATPTransfer", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE0,
+              "checkNewSessionResponse",
+              "after",
+              session,
+              this.gatewayId,
+              { operation: "preSATPTransfer", role: "client" },
+            ),
           );
 
           if (newSession.getSessionId() != session.getSessionId()) {
@@ -1158,7 +1242,14 @@ export class Stage0SATPHandler implements SATPHandler {
           await this.clientService.wrapToken(session);
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE0, "preSATPTransferRequest", "before", session, this.gatewayId, { operation: "preSATPTransfer", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE0,
+              "preSATPTransferRequest",
+              "before",
+              session,
+              this.gatewayId,
+              { operation: "preSATPTransfer", role: "client" },
+            ),
           );
 
           const message =
@@ -1174,7 +1265,14 @@ export class Stage0SATPHandler implements SATPHandler {
           saveMessageInSessionData(session.getClientSessionData(), message);
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE0, "preSATPTransferRequest", "after", session, this.gatewayId, { operation: "preSATPTransfer", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE0,
+              "preSATPTransferRequest",
+              "after",
+              session,
+              this.gatewayId,
+              { operation: "preSATPTransfer", role: "client" },
+            ),
           );
 
           return message;

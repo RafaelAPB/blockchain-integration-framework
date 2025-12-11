@@ -1,0 +1,42 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'12px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#1e40af','primaryTextColor':'#1f2937','primaryBorderColor':'#1e3a8a','lineColor':'#3b82f6','secondaryColor':'#dbeafe','tertiaryColor':'#eff6ff', 'actorTextColor':'#1f2937', 'actorBkg':'#dbeafe', 'actorBorder':'#1e40af', 'signalColor':'#1f2937', 'signalTextColor':'#1f2937', 'noteBkgColor':'#fef3c7', 'noteTextColor':'#1f2937', 'noteBorderColor':'#d97706'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant SH as StageHandler
+    participant AM as AdapterManager
+    participant WC as WebhookClient
+    participant EX as ExternalSystem
+
+    Note over SH,EX: Outbound Webhook - Fire-and-Forget
+
+    rect rgb(239, 246, 255)
+        Note over SH,AM: 1. Trigger
+        SH->>AM: executeAdapters(0, newSessionRequest, before)
+        AM->>AM: findBindings()
+    end
+
+    rect rgb(254, 249, 195)
+        Note over AM,WC: 2. Build Payload
+        AM->>AM: buildPayload(adapter, state)
+    end
+
+    rect rgb(220, 252, 231)
+        Note over WC,EX: 3. HTTP POST
+        AM->>WC: post(url, payload)
+        WC->>EX: POST /webhooks
+        
+        alt Success
+            EX-->>WC: 200 OK
+            WC-->>AM: success
+        else Error
+            EX-->>WC: 500 Error
+            WC-->>AM: logged, continue
+        end
+    end
+
+    rect rgb(254, 226, 226)
+        Note over AM,SH: 4. Continue
+        AM-->>SH: CONTINUE
+    end
+
+    Note over SH,EX: Outbound never blocks

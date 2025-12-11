@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
-import { Stage } from "../../../../main/typescript/types/satp-protocol";
+import { AdapterManager } from "../../../main/typescript/adapters/adapter-manager";
+import { Stage } from "../../../main/typescript/types/satp-protocol";
 import {
   createAdapterHarness,
   createFetchResponse,
@@ -12,7 +12,7 @@ import {
   TEST_CONTEXT_ID,
   TEST_GATEWAY_ID,
   TEST_LOG_LEVEL,
-} from "../../adapter-test-utils";
+} from "../adapter-test-utils";
 
 describe("AdapterManager basic behaviors", () => {
   it("returns undefined when no adapters are configured", async () => {

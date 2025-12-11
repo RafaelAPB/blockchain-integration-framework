@@ -120,7 +120,8 @@ export class AdapterHookService {
   public async executeWebhooks(
     input: AdapterWebhookExecutionInput,
   ): Promise<AdapterHookResult | undefined> {
-    const { bindings, sessionId, contextId, gatewayId, metadata, payload } = input;
+    const { bindings, sessionId, contextId, gatewayId, metadata, payload } =
+      input;
 
     if (bindings.length === 0) {
       return undefined;
@@ -253,7 +254,7 @@ export class AdapterHookService {
         context.direction === "outbound" ? "stage.started" : "stage.completed",
       schemaVersion: "v1",
       executionPoints: {
-        name: context.binding.executionPointName ?? `${context.binding.stepTag}-${context.binding.stepOrder}`,
+        name: `${context.binding.stepTag}-${context.binding.stepOrder}`,
         stage: context.binding.stage,
         step: context.binding.stepTag,
         point: context.binding.stepOrder,
@@ -446,7 +447,18 @@ export class AdapterHookService {
   public async executeWithDeadline(
     input: SessionAwareExecutionInput,
   ): Promise<AdapterHookResult | undefined> {
-    const { bindings, sessionId, contextId, gatewayId, deadlineMs, metadata, payload, stage, stepTag, stepOrder } = input;
+    const {
+      bindings,
+      sessionId,
+      contextId,
+      gatewayId,
+      deadlineMs,
+      metadata,
+      payload,
+      stage,
+      stepTag,
+      stepOrder,
+    } = input;
 
     if (bindings.length === 0) {
       return undefined;

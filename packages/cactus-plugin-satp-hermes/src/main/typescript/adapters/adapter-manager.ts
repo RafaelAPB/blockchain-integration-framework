@@ -66,11 +66,7 @@ import {
   validateStepTagForStage,
   type SatpStage,
 } from "../core/satp-protocol-map";
-import {
-  AdapterHookService,
-  AdapterExecutionTimeoutError,
-  type AdapterWebhookExecutionInput,
-} from "./adapter-hook-service";
+import { AdapterHookService } from "./adapter-hook-service";
 import type { AdapterHookResult } from "./adapter-types";
 import { Stage } from "../types/satp-protocol";
 
@@ -109,7 +105,7 @@ export interface AdapterExecutionInput {
 /**
  * Payload for adapter execution at a specific protocol execution point.
  * This is the primary interface used by stage handlers to invoke adapters.
- * 
+ *
  * The payload should be constructed as early as possible in the handler method
  * and passed to the adapter manager's executeAdaptersOrSkip method.
  */
@@ -384,19 +380,36 @@ export class AdapterManager {
     if (!executionPayload) {
       return undefined;
     }
-    const { stage, stepTag, order, sessionId, gatewayId, contextId, metadata, payload } = executionPayload;
+    const {
+      stage,
+      stepTag,
+      order,
+      sessionId,
+      gatewayId,
+      contextId,
+      metadata,
+      payload,
+    } = executionPayload;
     const stageNumber = this.stageToNumber(stage);
 
     if (!this.hasAdaptersConfigured()) {
       return undefined;
     }
 
-    const bindings = this.getBindingsForExecutionPoint(stageNumber, stepTag, order);
+    const bindings = this.getBindingsForExecutionPoint(
+      stageNumber,
+      stepTag,
+      order,
+    );
     if (bindings.length === 0) {
       return undefined;
     }
 
-    const deadlineMs = this.resolveInboundDeadlineMs(stageNumber, stepTag, order);
+    const deadlineMs = this.resolveInboundDeadlineMs(
+      stageNumber,
+      stepTag,
+      order,
+    );
 
     // Delegate execution to the hook service
     return this.hookService.executeWithDeadline({
@@ -419,7 +432,11 @@ export class AdapterManager {
     stepTag: string,
     stepOrder: StageExecutionStep,
   ): number | undefined {
-    const bindings = this.getBindingsForExecutionPoint(stage, stepTag, stepOrder);
+    const bindings = this.getBindingsForExecutionPoint(
+      stage,
+      stepTag,
+      stepOrder,
+    );
     if (bindings.length === 0) {
       return undefined;
     }
@@ -471,20 +488,24 @@ export class AdapterManager {
 
     for (const adapter of this.adaptersById.values()) {
       for (const executionPoint of adapter.executionPoints) {
+        const pointLabel = `stage:${executionPoint.stage}/step:${executionPoint.step}/point:${executionPoint.point}`;
         // Validate stage
         if (!isValidStage(executionPoint.stage)) {
           errors.push(
-            `Adapter id="${adapter.id}", execution point "${executionPoint.name || "unnamed"}": ` +
+            `Adapter id="${adapter.id}", execution point "${pointLabel}": ` +
             `invalid stage ${executionPoint.stage}. Valid stages are 0, 1, 2, 3.`,
           );
           continue;
         }
 
         // Validate stepTag for stage
-        const validation = validateStepTagForStage(executionPoint.stage, executionPoint.step);
+        const validation = validateStepTagForStage(
+          executionPoint.stage,
+          executionPoint.step,
+        );
         if (!validation.valid) {
           errors.push(
-            `Adapter id="${adapter.id}", execution point "${executionPoint.name || "unnamed"}": ` +
+            `Adapter id="${adapter.id}", execution point "${pointLabel}": ` +
             `${validation.errorMessage}`,
           );
           continue;
@@ -497,7 +518,6 @@ export class AdapterManager {
           stepTag: executionPoint.step,
           stepOrder: executionPoint.point,
           priority: adapter.priority ?? 1000,
-          executionPointName: executionPoint.name,
         });
       }
     }
@@ -515,7 +535,8 @@ export class AdapterManager {
     bindings.sort((a, b) => {
       if (a.stage !== b.stage) return a.stage - b.stage;
       if (a.stepTag !== b.stepTag) return a.stepTag.localeCompare(b.stepTag);
-      if (a.stepOrder !== b.stepOrder) return a.stepOrder.localeCompare(b.stepOrder);
+      if (a.stepOrder !== b.stepOrder)
+        return a.stepOrder.localeCompare(b.stepOrder);
       return a.priority - b.priority;
     });
 

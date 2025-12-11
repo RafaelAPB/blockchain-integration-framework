@@ -112,23 +112,23 @@
 import * as fs from "node:fs";
 import * as yaml from "js-yaml";
 import type {
-	AdapterLayerConfiguration,
-	AdapterDefinition,
-	AdapterExecutionPointDefinition,
-	StageExecutionStep,
-	GlobalAdapterDefaults,
+  AdapterLayerConfiguration,
+  AdapterDefinition,
+  AdapterExecutionPointDefinition,
+  StageExecutionStep,
+  GlobalAdapterDefaults,
 } from "../../../adapters/api3-adapter-types";
 import {
-	SATP_PROTOCOL_MAP,
-	type SatpStage,
-	type SatpStepTag,
+  SATP_PROTOCOL_MAP,
+  type SatpStage,
+  type SatpStepTag,
 } from "../../../core/satp-protocol-map";
 
 /**
  * Validation options for adapter configuration.
  */
 export interface ValidateAdapterConfigOptions {
-	configValue?: AdapterLayerConfiguration;
+  configValue?: AdapterLayerConfiguration;
 }
 
 /**
@@ -136,10 +136,10 @@ export interface ValidateAdapterConfigOptions {
  * Derived from StageExecutionStep type.
  */
 const VALID_EXECUTION_STEPS: StageExecutionStep[] = [
-	"before",
-	"during",
-	"after",
-	"rollback",
+  "before",
+  "during",
+  "after",
+  "rollback",
 ];
 
 /**
@@ -147,7 +147,7 @@ const VALID_EXECUTION_STEPS: StageExecutionStep[] = [
  * Derived from SATP_PROTOCOL_MAP keys.
  */
 const VALID_STAGES: SatpStage[] = Object.keys(SATP_PROTOCOL_MAP).map(
-	(k) => Number(k) as SatpStage,
+  (k) => Number(k) as SatpStage,
 );
 
 /**
@@ -162,7 +162,7 @@ const VALID_LOG_LEVELS = ["trace", "debug", "info", "warn", "error", "silent"];
  * @returns Array of valid step tags for the stage
  */
 function getValidStepTagsForStage(stage: SatpStage): SatpStepTag[] {
-	return SATP_PROTOCOL_MAP[stage].steps.map((step) => step.tag);
+  return SATP_PROTOCOL_MAP[stage].steps.map((step) => step.tag);
 }
 
 /**
@@ -174,46 +174,46 @@ function getValidStepTagsForStage(stage: SatpStage): SatpStepTag[] {
  * @throws {Error} When execution point is invalid
  */
 function validateExecutionPoint(
-	point: AdapterExecutionPointDefinition,
-	index: number,
-	adapterId: string,
+  point: AdapterExecutionPointDefinition,
+  index: number,
+  adapterId: string,
 ): void {
-	const prefix = `Execution point ${index} in adapter "${adapterId}"`;
+  const prefix = `Execution point ${index} in adapter "${adapterId}"`;
 
-	if (!point.name || typeof point.name !== "string") {
-		throw new Error(`${prefix} must have a valid 'name' string`);
-	}
+  if (!point.name || typeof point.name !== "string") {
+    throw new Error(`${prefix} must have a valid 'name' string`);
+  }
 
-	if (
-		typeof point.stage !== "number" ||
-		!VALID_STAGES.includes(point.stage as SatpStage)
-	) {
-		throw new Error(
-			`${prefix} must have a valid 'stage' number (0-3), got: ${point.stage}`,
-		);
-	}
+  if (
+    typeof point.stage !== "number" ||
+    !VALID_STAGES.includes(point.stage as SatpStage)
+  ) {
+    throw new Error(
+      `${prefix} must have a valid 'stage' number (0-3), got: ${point.stage}`,
+    );
+  }
 
-	// Validate step tag against SATP_PROTOCOL_MAP for this stage
-	if (!point.step || typeof point.step !== "string") {
-		throw new Error(`${prefix} must have a valid 'step' string`);
-	}
+  // Validate step tag against SATP_PROTOCOL_MAP for this stage
+  if (!point.step || typeof point.step !== "string") {
+    throw new Error(`${prefix} must have a valid 'step' string`);
+  }
 
-	const validStepTags = getValidStepTagsForStage(point.stage as SatpStage);
-	if (!validStepTags.includes(point.step as SatpStepTag)) {
-		throw new Error(
-			`${prefix} has invalid step "${point.step}" for stage ${point.stage}. Valid steps: ${validStepTags.join(", ")}`,
-		);
-	}
+  const validStepTags = getValidStepTagsForStage(point.stage as SatpStage);
+  if (!validStepTags.includes(point.step as SatpStepTag)) {
+    throw new Error(
+      `${prefix} has invalid step "${point.step}" for stage ${point.stage}. Valid steps: ${validStepTags.join(", ")}`,
+    );
+  }
 
-	if (
-		!point.point ||
-		typeof point.point !== "string" ||
-		!VALID_EXECUTION_STEPS.includes(point.point as StageExecutionStep)
-	) {
-		throw new Error(
-			`${prefix} has invalid point "${point.point}". Must be one of: ${VALID_EXECUTION_STEPS.join(", ")}`,
-		);
-	}
+  if (
+    !point.point ||
+    typeof point.point !== "string" ||
+    !VALID_EXECUTION_STEPS.includes(point.point as StageExecutionStep)
+  ) {
+    throw new Error(
+      `${prefix} has invalid point "${point.point}". Must be one of: ${VALID_EXECUTION_STEPS.join(", ")}`,
+    );
+  }
 }
 
 /**
@@ -223,56 +223,56 @@ function validateExecutionPoint(
  * @throws {Error} When webhook configuration is invalid
  */
 function validateWebhooks(adapter: AdapterDefinition): void {
-	const { outboundWebhook, inboundWebhook } = adapter;
+  const { outboundWebhook, inboundWebhook } = adapter;
 
-	if (outboundWebhook?.url) {
-		try {
-			new URL(outboundWebhook.url);
-		} catch {
-			throw new Error(
-				`Adapter "${adapter.id}" outboundWebhook.url must be a valid URL, got: "${outboundWebhook.url}"`,
-			);
-		}
+  if (outboundWebhook?.url) {
+    try {
+      new URL(outboundWebhook.url);
+    } catch {
+      throw new Error(
+        `Adapter "${adapter.id}" outboundWebhook.url must be a valid URL, got: "${outboundWebhook.url}"`,
+      );
+    }
 
-		if (
-			outboundWebhook.timeoutMs !== undefined &&
-			(typeof outboundWebhook.timeoutMs !== "number" ||
-				outboundWebhook.timeoutMs <= 0)
-		) {
-			throw new Error(
-				`Adapter "${adapter.id}" outboundWebhook.timeoutMs must be a positive number`,
-			);
-		}
+    if (
+      outboundWebhook.timeoutMs !== undefined &&
+      (typeof outboundWebhook.timeoutMs !== "number" ||
+        outboundWebhook.timeoutMs <= 0)
+    ) {
+      throw new Error(
+        `Adapter "${adapter.id}" outboundWebhook.timeoutMs must be a positive number`,
+      );
+    }
 
-		if (
-			outboundWebhook.retryAttempts !== undefined &&
-			(typeof outboundWebhook.retryAttempts !== "number" ||
-				outboundWebhook.retryAttempts < 0)
-		) {
-			throw new Error(
-				`Adapter "${adapter.id}" outboundWebhook.retryAttempts must be a non-negative number`,
-			);
-		}
-	}
+    if (
+      outboundWebhook.retryAttempts !== undefined &&
+      (typeof outboundWebhook.retryAttempts !== "number" ||
+        outboundWebhook.retryAttempts < 0)
+    ) {
+      throw new Error(
+        `Adapter "${adapter.id}" outboundWebhook.retryAttempts must be a non-negative number`,
+      );
+    }
+  }
 
-	if (inboundWebhook) {
-		const suffix = inboundWebhook.urlSuffix;
-		if (!suffix || typeof suffix !== "string" || !suffix.startsWith("/")) {
-			throw new Error(
-				`Adapter "${adapter.id}" inboundWebhook.urlSuffix must be a string starting with '/', got: "${suffix}"`,
-			);
-		}
+  if (inboundWebhook) {
+    const suffix = inboundWebhook.urlSuffix;
+    if (!suffix || typeof suffix !== "string" || !suffix.startsWith("/")) {
+      throw new Error(
+        `Adapter "${adapter.id}" inboundWebhook.urlSuffix must be a string starting with '/', got: "${suffix}"`,
+      );
+    }
 
-		if (
-			inboundWebhook.inboundDeadlineMs !== undefined &&
-			(typeof inboundWebhook.inboundDeadlineMs !== "number" ||
-				inboundWebhook.inboundDeadlineMs <= 0)
-		) {
-			throw new Error(
-				`Adapter "${adapter.id}" inboundWebhook.inboundDeadlineMs must be a positive number`,
-			);
-		}
-	}
+    if (
+      inboundWebhook.inboundDeadlineMs !== undefined &&
+      (typeof inboundWebhook.inboundDeadlineMs !== "number" ||
+        inboundWebhook.inboundDeadlineMs <= 0)
+    ) {
+      throw new Error(
+        `Adapter "${adapter.id}" inboundWebhook.inboundDeadlineMs must be a positive number`,
+      );
+    }
+  }
 }
 
 /**
@@ -282,56 +282,59 @@ function validateWebhooks(adapter: AdapterDefinition): void {
  * @param seenIds - Set of already-seen adapter IDs for uniqueness check
  * @throws {Error} When adapter definition is invalid
  */
-function validateAdapter(adapter: AdapterDefinition, seenIds: Set<string>): void {
-	if (!adapter.id || typeof adapter.id !== "string") {
-		throw new Error("Adapter must have a valid 'id' string");
-	}
+function validateAdapter(
+  adapter: AdapterDefinition,
+  seenIds: Set<string>,
+): void {
+  if (!adapter.id || typeof adapter.id !== "string") {
+    throw new Error("Adapter must have a valid 'id' string");
+  }
 
-	if (seenIds.has(adapter.id)) {
-		throw new Error(`Duplicate adapter id "${adapter.id}" found`);
-	}
-	seenIds.add(adapter.id);
+  if (seenIds.has(adapter.id)) {
+    throw new Error(`Duplicate adapter id "${adapter.id}" found`);
+  }
+  seenIds.add(adapter.id);
 
-	if (!adapter.name || typeof adapter.name !== "string") {
-		throw new Error(`Adapter "${adapter.id}" must have a valid 'name' string`);
-	}
+  if (!adapter.name || typeof adapter.name !== "string") {
+    throw new Error(`Adapter "${adapter.id}" must have a valid 'name' string`);
+  }
 
-	if (typeof adapter.active !== "boolean") {
-		throw new Error(`Adapter "${adapter.id}" must have a boolean 'active' field`);
-	}
+  if (typeof adapter.active !== "boolean") {
+    throw new Error(
+      `Adapter "${adapter.id}" must have a boolean 'active' field`,
+    );
+  }
 
-	if (!adapter.executionPoints || !Array.isArray(adapter.executionPoints)) {
-		throw new Error(
-			`Adapter "${adapter.id}" must have an 'executionPoints' array`,
-		);
-	}
+  if (!adapter.executionPoints || !Array.isArray(adapter.executionPoints)) {
+    throw new Error(
+      `Adapter "${adapter.id}" must have an 'executionPoints' array`,
+    );
+  }
 
-	if (adapter.executionPoints.length === 0) {
-		throw new Error(
-			`Adapter "${adapter.id}" must have at least one execution point`,
-		);
-	}
+  if (adapter.executionPoints.length === 0) {
+    throw new Error(
+      `Adapter "${adapter.id}" must have at least one execution point`,
+    );
+  }
 
-	adapter.executionPoints.forEach((point, index) => {
-		validateExecutionPoint(point, index, adapter.id);
-	});
+  adapter.executionPoints.forEach((point, index) => {
+    validateExecutionPoint(point, index, adapter.id);
+  });
 
-	if (
-		adapter.priority !== undefined &&
-		(typeof adapter.priority !== "number" || adapter.priority < 0)
-	) {
-		throw new Error(
-			`Adapter "${adapter.id}" priority must be a non-negative number`,
-		);
-	}
+  if (
+    adapter.priority !== undefined &&
+    (typeof adapter.priority !== "number" || adapter.priority < 0)
+  ) {
+    throw new Error(
+      `Adapter "${adapter.id}" priority must be a non-negative number`,
+    );
+  }
 
-	validateWebhooks(adapter);
+  validateWebhooks(adapter);
 
-	if (!adapter.outboundWebhook && !adapter.inboundWebhook) {
-		console.warn(
-			`Warning: Adapter "${adapter.id}" has no webhooks configured`,
-		);
-	}
+  if (!adapter.outboundWebhook && !adapter.inboundWebhook) {
+    console.warn(`Warning: Adapter "${adapter.id}" has no webhooks configured`);
+  }
 }
 
 /**
@@ -341,43 +344,46 @@ function validateAdapter(adapter: AdapterDefinition, seenIds: Set<string>): void
  * @throws {Error} When global defaults are invalid
  */
 function validateGlobalDefaults(global: GlobalAdapterDefaults): void {
-	if (
-		global.timeoutMs !== undefined &&
-		(typeof global.timeoutMs !== "number" || global.timeoutMs <= 0)
-	) {
-		throw new Error("Global timeoutMs must be a positive number");
-	}
+  if (
+    global.timeoutMs !== undefined &&
+    (typeof global.timeoutMs !== "number" || global.timeoutMs <= 0)
+  ) {
+    throw new Error("Global timeoutMs must be a positive number");
+  }
 
-	if (
-		global.retryAttempts !== undefined &&
-		(typeof global.retryAttempts !== "number" || global.retryAttempts < 0)
-	) {
-		throw new Error("Global retryAttempts must be a non-negative number");
-	}
+  if (
+    global.retryAttempts !== undefined &&
+    (typeof global.retryAttempts !== "number" || global.retryAttempts < 0)
+  ) {
+    throw new Error("Global retryAttempts must be a non-negative number");
+  }
 
-	if (
-		global.retryDelayMs !== undefined &&
-		(typeof global.retryDelayMs !== "number" || global.retryDelayMs < 0)
-	) {
-		throw new Error("Global retryDelayMs must be a non-negative number");
-	}
+  if (
+    global.retryDelayMs !== undefined &&
+    (typeof global.retryDelayMs !== "number" || global.retryDelayMs < 0)
+  ) {
+    throw new Error("Global retryDelayMs must be a non-negative number");
+  }
 
-	if (global.logLevel !== undefined && !VALID_LOG_LEVELS.includes(global.logLevel)) {
-		throw new Error(
-			`Global logLevel must be one of: ${VALID_LOG_LEVELS.join(", ")}`,
-		);
-	}
+  if (
+    global.logLevel !== undefined &&
+    !VALID_LOG_LEVELS.includes(global.logLevel)
+  ) {
+    throw new Error(
+      `Global logLevel must be one of: ${VALID_LOG_LEVELS.join(", ")}`,
+    );
+  }
 
-	if (global.headers !== undefined) {
-		if (typeof global.headers !== "object" || global.headers === null) {
-			throw new Error("Global headers must be an object");
-		}
-		for (const [key, value] of Object.entries(global.headers)) {
-			if (typeof value !== "string") {
-				throw new Error(`Global header "${key}" value must be a string`);
-			}
-		}
-	}
+  if (global.headers !== undefined) {
+    if (typeof global.headers !== "object" || global.headers === null) {
+      throw new Error("Global headers must be an object");
+    }
+    for (const [key, value] of Object.entries(global.headers)) {
+      if (typeof value !== "string") {
+        throw new Error(`Global header "${key}" value must be a string`);
+      }
+    }
+  }
 }
 
 /**
@@ -398,35 +404,35 @@ function validateGlobalDefaults(global: GlobalAdapterDefaults): void {
  * ```
  */
 export function validateAdapterConfig(
-	options: ValidateAdapterConfigOptions,
+  options: ValidateAdapterConfigOptions,
 ): AdapterLayerConfiguration | undefined {
-	const { configValue } = options;
+  const { configValue } = options;
 
-	if (!configValue) {
-		return undefined;
-	}
+  if (!configValue) {
+    return undefined;
+  }
 
-	if (typeof configValue !== "object" || configValue === null) {
-		throw new Error("Adapter configuration must be an object when provided");
-	}
+  if (typeof configValue !== "object" || configValue === null) {
+    throw new Error("Adapter configuration must be an object when provided");
+  }
 
-	if (!configValue.adapters || !Array.isArray(configValue.adapters)) {
-		throw new Error("Adapter configuration must contain 'adapters' array");
-	}
+  if (!configValue.adapters || !Array.isArray(configValue.adapters)) {
+    throw new Error("Adapter configuration must contain 'adapters' array");
+  }
 
-	// Track seen adapter IDs for uniqueness check
-	const seenIds = new Set<string>();
+  // Track seen adapter IDs for uniqueness check
+  const seenIds = new Set<string>();
 
-	for (const adapter of configValue.adapters) {
-		validateAdapter(adapter, seenIds);
-	}
+  for (const adapter of configValue.adapters) {
+    validateAdapter(adapter, seenIds);
+  }
 
-	// Validate global defaults (optional)
-	if (configValue.global) {
-		validateGlobalDefaults(configValue.global);
-	}
+  // Validate global defaults (optional)
+  if (configValue.global) {
+    validateGlobalDefaults(configValue.global);
+  }
 
-	return configValue;
+  return configValue;
 }
 
 /**
@@ -450,39 +456,41 @@ export function validateAdapterConfig(
  * ```
  */
 export function loadAdapterConfigFromYaml(
-	configPath: string,
+  configPath: string,
 ): AdapterLayerConfiguration {
-	const fnTag = "loadAdapterConfigFromYaml()";
+  const fnTag = "loadAdapterConfigFromYaml()";
 
-	if (!fs.existsSync(configPath)) {
-		throw new Error(`${fnTag} Adapter configuration file not found: ${configPath}`);
-	}
+  if (!fs.existsSync(configPath)) {
+    throw new Error(
+      `${fnTag} Adapter configuration file not found: ${configPath}`,
+    );
+  }
 
-	let fileContents: string;
-	try {
-		fileContents = fs.readFileSync(configPath, "utf8");
-	} catch (err) {
-		throw new Error(
-			`${fnTag} Failed to read adapter configuration file: ${configPath}. Error: ${err}`,
-		);
-	}
+  let fileContents: string;
+  try {
+    fileContents = fs.readFileSync(configPath, "utf8");
+  } catch (err) {
+    throw new Error(
+      `${fnTag} Failed to read adapter configuration file: ${configPath}. Error: ${err}`,
+    );
+  }
 
-	let parsed: unknown;
-	try {
-		parsed = yaml.load(fileContents);
-	} catch (err) {
-		throw new Error(
-			`${fnTag} Failed to parse YAML configuration: ${configPath}. Error: ${err}`,
-		);
-	}
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(fileContents);
+  } catch (err) {
+    throw new Error(
+      `${fnTag} Failed to parse YAML configuration: ${configPath}. Error: ${err}`,
+    );
+  }
 
-	if (!parsed || typeof parsed !== "object") {
-		throw new Error(
-			`${fnTag} Invalid adapter configuration: file must contain a valid YAML object`,
-		);
-	}
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(
+      `${fnTag} Invalid adapter configuration: file must contain a valid YAML object`,
+    );
+  }
 
-	return parsed as AdapterLayerConfiguration;
+  return parsed as AdapterLayerConfiguration;
 }
 
 /**
@@ -508,18 +516,16 @@ export function loadAdapterConfigFromYaml(
  * ```
  */
 export function loadAndValidateAdapterConfig(
-	configPath: string,
-	optional: boolean = false,
+  configPath: string,
+  optional: boolean = false,
 ): AdapterLayerConfiguration | undefined {
-	if (!fs.existsSync(configPath)) {
-		if (optional) {
-			return undefined;
-		}
-		throw new Error(
-			`Adapter configuration file not found: ${configPath}`,
-		);
-	}
+  if (!fs.existsSync(configPath)) {
+    if (optional) {
+      return undefined;
+    }
+    throw new Error(`Adapter configuration file not found: ${configPath}`);
+  }
 
-	const config = loadAdapterConfigFromYaml(configPath);
-	return validateAdapterConfig({ configValue: config });
+  const config = loadAdapterConfigFromYaml(configPath);
+  return validateAdapterConfig({ configValue: config });
 }

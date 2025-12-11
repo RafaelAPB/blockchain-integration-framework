@@ -1,6 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
-import { Stage } from "../../../../main/typescript/types/satp-protocol";
 import type {
   AdapterDefinition,
   AdapterLayerConfiguration,
@@ -34,7 +33,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "timeout-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -105,7 +103,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "retry-timeout-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -179,7 +176,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "bad-request-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -241,7 +237,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "unauthorized-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -300,7 +295,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "server-error-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -359,7 +353,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "service-unavailable-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -430,7 +423,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "network-failure-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -485,7 +477,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "dns-failure-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -542,7 +533,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "halt-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -614,7 +604,6 @@ describe("AdapterManager negative test cases", () => {
           priority: 1,
           executionPoints: [
             {
-              name: "first-halt-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -635,7 +624,6 @@ describe("AdapterManager negative test cases", () => {
           priority: 2,
           executionPoints: [
             {
-              name: "second-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -703,7 +691,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "non-json-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -768,7 +755,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "empty-response-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -834,7 +820,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "lenient-test",
               stage: 0,
               step: "newSessionRequest",
               point: "before",
@@ -926,7 +911,6 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              name: "strict-inbound-test",
               stage: 0,
               step: "newSessionRequest",
               point: "after",

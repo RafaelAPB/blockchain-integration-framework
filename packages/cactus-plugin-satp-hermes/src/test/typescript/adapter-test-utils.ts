@@ -12,6 +12,11 @@ import { loadAdapterConfigFromYaml as loadYaml } from "../../main/typescript/ser
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import type { LogLevelDesc } from "@hyperledger/cactus-common";
+import {
+  startTestServer,
+  stopTestServer,
+  type TestServerInfo,
+} from "./adapter-test-server";
 
 // ============================================================================
 // Common Test Constants
@@ -67,14 +72,13 @@ export const STAGE0_NEW_SESSION_REQUEST_CONFIG: AdapterLayerConfiguration = {
       priority: 1,
       executionPoints: [
         {
-          name: "validate newSessionRequest - before",
           stage: 0,
           step: "newSessionRequest",
           point: "before",
         },
       ],
       outboundWebhook: {
-        url: "https://webhook.phase0.omnumi.com/validate",
+        url: "http://localhost:9223/webhook/outbound/validate",
         method: "POST",
         timeoutMs: 5000,
         retryAttempts: 3,
@@ -93,7 +97,6 @@ export const STAGE0_NEW_SESSION_REQUEST_CONFIG: AdapterLayerConfiguration = {
       priority: 2,
       executionPoints: [
         {
-          name: "await approval newSessionRequest - after",
           stage: 0,
           step: "newSessionRequest",
           point: "after",
@@ -161,7 +164,6 @@ export function createAdapterHarness(
     active: overrides.adapterOverrides?.active ?? true,
     executionPoints: [
       {
-        name: "test-execution-point",
         stage,
         step: stepTag,
         point: stepOrder,
@@ -332,4 +334,99 @@ export function createNewSessionRequestHarness(
   const adapter = config.adapters[0];
 
   return { manager, fetchMock: mock, adapter, invocation };
+}
+
+// ============================================================================
+// Test Server Management
+// ============================================================================
+
+// Re-export TestServerInfo type for convenience
+export type { TestServerInfo };
+
+// Active test server instance (for cleanup)
+let activeTestServer: TestServerInfo | null = null;
+
+/**
+ * Start the adapter test server on a random available port.
+ * Uses port 0 to let the OS allocate an available port.
+ *
+ * @returns Promise resolving to TestServerInfo with port and baseUrl
+ */
+export async function startAdapterTestServer(): Promise<TestServerInfo> {
+  if (activeTestServer) {
+    // Server already running, return existing instance
+    return activeTestServer;
+  }
+  activeTestServer = await startTestServer();
+  return activeTestServer;
+}
+
+/**
+ * Stop the adapter test server and clean up resources.
+ * Should be called in afterAll() to ensure proper cleanup.
+ *
+ * @returns Promise that resolves when server is stopped
+ */
+export async function stopAdapterTestServer(): Promise<void> {
+  if (activeTestServer) {
+    await stopTestServer(activeTestServer);
+    activeTestServer = null;
+  }
+}
+
+/**
+ * Get the base URL of the currently running test server.
+ * Throws if no test server is running.
+ *
+ * @returns Base URL like "http://localhost:12345"
+ */
+export function getTestServerBaseUrl(): string {
+  if (!activeTestServer) {
+    throw new Error(
+      "Test server not running. Call startAdapterTestServer() first.",
+    );
+  }
+  return activeTestServer.baseUrl;
+}
+
+/**
+ * Patch adapter configuration to use the test server's dynamic port.
+ * Replaces http://localhost:9223 with the actual test server base URL.
+ *
+ * This must be called after startAdapterTestServer() and after loading
+ * the config from YAML.
+ *
+ * @param config - AdapterLayerConfiguration to patch
+ * @returns The patched configuration (same object, modified in place)
+ */
+export function patchConfigWithTestServerUrl(
+  config: AdapterLayerConfiguration,
+): AdapterLayerConfiguration {
+  const baseUrl = getTestServerBaseUrl();
+  const oldBaseUrl = "http://localhost:9223";
+
+  for (const adapter of config.adapters) {
+    if (adapter.outboundWebhook?.url?.startsWith(oldBaseUrl)) {
+      adapter.outboundWebhook.url = adapter.outboundWebhook.url.replace(
+        oldBaseUrl,
+        baseUrl,
+      );
+    }
+  }
+
+  return config;
+}
+
+/**
+ * Load adapter config from YAML and patch URLs for test server.
+ * Convenience function combining loadAdapterConfigFromYaml and patchConfigWithTestServerUrl.
+ *
+ * @param configName - Name of the YAML config file in fixtures directory
+ * @returns Patched AdapterLayerConfiguration
+ */
+export function loadAndPatchTestServerConfig(
+  configName: string,
+): AdapterLayerConfiguration {
+  const config = loadAdapterConfigFromYaml(configName);
+  return patchConfigWithTestServerUrl(config);
 }

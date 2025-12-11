@@ -572,10 +572,17 @@ export class Stage3SATPHandler implements SATPHandler {
         span.setAttribute("sessionId", session.getSessionId() || "");
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE3, "checkCommitPreparationRequest", "before", session, this.gatewayId, {
-            operation: "commitPreparation",
-            role: "server",
-          }),
+          buildAdapterPayload(
+            Stage.STAGE3,
+            "checkCommitPreparationRequest",
+            "before",
+            session,
+            this.gatewayId,
+            {
+              operation: "commitPreparation",
+              role: "server",
+            },
+          ),
         );
 
         await this.serverService.checkCommitPreparationRequest(req, session);
@@ -601,10 +608,17 @@ export class Stage3SATPHandler implements SATPHandler {
         saveMessageInSessionData(session.getServerSessionData(), message);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE3, "commitReadyResponse", "after", session, this.gatewayId, {
-            operation: "commitPreparation",
-            role: "server",
-          }),
+          buildAdapterPayload(
+            Stage.STAGE3,
+            "commitReadyResponse",
+            "after",
+            session,
+            this.gatewayId,
+            {
+              operation: "commitPreparation",
+              role: "server",
+            },
+          ),
         );
         attributes = collectSessionAttributes(session, "server");
 
@@ -735,10 +749,17 @@ export class Stage3SATPHandler implements SATPHandler {
         span.setAttribute("sessionId", session.getSessionId() || "");
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE3, "checkCommitFinalAssertionRequest", "before", session, this.gatewayId, {
-            operation: "commitFinalAssertion",
-            role: "server",
-          }),
+          buildAdapterPayload(
+            Stage.STAGE3,
+            "checkCommitFinalAssertionRequest",
+            "before",
+            session,
+            this.gatewayId,
+            {
+              operation: "commitFinalAssertion",
+              role: "server",
+            },
+          ),
         );
 
         await this.serverService.checkCommitFinalAssertionRequest(req, session);
@@ -765,10 +786,17 @@ export class Stage3SATPHandler implements SATPHandler {
         saveMessageInSessionData(session.getServerSessionData(), message);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE3, "commitFinalAcknowledgementReceiptResponse", "after", session, this.gatewayId, {
-            operation: "commitFinalAssertion",
-            role: "server",
-          }),
+          buildAdapterPayload(
+            Stage.STAGE3,
+            "commitFinalAcknowledgementReceiptResponse",
+            "after",
+            session,
+            this.gatewayId,
+            {
+              operation: "commitFinalAssertion",
+              role: "server",
+            },
+          ),
         );
 
         attributes = collectSessionAttributes(session, "server");
@@ -892,10 +920,17 @@ export class Stage3SATPHandler implements SATPHandler {
         span.setAttribute("sessionId", session.getSessionId() || "");
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE3, "checkTransferCompleteRequest", "before", session, this.gatewayId, {
-            operation: "transferComplete",
-            role: "server",
-          }),
+          buildAdapterPayload(
+            Stage.STAGE3,
+            "checkTransferCompleteRequest",
+            "before",
+            session,
+            this.gatewayId,
+            {
+              operation: "transferComplete",
+              role: "server",
+            },
+          ),
         );
 
         await this.serverService.checkTransferCompleteRequest(req, session);
@@ -917,10 +952,17 @@ export class Stage3SATPHandler implements SATPHandler {
         saveMessageInSessionData(session.getServerSessionData(), message);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE3, "transferCompleteResponse", "after", session, this.gatewayId, {
-            operation: "transferComplete",
-            role: "server",
-          }),
+          buildAdapterPayload(
+            Stage.STAGE3,
+            "transferCompleteResponse",
+            "after",
+            session,
+            this.gatewayId,
+            {
+              operation: "transferComplete",
+              role: "server",
+            },
+          ),
         );
 
         attributes = collectSessionAttributes(session, "server");
@@ -959,7 +1001,7 @@ export class Stage3SATPHandler implements SATPHandler {
           Number(
             JSON.parse(
               session.getServerSessionData().mintAssertionClaim?.receipt ??
-              "{}",
+                "{}",
             ).gas ?? 0,
           ) +
           Number(
@@ -1173,10 +1215,17 @@ export class Stage3SATPHandler implements SATPHandler {
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE3, "commitPreparation", "before", session, this.gatewayId, {
-              operation: "commitPreparation",
-              role: "client",
-            }),
+            buildAdapterPayload(
+              Stage.STAGE3,
+              "commitPreparation",
+              "before",
+              session,
+              this.gatewayId,
+              {
+                operation: "commitPreparation",
+                role: "client",
+              },
+            ),
           );
 
           await this.clientService.checkLockAssertionResponse(
@@ -1201,10 +1250,17 @@ export class Stage3SATPHandler implements SATPHandler {
           saveMessageInSessionData(session.getClientSessionData(), request);
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE3, "commitPreparation", "after", session, this.gatewayId, {
-              operation: "commitPreparation",
-              role: "client",
-            }),
+            buildAdapterPayload(
+              Stage.STAGE3,
+              "commitPreparation",
+              "after",
+              session,
+              this.gatewayId,
+              {
+                operation: "commitPreparation",
+                role: "client",
+              },
+            ),
           );
 
           return request;
@@ -1333,10 +1389,17 @@ export class Stage3SATPHandler implements SATPHandler {
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE3, "commitFinalAssertion", "before", session, this.gatewayId, {
-              operation: "commitFinalAssertion",
-              role: "client",
-            }),
+            buildAdapterPayload(
+              Stage.STAGE3,
+              "commitFinalAssertion",
+              "before",
+              session,
+              this.gatewayId,
+              {
+                operation: "commitFinalAssertion",
+                role: "client",
+              },
+            ),
           );
 
           await this.clientService.checkCommitPreparationResponse(
@@ -1363,10 +1426,17 @@ export class Stage3SATPHandler implements SATPHandler {
           saveMessageInSessionData(session.getClientSessionData(), request);
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE3, "commitFinalAssertion", "after", session, this.gatewayId, {
-              operation: "commitFinalAssertion",
-              role: "client",
-            }),
+            buildAdapterPayload(
+              Stage.STAGE3,
+              "commitFinalAssertion",
+              "after",
+              session,
+              this.gatewayId,
+              {
+                operation: "commitFinalAssertion",
+                role: "client",
+              },
+            ),
           );
 
           const senderAssetAmount = Number(
@@ -1494,10 +1564,17 @@ export class Stage3SATPHandler implements SATPHandler {
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE3, "checkCommitFinalAssertionResponse", "before", session, this.gatewayId, {
-              operation: "transferComplete",
-              role: "client",
-            }),
+            buildAdapterPayload(
+              Stage.STAGE3,
+              "checkCommitFinalAssertionResponse",
+              "before",
+              session,
+              this.gatewayId,
+              {
+                operation: "transferComplete",
+                role: "client",
+              },
+            ),
           );
 
           await this.clientService.checkCommitFinalAssertionResponse(
@@ -1522,10 +1599,17 @@ export class Stage3SATPHandler implements SATPHandler {
           saveMessageInSessionData(session.getClientSessionData(), request);
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE3, "transferComplete", "after", session, this.gatewayId, {
-              operation: "transferComplete",
-              role: "client",
-            }),
+            buildAdapterPayload(
+              Stage.STAGE3,
+              "transferComplete",
+              "after",
+              session,
+              this.gatewayId,
+              {
+                operation: "transferComplete",
+                role: "client",
+              },
+            ),
           );
 
           return request;
@@ -1666,10 +1750,17 @@ export class Stage3SATPHandler implements SATPHandler {
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE3, "checkTransferCompleteResponse", "before", session, this.gatewayId, {
-              operation: "transferComplete",
-              role: "client",
-            }),
+            buildAdapterPayload(
+              Stage.STAGE3,
+              "checkTransferCompleteResponse",
+              "before",
+              session,
+              this.gatewayId,
+              {
+                operation: "transferComplete",
+                role: "client",
+              },
+            ),
           );
 
           await this.clientService.checkTransferCompleteResponse(
@@ -1708,13 +1799,13 @@ export class Stage3SATPHandler implements SATPHandler {
             Number(
               JSON.parse(
                 session.getClientSessionData().lockAssertionClaim?.receipt ??
-                "{}",
+                  "{}",
               ).gas ?? 0,
             ) +
             Number(
               JSON.parse(
                 session.getClientSessionData().burnAssertionClaim?.receipt ??
-                "{}",
+                  "{}",
               ).gas ?? 0,
             );
 
@@ -1740,9 +1831,9 @@ export class Stage3SATPHandler implements SATPHandler {
             `${fnTag}, Error: ${new FailedToProcessError(
               fnTag,
               "Checking " +
-              getMessageTypeName(
-                MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE,
-              ),
+                getMessageTypeName(
+                  MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE,
+                ),
               error,
             )}`,
           );
@@ -1771,7 +1862,7 @@ export class Stage3SATPHandler implements SATPHandler {
           throw new FailedToProcessError(
             fnTag,
             "Checking " +
-            getMessageTypeName(MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE),
+              getMessageTypeName(MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE),
             error,
           );
         }

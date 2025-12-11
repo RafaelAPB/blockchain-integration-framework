@@ -178,8 +178,6 @@ export interface AdapterWebhookConfig {
  * Execution point definition - where an adapter should execute.
  */
 export interface AdapterExecutionPointDefinition {
-  /** Human-readable name for this execution point. */
-  name: string;
   /** SATP stage number (0-3) */
   stage: number;
   /** Stage-specific step identifier (e.g., 'checkNewSessionRequest', 'newSessionResponse') */
@@ -264,8 +262,6 @@ export interface AdapterExecutionBinding {
   stepOrder: StageExecutionStep;
   /** Priority for ordering multiple adapters at same execution point */
   priority: number;
-  /** Execution point name for logging */
-  executionPointName: string;
 }
 
 /**

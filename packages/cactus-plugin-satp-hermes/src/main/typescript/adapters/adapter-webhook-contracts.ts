@@ -232,7 +232,7 @@ export abstract class AdapterWebhook<
 export abstract class PreStageWebhook extends AdapterWebhook<
   PreStageWebhookInput,
   PreStageWebhookOutput
-> { }
+> {}
 
 /**
  * Abstract hook executed while a SATP stage handler processes its core logic.
@@ -240,7 +240,7 @@ export abstract class PreStageWebhook extends AdapterWebhook<
 export abstract class DuringStageWebhook extends AdapterWebhook<
   DuringStageWebhookInput,
   DuringStageWebhookOutput
-> { }
+> {}
 
 /**
  * Abstract hook executed after a SATP stage handler completes and emits results.
@@ -248,4 +248,4 @@ export abstract class DuringStageWebhook extends AdapterWebhook<
 export abstract class PostStageWebhook extends AdapterWebhook<
   PostStageWebhookInput,
   PostStageWebhookOutput
-> { }
+> {}

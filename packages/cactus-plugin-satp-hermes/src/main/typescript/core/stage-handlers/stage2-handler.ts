@@ -527,7 +527,14 @@ export class Stage2SATPHandler implements SATPHandler {
         span.setAttribute("sessionId", session.getSessionId() || "");
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE2, "checkLockAssertionRequest", "before", session, this.gatewayId, { operation: "lockAssertion", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE2,
+            "checkLockAssertionRequest",
+            "before",
+            session,
+            this.gatewayId,
+            { operation: "lockAssertion", role: "server" },
+          ),
         );
 
         await this.serverService.checkLockAssertionRequest(req, session);
@@ -573,7 +580,14 @@ export class Stage2SATPHandler implements SATPHandler {
         saveMessageInSessionData(session.getServerSessionData(), message);
 
         await this.adapterManager?.executeAdaptersOrSkip(
-          buildAdapterPayload(Stage.STAGE2, "lockAssertionResponse", "after", session, this.gatewayId, { operation: "lockAssertion", role: "server" }),
+          buildAdapterPayload(
+            Stage.STAGE2,
+            "lockAssertionResponse",
+            "after",
+            session,
+            this.gatewayId,
+            { operation: "lockAssertion", role: "server" },
+          ),
         );
 
         return message;
@@ -816,7 +830,14 @@ export class Stage2SATPHandler implements SATPHandler {
           span.setAttribute("sessionId", session.getSessionId() || "");
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE2, "checkTransferCommenceResponse", "before", session, this.gatewayId, { operation: "lockAssertion", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE2,
+              "checkTransferCommenceResponse",
+              "before",
+              session,
+              this.gatewayId,
+              { operation: "lockAssertion", role: "client" },
+            ),
           );
 
           await this.clientService.checkTransferCommenceResponse(
@@ -843,7 +864,14 @@ export class Stage2SATPHandler implements SATPHandler {
           saveMessageInSessionData(session.getClientSessionData(), request);
 
           await this.adapterManager?.executeAdaptersOrSkip(
-            buildAdapterPayload(Stage.STAGE2, "lockAssertionRequest", "after", session, this.gatewayId, { operation: "lockAssertion", role: "client" }),
+            buildAdapterPayload(
+              Stage.STAGE2,
+              "lockAssertionRequest",
+              "after",
+              session,
+              this.gatewayId,
+              { operation: "lockAssertion", role: "client" },
+            ),
           );
 
           return request;

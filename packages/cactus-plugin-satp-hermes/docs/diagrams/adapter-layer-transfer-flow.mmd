@@ -1,0 +1,48 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'12px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#1e40af','primaryTextColor':'#1f2937','primaryBorderColor':'#1e3a8a','lineColor':'#3b82f6','secondaryColor':'#dbeafe','tertiaryColor':'#eff6ff', 'actorTextColor':'#1f2937', 'actorBkg':'#dbeafe', 'actorBorder':'#1e40af', 'signalColor':'#1f2937', 'signalTextColor':'#1f2937', 'noteBkgColor':'#fef3c7', 'noteTextColor':'#1f2937', 'noteBorderColor':'#d97706'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant BLO as Business Logic<br/>Orchestrator
+    participant TM as Transfer<br/>Manager
+    participant SM as SATP<br/>Manager
+    participant SH as Stage<br/>Handler
+    participant AM as Adapter<br/>Manager
+    participant SS as Stage<br/>Service
+    participant Ext as External<br/>Webhook
+
+    Note over BLO,Ext: Transfer Flow with Adapter Enforcement
+
+    BLO->>TM: initiateTransfer(request)
+    TM->>SM: startSatpSession(context)
+    
+    rect rgb(239, 246, 255)
+        Note over SM,AM: Stage 0 - newSessionRequest
+        SM->>SH: handleStage0()
+        
+        SH->>AM: executeAdapters(stage:0, step:newSessionRequest, point:before)
+        
+        rect rgb(254, 249, 195)
+            Note over AM,Ext: Outbound Webhook Execution
+            AM->>AM: findBindings(0:newSessionRequest:before)
+            AM->>Ext: POST /webhook/outbound
+            Ext-->>AM: 200 OK
+            AM-->>SH: OutboundResult: OK
+        end
+        
+        SH->>SS: newSessionRequest()
+        SS-->>SH: NewSessionResponse
+        
+        SH->>AM: executeAdapters(stage:0, step:newSessionRequest, point:after)
+        
+        rect rgb(254, 226, 226)
+            Note over AM,Ext: Inbound Webhook - SKIP (awaiting callback)
+            AM->>AM: findBindings(0:newSessionRequest:after)
+            AM-->>SH: disposition: SKIP<br/>awaiting external callback
+        end
+    end
+
+    SH-->>SM: stage0Complete
+    SM-->>TM: sessionCreated
+    TM-->>BLO: transferInitiated
+
+    Note over BLO,Ext: Continue to Stage 1, 2, 3...

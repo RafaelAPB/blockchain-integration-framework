@@ -1,0 +1,49 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'12px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#1e40af','primaryTextColor':'#1f2937','primaryBorderColor':'#1e3a8a','lineColor':'#3b82f6','secondaryColor':'#dbeafe','tertiaryColor':'#eff6ff', 'actorTextColor':'#1f2937', 'actorBkg':'#dbeafe', 'actorBorder':'#1e40af', 'signalColor':'#1f2937', 'signalTextColor':'#1f2937', 'noteBkgColor':'#fef3c7', 'noteTextColor':'#1f2937', 'noteBorderColor':'#d97706'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant SH as Stage Handler
+    participant AM as AdapterManager
+    participant AH as AdapterHookService
+    participant GW as Gateway<br/>Inbound Endpoint
+    participant EC as External<br/>Controller
+
+    Note over SH,EC: Inbound Webhook Flow - Blocking Approval Gate
+
+    rect rgb(239, 246, 255)
+        Note over SH,AM: Step 1: Adapter Execution Triggers Inbound Wait
+        SH->>AM: executeAdapters(stage:0, step:newSessionRequest, point:after)
+        AM->>AM: findBindings() returns inbound-approval adapter
+        AM->>AM: hasInboundWebhook = true
+        AM-->>SH: disposition: SKIP<br/>message: awaiting external controller callbacks
+    end
+
+    rect rgb(254, 249, 195)
+        Note over SH,AH: Step 2: Gateway Pauses and Waits
+        SH->>AH: registerPendingDecision(adapterId, sessionId)
+        AH->>AH: pendingDecisions.set(adapterId, Promise)
+        Note over AH: Transfer paused<br/>timeoutMs: 300000 (5 min)
+    end
+
+    rect rgb(220, 252, 231)
+        Note over GW,EC: Step 3: External Decision Arrives
+        EC->>GW: POST /api/v1/adapters/inbound/newSessionRequest-approval
+        Note over EC: Body: adapterId, continue, reason
+        GW->>GW: validateInboundDecision(payload)
+        GW->>AH: resolveDecision(adapterId, decision)
+    end
+
+    rect rgb(254, 226, 226)
+        Note over AH,SH: Step 4: Decision Applied
+        AH->>AH: pendingDecisions.get(adapterId).resolve(decision)
+        
+        alt continue: true
+            AH-->>SH: blockingDecision: CONTINUE<br/>reason: Approved by Alice
+            SH->>SH: Resume transfer flow
+        else continue: false
+            AH-->>SH: blockingDecision: ABORT<br/>reason: Failed sanctions check
+            SH->>SH: Abort transfer, log reason
+        end
+    end
+
+    Note over SH,EC: Transfer continues or aborts based on decision
