@@ -227,18 +227,6 @@ export {
 } from "./core/satp-protocol-map";
 
 /**
- * Execution Point Identification - Type for identifying adapter execution points.
- *
- * @description
- * Defines the structure used to identify specific execution points where adapters
- * should run during SATP protocol execution. Used by stage handlers to invoke
- * adapter hooks at specific stage-step-order combinations.
- *
- * @see {@link AdapterHookRunner} for adapter execution utility
- * @see {@link SATP_PROTOCOL_MAP} for valid stage-step combinations
- */
-export { ExecutionPointIdentification } from "./core/stage-handlers/utils/adapter-hook-runner";
-
 /**
  * Fabric Network Validation - Hyperledger Fabric configuration validation utilities.
  *

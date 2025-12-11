@@ -128,9 +128,7 @@ import { getMessageTypeName } from "../satp-utils";
 import { MonitorService } from "../../services/monitoring/monitor";
 import { context, SpanStatusCode } from "@opentelemetry/api";
 import type { AdapterManager } from "../../adapters/adapter-manager";
-import { AdapterHookService } from "../../adapters/adapter-hook-service";
 import type { SatpStageKey } from "../../adapters/api3-adapter-types";
-import { AdapterHookRunner } from "./utils/adapter-hook-runner";
 
 /**
  * SATP Stage 0 Handler for Transfer Initiation and Session Establishment.
@@ -304,8 +302,6 @@ export class Stage0SATPHandler implements SATPHandler {
    */
   private readonly monitorService: MonitorService;
   private readonly adapterManager?: AdapterManager;
-  private readonly adapterHooks: AdapterHookService;
-  private readonly adapterHookRunner: AdapterHookRunner;
   /**
    * Creates a new Stage 0 SATP handler instance.
    *
@@ -383,18 +379,6 @@ export class Stage0SATPHandler implements SATPHandler {
     this.logger.trace(`Initialized ${Stage0SATPHandler.CLASS_NAME}`);
     this.pubKeys = ops.pubkeys;
     this.gatewayId = ops.gatewayId;
-    this.adapterHooks = new AdapterHookService({
-      adapterManager: this.adapterManager,
-      logger: this.logger,
-      monitorService: this.monitorService,
-    });
-    this.adapterHookRunner = new AdapterHookRunner({
-      adapterManager: this.adapterManager,
-      adapterHooks: this.adapterHooks,
-      logger: this.logger,
-      gatewayId: this.gatewayId,
-      stage: 0,
-    });
   }
   /**
    * Retrieves the list of active session IDs managed by this handler.
@@ -544,8 +528,8 @@ export class Stage0SATPHandler implements SATPHandler {
         if (!this.pubKeys.has(req.gatewayId)) {
           throw new PubKeyError(fnTag);
         }
-        await this.adapterHookRunner.executeBefore(
-          { stage: 0, stepTag: "checkNewSessionRequest" },
+        await this.executeAdaptersBefore(
+          "checkNewSessionRequest",
           session,
           {
             operation: "newSession",
@@ -580,8 +564,8 @@ export class Stage0SATPHandler implements SATPHandler {
 
         saveMessageInSessionData(session.getServerSessionData(), message);
 
-        await this.adapterHookRunner.executeAfter(
-          { stage: 0, stepTag: "newSessionResponse" },
+        await this.executeAdaptersAfter(
+          "newSessionResponse",
           session,
           {
             operation: "newSession",
@@ -724,8 +708,8 @@ export class Stage0SATPHandler implements SATPHandler {
 
         span.setAttribute("sessionId", session.getSessionId() || "");
 
-        await this.adapterHookRunner.executeBefore(
-          { stage: 0, stepTag: "checkPreSATPTransferRequest" },
+        await this.executeAdaptersBefore(
+          "checkPreSATPTransferRequest",
           session,
           {
             operation: "preSATPTransfer",
@@ -755,8 +739,8 @@ export class Stage0SATPHandler implements SATPHandler {
 
         saveMessageInSessionData(session.getServerSessionData(), message);
 
-        await this.adapterHookRunner.executeAfter(
-          { stage: 0, stepTag: "preSATPTransferResponse" },
+        await this.executeAdaptersAfter(
+          "preSATPTransferResponse",
           session,
           {
             operation: "preSATPTransfer",
@@ -996,8 +980,8 @@ export class Stage0SATPHandler implements SATPHandler {
 
           span.setAttribute("sessionId", session.getSessionId() || "");
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 0, stepTag: "newSessionRequest" },
+          await this.executeAdaptersBefore(
+            "newSessionRequest",
             session,
             {
               operation: "newSession",
@@ -1019,8 +1003,8 @@ export class Stage0SATPHandler implements SATPHandler {
 
           saveMessageInSessionData(session.getClientSessionData(), message);
 
-          await this.adapterHookRunner.executeAfter(
-            { stage: 0, stepTag: "newSessionRequest" },
+          await this.executeAdaptersAfter(
+            "newSessionRequest",
             session,
             {
               operation: "newSession",
@@ -1165,8 +1149,8 @@ export class Stage0SATPHandler implements SATPHandler {
 
           span.setAttribute("sessionId", session.getSessionId() || "");
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 0, stepTag: "checkNewSessionResponse" },
+          await this.executeAdaptersBefore(
+            "checkNewSessionResponse",
             session,
             {
               operation: "preSATPTransfer",
@@ -1201,8 +1185,8 @@ export class Stage0SATPHandler implements SATPHandler {
 
           saveMessageInSessionData(session.getClientSessionData(), message);
 
-          await this.adapterHookRunner.executeAfter(
-            { stage: 0, stepTag: "preSATPTransferRequest" },
+          await this.executeAdaptersAfter(
+            "preSATPTransferRequest",
             session,
             {
               operation: "preSATPTransfer",
@@ -1234,5 +1218,91 @@ export class Stage0SATPHandler implements SATPHandler {
         span.end();
       }
     });
+  }
+
+  // ============================================================================
+  // ADAPTER EXECUTION HELPERS
+  // ============================================================================
+
+  private async executeAdaptersBefore(
+    stepTag: string,
+    session: SATPSession | undefined,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.adapterManager || !session) {
+      return;
+    }
+    const sessionId = session.getSessionId();
+    if (!sessionId) {
+      return;
+    }
+    const contextId = this.getContextIdSafe(session);
+    try {
+      await this.adapterManager.executeBeforeForSession(
+        0,
+        stepTag,
+        sessionId,
+        this.gatewayId,
+        contextId,
+        metadata,
+        payload,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Adapter hook execution failed for session ${sessionId} at stage=0 step=${stepTag} order=before: ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async executeAdaptersAfter(
+    stepTag: string,
+    session: SATPSession | undefined,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.adapterManager || !session) {
+      return;
+    }
+    const sessionId = session.getSessionId();
+    if (!sessionId) {
+      return;
+    }
+    const contextId = this.getContextIdSafe(session);
+    try {
+      await this.adapterManager.executeAfterForSession(
+        0,
+        stepTag,
+        sessionId,
+        this.gatewayId,
+        contextId,
+        metadata,
+        payload,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Adapter hook execution failed for session ${sessionId} at stage=0 step=${stepTag} order=after: ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private getContextIdSafe(session: SATPSession): string | undefined {
+    try {
+      if (session.hasServerSessionData()) {
+        return session.getServerSessionData().transferContextId;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      if (session.hasClientSessionData()) {
+        return session.getClientSessionData().transferContextId;
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
   }
 }

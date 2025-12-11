@@ -133,9 +133,7 @@ import { BridgeManagerClientInterface } from "../../cross-chain-mechanisms/bridg
 import { MonitorService } from "../../services/monitoring/monitor";
 import { context, SpanStatusCode } from "@opentelemetry/api";
 import type { AdapterManager } from "../../adapters/adapter-manager";
-import { AdapterHookService } from "../../adapters/adapter-hook-service";
 import type { SatpStageKey } from "../../adapters/api3-adapter-types";
-import { AdapterHookRunner } from "./utils/adapter-hook-runner";
 
 /**
  * SATP Stage 1 Handler for Transfer Proposal and Commencement Operations.
@@ -301,10 +299,6 @@ export class Stage1SATPHandler implements SATPHandler {
   private readonly adapterManager?: AdapterManager;
   /** Unique identifier for the hosting gateway instance. */
   private readonly gatewayId: string;
-  /** Adapter hook orchestrator for outbound/inbound webhooks. */
-  private readonly adapterHooks: AdapterHookService;
-  /** Shared adapter hook runner enforcing deadlines and context capture. */
-  private readonly adapterHookRunner: AdapterHookRunner;
 
   /**
    * Creates a new Stage 1 SATP handler instance.
@@ -383,18 +377,6 @@ export class Stage1SATPHandler implements SATPHandler {
       ops.loggerOptions,
       this.monitorService,
     );
-    this.adapterHooks = new AdapterHookService({
-      adapterManager: this.adapterManager,
-      logger: this.logger,
-      monitorService: this.monitorService,
-    });
-    this.adapterHookRunner = new AdapterHookRunner({
-      adapterManager: this.adapterManager,
-      adapterHooks: this.adapterHooks,
-      logger: this.logger,
-      gatewayId: this.gatewayId,
-      stage: 1,
-    });
     this.logger.trace(`Initialized ${Stage1SATPHandler.CLASS_NAME}`);
   }
 
@@ -528,8 +510,8 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new SessionNotFoundError(fnTag);
         }
 
-        await this.adapterHookRunner.executeBefore(
-          { stage: 1, stepTag: "checkTransferProposalRequestMessage" },
+        await this.executeAdaptersBefore(
+          "checkTransferProposalRequestMessage",
           session,
           {
             operation: "transferProposal",
@@ -608,8 +590,8 @@ export class Stage1SATPHandler implements SATPHandler {
           );
         }
 
-        await this.adapterHookRunner.executeAfter(
-          { stage: 1, stepTag: "transferProposalResponse" },
+        await this.executeAdaptersAfter(
+          "transferProposalResponse",
           session,
           {
             operation: "transferProposal",
@@ -725,8 +707,8 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new SessionNotFoundError(fnTag);
         }
 
-        await this.adapterHookRunner.executeBefore(
-          { stage: 1, stepTag: "checkTransferCommenceRequestMessage" },
+        await this.executeAdaptersBefore(
+          "checkTransferCommenceRequestMessage",
           session,
           {
             operation: "transferCommence",
@@ -802,8 +784,8 @@ export class Stage1SATPHandler implements SATPHandler {
           );
         }
 
-        await this.adapterHookRunner.executeAfter(
-          { stage: 1, stepTag: "transferCommenceResponse" },
+        await this.executeAdaptersAfter(
+          "transferCommenceResponse",
           session,
           {
             operation: "transferCommence",
@@ -1022,8 +1004,8 @@ export class Stage1SATPHandler implements SATPHandler {
             throw new Error(`${fnTag}, Session not found`);
           }
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 1, stepTag: "transferProposalRequest" },
+          await this.executeAdaptersBefore(
+            "transferProposalRequest",
             session,
             {
               operation: "transferProposal",
@@ -1056,8 +1038,8 @@ export class Stage1SATPHandler implements SATPHandler {
             requestTransferProposal,
           );
 
-          await this.adapterHookRunner.executeAfter(
-            { stage: 1, stepTag: "transferProposalRequest" },
+          await this.executeAdaptersAfter(
+            "transferProposalRequest",
             session,
             {
               operation: "transferProposal",
@@ -1208,8 +1190,8 @@ export class Stage1SATPHandler implements SATPHandler {
             throw new Error(`${fnTag}, Session not found`);
           }
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 1, stepTag: "transferCommenceRequest" },
+          await this.executeAdaptersBefore(
+            "transferCommenceRequest",
             session,
             {
               operation: "transferCommence",
@@ -1241,8 +1223,8 @@ export class Stage1SATPHandler implements SATPHandler {
             requestTransferCommence,
           );
 
-          await this.adapterHookRunner.executeAfter(
-            { stage: 1, stepTag: "transferCommenceRequest" },
+          await this.executeAdaptersAfter(
+            "transferCommenceRequest",
             session,
             {
               operation: "transferCommence",
@@ -1291,5 +1273,91 @@ export class Stage1SATPHandler implements SATPHandler {
         span.end();
       }
     });
+  }
+
+  // ============================================================================
+  // ADAPTER EXECUTION HELPERS
+  // ============================================================================
+
+  private async executeAdaptersBefore(
+    stepTag: string,
+    session: SATPSession,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.adapterManager || !session) {
+      return;
+    }
+    const sessionId = session.getSessionId();
+    if (!sessionId) {
+      return;
+    }
+    const contextId = this.getContextIdSafe(session);
+    try {
+      await this.adapterManager.executeBeforeForSession(
+        1,
+        stepTag,
+        sessionId,
+        this.gatewayId,
+        contextId,
+        metadata,
+        payload,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Adapter hook execution failed for session ${sessionId} at stage=1 step=${stepTag} order=before: ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async executeAdaptersAfter(
+    stepTag: string,
+    session: SATPSession,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.adapterManager || !session) {
+      return;
+    }
+    const sessionId = session.getSessionId();
+    if (!sessionId) {
+      return;
+    }
+    const contextId = this.getContextIdSafe(session);
+    try {
+      await this.adapterManager.executeAfterForSession(
+        1,
+        stepTag,
+        sessionId,
+        this.gatewayId,
+        contextId,
+        metadata,
+        payload,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Adapter hook execution failed for session ${sessionId} at stage=1 step=${stepTag} order=after: ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private getContextIdSafe(session: SATPSession): string | undefined {
+    try {
+      if (session.hasServerSessionData()) {
+        return session.getServerSessionData().transferContextId;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      if (session.hasClientSessionData()) {
+        return session.getClientSessionData().transferContextId;
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
   }
 }

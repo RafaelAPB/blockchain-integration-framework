@@ -149,7 +149,7 @@ export enum Stage {
  */
 export interface SATPServiceStatic {
   /** Constructor for creating new service instances */
-  new (options: ISATPServiceOptions): SATPService;
+  new(options: ISATPServiceOptions): SATPService;
   /** Service type classification (SERVER or CLIENT) */
   readonly SERVICE_TYPE: SATPServiceType;
   /** SATP protocol stage this service handles */
@@ -192,7 +192,7 @@ export interface SATPServiceStatic {
  */
 export interface ISATPHandler {
   /** Constructor for creating new handler instances */
-  new (options: SATPHandlerOptions): SATPHandler;
+  new(options: SATPHandlerOptions): SATPHandler;
   /** Retrieve list of active session identifiers */
   getHandlerSessions(): string[];
   /** Get the handler type identifier */

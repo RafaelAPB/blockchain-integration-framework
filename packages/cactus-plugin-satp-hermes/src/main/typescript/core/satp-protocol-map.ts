@@ -65,8 +65,10 @@ export type Stage0StepTag =
  *    - 7.6: Transfer Commence Message
  *    - 7.7: Commence Response Message (ACK-Commence)
  *
- * Note: checkTransferCommenceResponse is implemented in Stage2ClientService
- * as it bridges Stage 1 completion to Stage 2 initiation.
+ * **Implementation Note:**
+ * `checkTransferCommenceResponse` validates a Stage 1 message but is implemented
+ * in Stage2ClientService because it's called at the start of the Stage 2 client
+ * workflow (bridges Stage 1 completion to Stage 2 initiation).
  */
 export type Stage1StepTag =
 	// === Transfer Proposal Flow (sections 7.3-7.5) ===
@@ -78,7 +80,7 @@ export type Stage1StepTag =
 	| "transferCommenceRequest" // Client: sends TRANSFER_COMMENCE_REQUEST (7.6)
 	| "checkTransferCommenceRequestMessage" // Server: validates commence request
 	| "transferCommenceResponse" // Server: sends ACK-Commence response (7.7)
-	| "checkTransferCommenceResponse"; // Client: validates ACK-Commence response
+	| "checkTransferCommenceResponse"; // Client: validates ACK-Commence (impl in Stage2ClientService)
 
 /**
  * Step tags for Stage 2 - Asset Locking
@@ -86,13 +88,18 @@ export type Stage1StepTag =
  * Per IETF SATP Core spec section 8, Stage 2 includes:
  * - 8.1: Lock Assertion Message
  * - 8.2: Lock Assertion Receipt Message
+ *
+ * **Implementation Note:**
+ * `checkLockAssertionResponse` validates a Stage 2 message but is implemented
+ * in Stage3ClientService because it's called at the start of the Stage 3 client
+ * workflow (bridges Stage 2 completion to Stage 3 initiation).
  */
 export type Stage2StepTag =
 	| "lockAsset" // Client
 	| "lockAssertionRequest" // Client
 	| "checkLockAssertionRequest" // Server
 	| "lockAssertionResponse" // Server
-	| "checkLockAssertionResponse"; // Client
+	| "checkLockAssertionResponse"; // Client: validates ASSERTION_RECEIPT (impl in Stage3ClientService)
 
 /**
  * Step tags for Stage 3 - Commitment and Finalization
@@ -102,7 +109,7 @@ export type Stage3StepTag =
 	| "checkCommitPreparationRequest" // Server
 	| "mintAsset" // Server
 	| "commitReadyResponse" // Server
-	| "checkCommitReadyResponse" // Client
+	| "checkCommitPreparationResponse" // Client
 	| "burnAsset" // Client
 	| "commitFinalAssertion" // Client
 	| "checkCommitFinalAssertionRequest" // Server
@@ -384,7 +391,7 @@ export const SATP_PROTOCOL_MAP: Record<SatpStage, SatpStageDefinition> = {
 				messageType: MessageType.COMMIT_READY, // 14
 			},
 			{
-				tag: "checkCommitReadyResponse",
+				tag: "checkCommitPreparationResponse",
 				description: "Client validates commit ready response",
 				role: "client",
 				sequence: 5,

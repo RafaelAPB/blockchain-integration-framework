@@ -1,112 +1,37 @@
 /**
- * Adapter Hook Service - Runtime orchestration engine for webhook adapter execution
+ * Adapter Hook Service - Low-level webhook execution engine
  *
  * @fileoverview
- * Core execution engine responsible for invoking configured adapter webhooks during
- * SATP protocol execution. Coordinates outbound notifications and inbound approval
- * workflows with comprehensive retry logic, timeout enforcement, and telemetry collection.
+ * Core execution engine responsible for invoking adapter webhooks. This service
+ * handles only the HTTP execution aspects: outbound notifications and inbound
+ * approval workflows with retry logic, timeout enforcement, and telemetry.
  *
  * @description
  * **Service Responsibilities:**
- * - Query {@link AdapterManager} for applicable adapters based on stage/step
- * - Execute outbound webhooks asynchronously with HTTP client (fetch API)
+ * - Execute outbound webhooks with HTTP client (fetch API)
  * - Manage inbound webhook lifecycle (pause, await decision, resume/abort)
  * - Apply retry policies with exponential backoff for transient failures
  * - Enforce timeouts and deadlines to prevent hung transfers
  * - Collect execution metrics (latency, attempts, disposition) for observability
- * - Aggregate multi-adapter results into single {@link AdapterHookResult}
  *
- * **Execution Model:**
- * When a SATP stage reaches a configured step (before/during/after/rollback), the
- * Business Logic Orchestrator (BLO) invokes this service with stage context. The
- * service resolves the execution plan, filters active adapters, and invokes them
- * in priority order. Outbound hooks run fire-and-forget while inbound hooks block
- * until external decision arrives or timeout expires.
+ * **Usage Pattern:**
+ * This service is used internally by {@link AdapterManager}. The manager determines
+ * WHAT adapters to execute and WHEN, then calls this service to actually execute them.
  *
- * **Retry Strategy:**
- * Transient failures (network errors, 5xx responses, timeouts) trigger automatic
- * retries with configurable attempts and delay. The service respects adapter-level
- * retry settings but falls back to global defaults when unspecified. Permanent
- * failures (4xx responses, invalid URLs) do not retry.
- *
- * **Timeout Hierarchy:**
- * 1. Adapter-specific `timeoutMs` (highest precedence)
- * 2. Global configuration `global.timeoutMs`
- * 3. Service default `DEFAULT_TIMEOUT_MS` (30 seconds)
- *
- * **Integration Points:**
- * - {@link AdapterManager}: Configuration resolution and execution plan generation
- * - {@link MonitorService}: Telemetry and distributed tracing integration
- * - {@link BLODispatcher}: SATP stage coordination and hook invocation
- * - Fetch API: HTTP client for webhook invocations (node-fetch polyfill for Node < 18)
- *
- * @example
- * Triggering outbound hooks for Stage 1 lock notification:
- * ```typescript
- * const service = new AdapterHookService({
- *   adapterManager,
- *   logger,
- *   monitorService
- * });
- *
- * const result = await service.triggerOutboundHooks({
- *   stage: Stage.STAGE1,
- *   step: "after",
- *   sessionId: "sess-abc-123",
- *   contextId: "ctx-transfer-456",
- *   gatewayId: "gateway-1",
- *   payload: {
- *     lockTxHash: "0x789...",
- *     lockedAmount: "1000"
- *   }
- * });
- *
- * if (result) {
- *   logger.info(`Executed ${result.steps.length} outbound adapters`);
- *   result.steps.forEach(step => {
- *     logger.debug(`Adapter ${step.binding.adapterId}: ${step.disposition}`);
- *   });
- * }
- * ```
- *
- * @example
- * Awaiting inbound approval decision:
- * ```typescript
- * // Service blocks here until external controller POSTs decision
- * const result = await service.awaitInboundHooks({
- *   stage: Stage.STAGE2,
- *   step: "before",
- *   sessionId: "sess-xyz-789",
- *   gatewayId: "gateway-2",
- *   metadata: { transferAmountUsd: 250000 }
- * });
- *
- * const approvalStep = result?.steps.find(
- *   s => s.binding.adapterId === "compliance-check"
- * );
- *
- * if (approvalStep?.blockingDecision?.continue === false) {
- *   logger.warn(`Transfer rejected: ${approvalStep.blockingDecision.reason}`);
- *   throw new Error("Compliance check failed");
- * }
- * ```
- *
- * @see {@link AdapterManager} for configuration and execution plan management
- * @see {@link AdapterHookInvocation} for invocation context structure
+ * @see {@link AdapterManager} for adapter management and execution orchestration
  * @see {@link AdapterHookResult} for aggregated execution results
  * @see {@link OutboundWebhookPayload} for outbound event schema
- * @see {@link InboundWebhookDecisionPayload} for inbound decision schema
  *
  * @module adapter-hook-service
  * @since 0.0.3-beta
  */
 
 import { Stage } from "../types/satp-protocol";
-import type { AdapterManager } from "./adapter-manager";
 import type {
   AdapterDefinition,
+  AdapterExecutionBinding,
+  GlobalAdapterDefaults,
   OutboundWebhookConfig,
-  StageExecutionStep,
 } from "./api3-adapter-types";
 import type {
   AdapterHookResult,
@@ -114,24 +39,19 @@ import type {
   AdapterInvocationContext,
   OutboundWebhookInvocationResult,
 } from "./adapter-types";
-import type { MonitorService } from "../services/monitoring/monitor";
 import type { SATPLogger as Logger } from "../core/satp-logger";
 import type { AdapterWebhookMetrics } from "./adapter-webhook-contracts";
 import type { OutboundWebhookPayload } from "./outbound-webhooks";
-import {
-  isValidStepForStage,
-  getStepByTag,
-  type SatpStage,
-} from "../core/satp-protocol-map";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
 
-export interface AdapterExecutionInput {
-  stage: number;
-  stepTag: string;
-  stepOrder: StageExecutionStep;
+/**
+ * Input for executing webhooks for a set of adapter bindings.
+ */
+export interface AdapterWebhookExecutionInput {
+  bindings: AdapterExecutionBinding[];
   sessionId: string;
   contextId?: string;
   gatewayId: string;
@@ -139,17 +59,45 @@ export interface AdapterExecutionInput {
   payload?: Record<string, unknown>;
 }
 
+/**
+ * Input for session-aware adapter execution with deadline support.
+ */
+export interface SessionAwareExecutionInput {
+  bindings: AdapterExecutionBinding[];
+  sessionId: string;
+  contextId?: string;
+  gatewayId: string;
+  stage: number;
+  stepTag: string;
+  stepOrder: string;
+  deadlineMs?: number;
+  metadata?: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+}
+
+/**
+ * Configuration options for AdapterHookService.
+ */
 export interface AdapterHookServiceOptions {
-  adapterManager?: AdapterManager;
   logger: Logger;
-  monitorService: MonitorService;
+  globalConfig?: GlobalAdapterDefaults;
   fetchImpl?: typeof fetch;
 }
 
+/**
+ * Low-level webhook execution service.
+ *
+ * @description
+ * This service is responsible solely for executing HTTP webhook calls.
+ * It does not determine when or which adapters to execute - that responsibility
+ * belongs to {@link AdapterManager}.
+ */
 export class AdapterHookService {
   private readonly fetchFn: typeof fetch;
+  private readonly logger: Logger;
+  private readonly globalConfig?: GlobalAdapterDefaults;
 
-  constructor(private readonly options: AdapterHookServiceOptions) {
+  constructor(options: AdapterHookServiceOptions) {
     const fetchImpl =
       options.fetchImpl ?? (globalThis.fetch as typeof fetch | undefined);
     if (!fetchImpl) {
@@ -158,65 +106,28 @@ export class AdapterHookService {
       );
     }
     this.fetchFn = fetchImpl;
+    this.logger = options.logger;
+    this.globalConfig = options.globalConfig;
   }
 
   /**
-   * Checks if adapters should execute for the given execution point.
+   * Executes webhooks for all provided adapter bindings.
+   * Handles both outbound (fire-and-forget) and inbound (blocking) webhooks.
+   *
+   * @param input - Execution input with bindings and context data.
+   * @returns Aggregated result from all adapter executions, or undefined if no adapters executed.
    */
-  public shouldExecuteAdapters(
-    stage: number,
-    stepTag: string,
-    stepOrder: StageExecutionStep,
-  ): boolean {
-    const { adapterManager } = this.options;
-    if (!adapterManager || !adapterManager.hasAdaptersConfigured()) {
-      return false;
-    }
-    return adapterManager.shouldExecuteAdapters(stage, stepTag, stepOrder);
-  }
-
-  /**
-   * Executes all adapters configured for the given execution point.
-   * Handles both outbound (fire-and-forget) and inbound (blocking) webhooks automatically.
-   * This call is blocking - inbound webhooks will pause execution until external response arrives.
-   */
-  public async executeAdapters(
-    input: AdapterExecutionInput,
+  public async executeWebhooks(
+    input: AdapterWebhookExecutionInput,
   ): Promise<AdapterHookResult | undefined> {
-    const { adapterManager, logger } = this.options;
-    if (!adapterManager || !adapterManager.hasAdaptersConfigured()) {
-      return undefined;
-    }
-
-    // Validate execution point against protocol map (validates both stage and stepTag)
-    if (!isValidStepForStage(input.stage, input.stepTag)) {
-      logger.error(
-        `AdapterHookService#executeAdapters() Step "${input.stepTag}" is not valid for stage ${input.stage}`,
-      );
-      throw new Error(
-        `Step "${input.stepTag}" is not a valid SATP protocol step for stage ${input.stage}`,
-      );
-    }
-
-    // Log execution point with protocol metadata for enhanced observability
-    const stepInfo = getStepByTag(input.stage as SatpStage, input.stepTag);
-    if (stepInfo) {
-      logger.debug(
-        `AdapterHookService#executeAdapters() Executing adapters for stage ${input.stage}, step "${input.stepTag}" (${stepInfo.description}), order ${input.stepOrder}`,
-      );
-    }
-
-    const bindings = adapterManager.getBindingsForExecutionPoint(
-      input.stage,
-      input.stepTag,
-      input.stepOrder,
-    );
+    const { bindings, sessionId, contextId, gatewayId, metadata, payload } = input;
 
     if (bindings.length === 0) {
       return undefined;
     }
 
     const steps: AdapterHookStepResult[] = [];
+
     for (const binding of bindings) {
       const adapter = binding.adapter;
       if (!adapter.active) {
@@ -227,13 +138,13 @@ export class AdapterHookService {
         binding,
         adapter,
         stage: this.numberToStage(binding.stage),
-        sessionId: input.sessionId,
-        contextId: input.contextId,
-        gatewayId: input.gatewayId,
+        sessionId,
+        contextId,
+        gatewayId,
         attempt: 1,
-        direction: "outbound", // Legacy field, will be removed
-        metadata: input.metadata,
-        payload: input.payload,
+        direction: "outbound",
+        metadata,
+        payload,
       };
 
       let result: AdapterHookStepResult | undefined;
@@ -265,54 +176,18 @@ export class AdapterHookService {
     }
 
     if (steps.length === 0) {
-      logger.debug(
-        `AdapterHookService: no executable adapters for stage=${input.stage} stepTag=${input.stepTag} stepOrder=${input.stepOrder}`,
+      this.logger.debug(
+        `AdapterHookService: no executable adapters in provided bindings`,
       );
       return undefined;
     }
 
     return {
-      stage: this.numberToStage(input.stage),
-      sessionId: input.sessionId,
+      stage: this.numberToStage(bindings[0]?.stage ?? 0),
+      sessionId,
       steps,
       completedAt: new Date().toISOString(),
     };
-  }
-
-  /**
-   * Convenience method to execute adapters for "before" step order.
-   */
-  public async executeAdaptersBefore(
-    input: Omit<AdapterExecutionInput, "stepOrder">,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeAdapters({ ...input, stepOrder: "before" });
-  }
-
-  /**
-   * Convenience method to execute adapters for "during" step order.
-   */
-  public async executeAdaptersDuring(
-    input: Omit<AdapterExecutionInput, "stepOrder">,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeAdapters({ ...input, stepOrder: "during" });
-  }
-
-  /**
-   * Convenience method to execute adapters for "after" step order.
-   */
-  public async executeAdaptersAfter(
-    input: Omit<AdapterExecutionInput, "stepOrder">,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeAdapters({ ...input, stepOrder: "after" });
-  }
-
-  /**
-   * Convenience method to execute adapters for "rollback" step order.
-   */
-  public async executeAdaptersRollback(
-    input: Omit<AdapterExecutionInput, "stepOrder">,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeAdapters({ ...input, stepOrder: "rollback" });
   }
 
   private async runOutboundAdapter(
@@ -503,24 +378,15 @@ export class AdapterHookService {
   }
 
   private getGlobalTimeout(): number {
-    return (
-      this.options.adapterManager?.getConfiguration().global?.timeoutMs ??
-      DEFAULT_TIMEOUT_MS
-    );
+    return this.globalConfig?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   private getGlobalRetryAttempts(): number {
-    return (
-      this.options.adapterManager?.getConfiguration().global?.retryAttempts ??
-      DEFAULT_RETRY_ATTEMPTS
-    );
+    return this.globalConfig?.retryAttempts ?? DEFAULT_RETRY_ATTEMPTS;
   }
 
   private getGlobalRetryDelay(): number {
-    return (
-      this.options.adapterManager?.getConfiguration().global?.retryDelayMs ??
-      DEFAULT_RETRY_DELAY_MS
-    );
+    return this.globalConfig?.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
   }
 
   private async fetchWithTimeout(
@@ -548,7 +414,7 @@ export class AdapterHookService {
     try {
       return JSON.parse(body);
     } catch (error) {
-      this.options.logger.debug(
+      this.logger.debug(
         `AdapterHookService: unable to parse webhook response body: ${this.stringifyError(error)}`,
       );
       return body;
@@ -563,5 +429,83 @@ export class AdapterHookService {
 
   private stringifyError(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
+  }
+
+  // ============================================================================
+  // SESSION-AWARE EXECUTION WITH DEADLINE ENFORCEMENT
+  // ============================================================================
+
+  /**
+   * Executes webhooks with optional deadline enforcement.
+   * Used by stage handlers for session-aware execution with timeout guards.
+   *
+   * @param input - Session-aware execution input with optional deadline.
+   * @returns Aggregated result from all adapter executions, or undefined if no adapters executed.
+   * @throws AdapterExecutionTimeoutError if execution exceeds the deadline.
+   */
+  public async executeWithDeadline(
+    input: SessionAwareExecutionInput,
+  ): Promise<AdapterHookResult | undefined> {
+    const { bindings, sessionId, contextId, gatewayId, deadlineMs, metadata, payload, stage, stepTag, stepOrder } = input;
+
+    if (bindings.length === 0) {
+      return undefined;
+    }
+
+    const executeWebhooks = () =>
+      this.executeWebhooks({
+        bindings,
+        sessionId,
+        contextId,
+        gatewayId,
+        metadata,
+        payload,
+      });
+
+    if (deadlineMs && deadlineMs > 0) {
+      return this.runWithDeadline(
+        executeWebhooks,
+        deadlineMs,
+        () =>
+          new AdapterExecutionTimeoutError(
+            `Adapter hooks timed out after ${deadlineMs}ms for session ${sessionId} at stage=${stage} step=${stepTag} order=${stepOrder}`,
+          ),
+      );
+    }
+    return executeWebhooks();
+  }
+
+  /** Executes the supplied promise with an upper-bound timeout guard. */
+  private async runWithDeadline<T>(
+    operation: () => Promise<T>,
+    timeoutMs: number,
+    onTimeout: () => Error,
+  ): Promise<T> {
+    if (!timeoutMs || timeoutMs <= 0) {
+      return await operation();
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation(),
+        new Promise<T>((_, reject) => {
+          timer = setTimeout(() => reject(onTimeout()), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+}
+
+/**
+ * Error thrown when adapter execution exceeds the configured deadline.
+ */
+export class AdapterExecutionTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AdapterExecutionTimeoutError";
   }
 }

@@ -149,9 +149,7 @@ import {
   PriceManagerOptions,
 } from "../../services/token-price-check/price-manager";
 import type { AdapterManager } from "../../adapters/adapter-manager";
-import { AdapterHookService } from "../../adapters/adapter-hook-service";
 import type { SatpStageKey } from "../../adapters/api3-adapter-types";
-import { AdapterHookRunner } from "./utils/adapter-hook-runner";
 
 /**
  * SATP Stage 3 Handler for Commit Preparation, Final Assertion, and Transfer Completion.
@@ -338,8 +336,6 @@ export class Stage3SATPHandler implements SATPHandler {
   private priceManager: PriceManager;
   private readonly adapterManager?: AdapterManager;
   private readonly gatewayId: string;
-  private readonly adapterHooks: AdapterHookService;
-  private readonly adapterHookRunner: AdapterHookRunner;
 
   /**
    * Creates a new Stage 3 SATP handler instance.
@@ -444,18 +440,6 @@ export class Stage3SATPHandler implements SATPHandler {
       monitorService: this.monitorService,
     };
     this.priceManager = new PriceManager(priceManagerOptions);
-    this.adapterHooks = new AdapterHookService({
-      adapterManager: this.adapterManager,
-      logger: this.logger,
-      monitorService: this.monitorService,
-    });
-    this.adapterHookRunner = new AdapterHookRunner({
-      adapterManager: this.adapterManager,
-      adapterHooks: this.adapterHooks,
-      logger: this.logger,
-      gatewayId: this.gatewayId,
-      stage: 3,
-    });
     this.logger.trace(`Initialized ${Stage3SATPHandler.CLASS_NAME}`);
   }
 
@@ -587,8 +571,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
         span.setAttribute("sessionId", session.getSessionId() || "");
 
-        await this.adapterHookRunner.executeBefore(
-          { stage: 3, stepTag: "checkCommitPreparationRequest" },
+        await this.executeAdaptersBefore(
+          "checkCommitPreparationRequest",
           session,
           {
             operation: "commitPreparation",
@@ -618,8 +602,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
         saveMessageInSessionData(session.getServerSessionData(), message);
 
-        await this.adapterHookRunner.executeAfter(
-          { stage: 3, stepTag: "commitReadyResponse" },
+        await this.executeAdaptersAfter(
+          "commitReadyResponse",
           session,
           {
             operation: "commitPreparation",
@@ -754,8 +738,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
         span.setAttribute("sessionId", session.getSessionId() || "");
 
-        await this.adapterHookRunner.executeBefore(
-          { stage: 3, stepTag: "checkCommitFinalAssertionRequest" },
+        await this.executeAdaptersBefore(
+          "checkCommitFinalAssertionRequest",
           session,
           {
             operation: "commitFinalAssertion",
@@ -786,8 +770,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
         saveMessageInSessionData(session.getServerSessionData(), message);
 
-        await this.adapterHookRunner.executeAfter(
-          { stage: 3, stepTag: "commitFinalAcknowledgementReceiptResponse" },
+        await this.executeAdaptersAfter(
+          "commitFinalAcknowledgementReceiptResponse",
           session,
           {
             operation: "commitFinalAssertion",
@@ -915,8 +899,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
         span.setAttribute("sessionId", session.getSessionId() || "");
 
-        await this.adapterHookRunner.executeBefore(
-          { stage: 3, stepTag: "checkTransferCompleteRequest" },
+        await this.executeAdaptersBefore(
+          "checkTransferCompleteRequest",
           session,
           {
             operation: "transferComplete",
@@ -942,8 +926,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
         saveMessageInSessionData(session.getServerSessionData(), message);
 
-        await this.adapterHookRunner.executeAfter(
-          { stage: 3, stepTag: "transferCompleteResponse" },
+        await this.executeAdaptersAfter(
+          "transferCompleteResponse",
           session,
           {
             operation: "transferComplete",
@@ -1200,8 +1184,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
           span.setAttribute("sessionId", session.getSessionId() || "");
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 3, stepTag: "commitPreparation" },
+          await this.executeAdaptersBefore(
+            "commitPreparation",
             session,
             {
               operation: "commitPreparation",
@@ -1230,8 +1214,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
           saveMessageInSessionData(session.getClientSessionData(), request);
 
-          await this.adapterHookRunner.executeAfter(
-            { stage: 3, stepTag: "commitPreparation" },
+          await this.executeAdaptersAfter(
+            "commitPreparation",
             session,
             {
               operation: "commitPreparation",
@@ -1364,8 +1348,8 @@ export class Stage3SATPHandler implements SATPHandler {
           attributes = collectSessionAttributes(session, "client");
           span.setAttribute("sessionId", session.getSessionId() || "");
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 3, stepTag: "commitFinalAssertion" },
+          await this.executeAdaptersBefore(
+            "commitFinalAssertion",
             session,
             {
               operation: "commitFinalAssertion",
@@ -1396,8 +1380,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
           saveMessageInSessionData(session.getClientSessionData(), request);
 
-          await this.adapterHookRunner.executeAfter(
-            { stage: 3, stepTag: "commitFinalAssertion" },
+          await this.executeAdaptersAfter(
+            "commitFinalAssertion",
             session,
             {
               operation: "commitFinalAssertion",
@@ -1529,8 +1513,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
           span.setAttribute("sessionId", session.getSessionId() || "");
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 3, stepTag: "checkCommitFinalAssertionResponse" },
+          await this.executeAdaptersBefore(
+            "checkCommitFinalAssertionResponse",
             session,
             {
               operation: "transferComplete",
@@ -1559,8 +1543,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
           saveMessageInSessionData(session.getClientSessionData(), request);
 
-          await this.adapterHookRunner.executeAfter(
-            { stage: 3, stepTag: "transferComplete" },
+          await this.executeAdaptersAfter(
+            "transferComplete",
             session,
             {
               operation: "transferComplete",
@@ -1705,8 +1689,8 @@ export class Stage3SATPHandler implements SATPHandler {
 
           span.setAttribute("sessionId", session.getSessionId() || "");
 
-          await this.adapterHookRunner.executeBefore(
-            { stage: 3, stepTag: "checkTransferCompleteResponse" },
+          await this.executeAdaptersBefore(
+            "checkTransferCompleteResponse",
             session,
             {
               operation: "transferComplete",
@@ -1825,5 +1809,91 @@ export class Stage3SATPHandler implements SATPHandler {
         span.end();
       }
     });
+  }
+
+  // ============================================================================
+  // ADAPTER EXECUTION HELPERS
+  // ============================================================================
+
+  private async executeAdaptersBefore(
+    stepTag: string,
+    session: SATPSession | undefined,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.adapterManager || !session) {
+      return;
+    }
+    const sessionId = session.getSessionId();
+    if (!sessionId) {
+      return;
+    }
+    const contextId = this.getContextIdSafe(session);
+    try {
+      await this.adapterManager.executeBeforeForSession(
+        3,
+        stepTag,
+        sessionId,
+        this.gatewayId,
+        contextId,
+        metadata,
+        payload,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Adapter hook execution failed for session ${sessionId} at stage=3 step=${stepTag} order=before: ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private async executeAdaptersAfter(
+    stepTag: string,
+    session: SATPSession | undefined,
+    metadata?: Record<string, unknown>,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.adapterManager || !session) {
+      return;
+    }
+    const sessionId = session.getSessionId();
+    if (!sessionId) {
+      return;
+    }
+    const contextId = this.getContextIdSafe(session);
+    try {
+      await this.adapterManager.executeAfterForSession(
+        3,
+        stepTag,
+        sessionId,
+        this.gatewayId,
+        contextId,
+        metadata,
+        payload,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Adapter hook execution failed for session ${sessionId} at stage=3 step=${stepTag} order=after: ${String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  private getContextIdSafe(session: SATPSession): string | undefined {
+    try {
+      if (session.hasServerSessionData()) {
+        return session.getServerSessionData().transferContextId;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      if (session.hasClientSessionData()) {
+        return session.getClientSessionData().transferContextId;
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
   }
 }
