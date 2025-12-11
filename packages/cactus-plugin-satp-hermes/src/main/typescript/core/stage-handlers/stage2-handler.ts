@@ -107,7 +107,7 @@ import {
   FailedToProcessError,
   SessionNotFoundError,
 } from "../errors/satp-handler-errors";
-import { getSessionId } from "./handler-utils";
+import { getSessionId, buildAdapterPayload } from "./handler-utils";
 import { getMessageTypeName } from "../satp-utils";
 import { MessageType } from "../../generated/proto/cacti/satp/v02/common/message_pb";
 import {
@@ -526,13 +526,8 @@ export class Stage2SATPHandler implements SATPHandler {
 
         span.setAttribute("sessionId", session.getSessionId() || "");
 
-        await this.executeAdaptersBefore(
-          "checkLockAssertionRequest",
-          session,
-          {
-            operation: "lockAssertion",
-            role: "server",
-          },
+        await this.adapterManager?.executeAdaptersOrSkip(
+          buildAdapterPayload(Stage.STAGE2, "checkLockAssertionRequest", "before", session, this.gatewayId, { operation: "lockAssertion", role: "server" }),
         );
 
         await this.serverService.checkLockAssertionRequest(req, session);
@@ -577,13 +572,8 @@ export class Stage2SATPHandler implements SATPHandler {
 
         saveMessageInSessionData(session.getServerSessionData(), message);
 
-        await this.executeAdaptersAfter(
-          "lockAssertionResponse",
-          session,
-          {
-            operation: "lockAssertion",
-            role: "server",
-          },
+        await this.adapterManager?.executeAdaptersOrSkip(
+          buildAdapterPayload(Stage.STAGE2, "lockAssertionResponse", "after", session, this.gatewayId, { operation: "lockAssertion", role: "server" }),
         );
 
         return message;
@@ -825,13 +815,8 @@ export class Stage2SATPHandler implements SATPHandler {
 
           span.setAttribute("sessionId", session.getSessionId() || "");
 
-          await this.executeAdaptersBefore(
-            "checkTransferCommenceResponse",
-            session,
-            {
-              operation: "lockAssertion",
-              role: "client",
-            },
+          await this.adapterManager?.executeAdaptersOrSkip(
+            buildAdapterPayload(Stage.STAGE2, "checkTransferCommenceResponse", "before", session, this.gatewayId, { operation: "lockAssertion", role: "client" }),
           );
 
           await this.clientService.checkTransferCommenceResponse(
@@ -857,13 +842,8 @@ export class Stage2SATPHandler implements SATPHandler {
 
           saveMessageInSessionData(session.getClientSessionData(), request);
 
-          await this.executeAdaptersAfter(
-            "lockAssertionRequest",
-            session,
-            {
-              operation: "lockAssertion",
-              role: "client",
-            },
+          await this.adapterManager?.executeAdaptersOrSkip(
+            buildAdapterPayload(Stage.STAGE2, "lockAssertionRequest", "after", session, this.gatewayId, { operation: "lockAssertion", role: "client" }),
           );
 
           return request;
@@ -907,91 +887,5 @@ export class Stage2SATPHandler implements SATPHandler {
         span.end();
       }
     });
-  }
-
-  // ============================================================================
-  // ADAPTER EXECUTION HELPERS
-  // ============================================================================
-
-  private async executeAdaptersBefore(
-    stepTag: string,
-    session: SATPSession | undefined,
-    metadata?: Record<string, unknown>,
-    payload?: Record<string, unknown>,
-  ): Promise<void> {
-    if (!this.adapterManager || !session) {
-      return;
-    }
-    const sessionId = session.getSessionId();
-    if (!sessionId) {
-      return;
-    }
-    const contextId = this.getContextIdSafe(session);
-    try {
-      await this.adapterManager.executeBeforeForSession(
-        2,
-        stepTag,
-        sessionId,
-        this.gatewayId,
-        contextId,
-        metadata,
-        payload,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `Adapter hook execution failed for session ${sessionId} at stage=2 step=${stepTag} order=before: ${String(error)}`,
-      );
-      throw error;
-    }
-  }
-
-  private async executeAdaptersAfter(
-    stepTag: string,
-    session: SATPSession | undefined,
-    metadata?: Record<string, unknown>,
-    payload?: Record<string, unknown>,
-  ): Promise<void> {
-    if (!this.adapterManager || !session) {
-      return;
-    }
-    const sessionId = session.getSessionId();
-    if (!sessionId) {
-      return;
-    }
-    const contextId = this.getContextIdSafe(session);
-    try {
-      await this.adapterManager.executeAfterForSession(
-        2,
-        stepTag,
-        sessionId,
-        this.gatewayId,
-        contextId,
-        metadata,
-        payload,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `Adapter hook execution failed for session ${sessionId} at stage=2 step=${stepTag} order=after: ${String(error)}`,
-      );
-      throw error;
-    }
-  }
-
-  private getContextIdSafe(session: SATPSession): string | undefined {
-    try {
-      if (session.hasServerSessionData()) {
-        return session.getServerSessionData().transferContextId;
-      }
-    } catch {
-      // ignore
-    }
-    try {
-      if (session.hasClientSessionData()) {
-        return session.getClientSessionData().transferContextId;
-      }
-    } catch {
-      // ignore
-    }
-    return undefined;
   }
 }

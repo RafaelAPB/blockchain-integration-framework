@@ -72,6 +72,7 @@ import {
   type AdapterWebhookExecutionInput,
 } from "./adapter-hook-service";
 import type { AdapterHookResult } from "./adapter-types";
+import { Stage } from "../types/satp-protocol";
 
 // Re-export for consumers
 export { AdapterExecutionTimeoutError } from "./adapter-hook-service";
@@ -102,6 +103,56 @@ export interface AdapterExecutionInput {
   contextId?: string;
   gatewayId: string;
   metadata?: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+}
+
+/**
+ * Payload for adapter execution at a specific protocol execution point.
+ * This is the primary interface used by stage handlers to invoke adapters.
+ * 
+ * The payload should be constructed as early as possible in the handler method
+ * and passed to the adapter manager's executeAdaptersOrSkip method.
+ */
+export interface ExecutionPointAdapterPayload {
+  /** SATP protocol stage (Stage.STAGE0, Stage.STAGE1, etc.) */
+  stage: Stage;
+  /** Step identifier within the stage (e.g., "newSessionRequest", "checkNewSessionRequest") */
+  stepTag: string;
+  /** Execution order: before, after, during, rollback */
+  order: StageExecutionStep;
+  /** Session identifier */
+  sessionId: string;
+  /** Gateway identifier */
+  gatewayId: string;
+  /** Optional transfer context identifier */
+  contextId?: string;
+  /** Optional metadata to pass to adapters (e.g., operation, role) */
+  metadata?: Record<string, unknown>;
+  /** Optional payload data to pass to adapters */
+  payload?: Record<string, unknown>;
+}
+
+/**
+ * @deprecated Use ExecutionPointAdapterPayload instead
+ * Input for session-aware adapter execution from stage handlers.
+ * Uses Stage enum for type safety.
+ */
+export interface SessionAdapterExecutionRequest {
+  /** SATP protocol stage (Stage.STAGE0, Stage.STAGE1, etc.) */
+  stage: Stage;
+  /** Step identifier within the stage */
+  stepTag: string;
+  /** Execution order: before, after, during, rollback */
+  order: StageExecutionStep;
+  /** Session identifier */
+  sessionId: string;
+  /** Gateway identifier */
+  gatewayId: string;
+  /** Optional transfer context identifier */
+  contextId?: string;
+  /** Optional metadata to pass to adapters */
+  metadata?: Record<string, unknown>;
+  /** Optional payload to pass to adapters */
   payload?: Record<string, unknown>;
 }
 
@@ -210,22 +261,6 @@ export class AdapterManager {
   }
 
   /**
-   * Checks if any adapters should execute at the given point.
-   *
-   * @param stage - Stage number (0-3).
-   * @param stepTag - Stage-specific step identifier.
-   * @param stepOrder - Execution order (before/during/after/rollback).
-   * @returns `true` if at least one active adapter is configured for this point.
-   */
-  public shouldExecuteAdapters(
-    stage: number,
-    stepTag: string,
-    stepOrder: StageExecutionStep,
-  ): boolean {
-    return this.getBindingsForExecutionPoint(stage, stepTag, stepOrder).length > 0;
-  }
-
-  /**
    * Executes all adapters configured for the given execution point.
    * This is the main entry point for adapter execution.
    *
@@ -321,29 +356,47 @@ export class AdapterManager {
   // ============================================================================
 
   /**
-   * Execute adapters for a session with optional deadline enforcement.
-   * Delegates to AdapterHookService for execution logic.
+   * Converts Stage enum to numeric stage value.
    */
-  public async executeForSession(
-    stage: number,
-    stepTag: string,
-    stepOrder: StageExecutionStep,
-    sessionId: string,
-    gatewayId: string,
-    contextId?: string,
-    metadata?: Record<string, unknown>,
-    payload?: Record<string, unknown>,
+  private stageToNumber(stage: Stage): number {
+    const stageMap: Record<Stage, number> = {
+      [Stage.STAGE0]: 0,
+      [Stage.STAGE1]: 1,
+      [Stage.STAGE2]: 2,
+      [Stage.STAGE3]: 3,
+    };
+    return stageMap[stage] ?? 0;
+  }
+
+  /**
+   * Execute adapters for a session with optional deadline enforcement.
+   * This is the main entry point for stage handlers to execute adapters.
+   *
+   * Handles undefined payloads gracefully - returns undefined without error
+   * when no payload is provided (e.g., when session is not available).
+   *
+   * @param executionPayload - Execution point adapter payload containing all execution parameters, or undefined
+   * @returns Aggregated result from all adapter executions, or undefined if no adapters executed or payload is undefined.
+   */
+  public async executeAdaptersOrSkip(
+    executionPayload: ExecutionPointAdapterPayload | undefined,
   ): Promise<AdapterHookResult | undefined> {
+    if (!executionPayload) {
+      return undefined;
+    }
+    const { stage, stepTag, order, sessionId, gatewayId, contextId, metadata, payload } = executionPayload;
+    const stageNumber = this.stageToNumber(stage);
+
     if (!this.hasAdaptersConfigured()) {
       return undefined;
     }
 
-    const bindings = this.getBindingsForExecutionPoint(stage, stepTag, stepOrder);
+    const bindings = this.getBindingsForExecutionPoint(stageNumber, stepTag, order);
     if (bindings.length === 0) {
       return undefined;
     }
 
-    const deadlineMs = this.resolveInboundDeadlineMs(stage, stepTag, stepOrder);
+    const deadlineMs = this.resolveInboundDeadlineMs(stageNumber, stepTag, order);
 
     // Delegate execution to the hook service
     return this.hookService.executeWithDeadline({
@@ -351,109 +404,13 @@ export class AdapterManager {
       sessionId,
       contextId,
       gatewayId,
-      stage,
+      stage: stageNumber,
       stepTag,
-      stepOrder,
+      stepOrder: order,
       deadlineMs,
       metadata,
       payload,
     });
-  }
-
-  /**
-   * Convenience method to execute adapters at "before" execution point for a session.
-   */
-  public async executeBeforeForSession(
-    stage: number,
-    stepTag: string,
-    sessionId: string,
-    gatewayId: string,
-    contextId?: string,
-    metadata?: Record<string, unknown>,
-    payload?: Record<string, unknown>,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeForSession(
-      stage,
-      stepTag,
-      "before",
-      sessionId,
-      gatewayId,
-      contextId,
-      metadata,
-      payload,
-    );
-  }
-
-  /**
-   * Convenience method to execute adapters at "after" execution point for a session.
-   */
-  public async executeAfterForSession(
-    stage: number,
-    stepTag: string,
-    sessionId: string,
-    gatewayId: string,
-    contextId?: string,
-    metadata?: Record<string, unknown>,
-    payload?: Record<string, unknown>,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeForSession(
-      stage,
-      stepTag,
-      "after",
-      sessionId,
-      gatewayId,
-      contextId,
-      metadata,
-      payload,
-    );
-  }
-
-  /**
-   * Convenience method to execute adapters at "during" execution point for a session.
-   */
-  public async executeDuringForSession(
-    stage: number,
-    stepTag: string,
-    sessionId: string,
-    gatewayId: string,
-    contextId?: string,
-    metadata?: Record<string, unknown>,
-    payload?: Record<string, unknown>,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeForSession(
-      stage,
-      stepTag,
-      "during",
-      sessionId,
-      gatewayId,
-      contextId,
-      metadata,
-      payload,
-    );
-  }
-
-  /**
-   * Convenience method to execute adapters at "rollback" execution point for a session.
-   */
-  public async executeRollbackForSession(
-    stage: number,
-    stepTag: string,
-    sessionId: string,
-    gatewayId: string,
-    contextId?: string,
-    metadata?: Record<string, unknown>,
-    payload?: Record<string, unknown>,
-  ): Promise<AdapterHookResult | undefined> {
-    return this.executeForSession(
-      stage,
-      stepTag,
-      "rollback",
-      sessionId,
-      gatewayId,
-      contextId,
-      metadata,
-      payload,
-    );
   }
 
   /** Derives the smallest inbound timeout defined across adapters for an execution point. */
