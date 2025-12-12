@@ -1,16 +1,16 @@
 %%{init: {'theme':'base', 'themeVariables': { 'fontSize':'14px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#86efac','primaryTextColor':'#14532d','primaryBorderColor':'#166534','lineColor':'#22c55e','secondaryColor':'#dcfce7','tertiaryColor':'#f0fdf4', 'nodeTextColor':'#14532d', 'clusterBkg':'#f0fdf4', 'clusterBorder':'#166534', 'edgeLabelBackground':'#dcfce7'}}}%%
 
 flowchart TB
-    subgraph Config["📄 YAML Configuration"]
-        YAML["adapter-configuration.yml"]
+    subgraph Config["YAML Configuration"]
+        YAML["adapter-configuration.yml (AdapterConfiguration)"]
     end
 
-    subgraph Parsing["🔧 Configuration Parsing<br/><i>validate-adapter-config.ts</i>"]
-        Load["loadAdapterConfigFromYaml()"]
+    subgraph Parsing["🔧 Configuration Parsing"]
+        Load["loadConfig()"]
         Validate["validateAdapterConfig()"]
     end
 
-    subgraph AdapterConfig["📋 AdapterLayerConfiguration"]
+    subgraph AdapterConfig["📋 AdapterLayerConfig"]
         Global["global:<br/>timeoutMs: 5000<br/>retryAttempts: 3<br/>logLevel: debug"]
         
         subgraph Adapters["adapters[]"]
@@ -19,7 +19,7 @@ flowchart TB
         end
     end
 
-    subgraph Manager["🎯 AdapterManager<br/><i>adapter-manager.ts</i>"]
+    subgraph Manager["🎯 AdapterManager"]
         Constructor["constructor(config)"]
         BindMap["executionBindings<br/>Map&lt;stage:step:point, Adapter[]&gt;"]
         
@@ -29,7 +29,7 @@ flowchart TB
         end
     end
 
-    subgraph Handlers["📡 Stage Handlers<br/><i>stage0-handler.ts ... stage3-handler.ts</i>"]
+    subgraph Handlers["📡 Stage Handler"]
         SH0["Stage0Handler"]
         SH1["Stage1Handler"]
         SH2["Stage2Handler"]

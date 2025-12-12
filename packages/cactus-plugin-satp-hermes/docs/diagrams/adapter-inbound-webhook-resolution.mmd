@@ -13,19 +13,21 @@ sequenceDiagram
     Note over EC,PROM: Inbound Webhook Resolution Flow - Unblocking a Paused SATP Session
 
     rect rgb(254, 215, 170)
-        Note over AHS,PROM: Initial State: Session is PAUSED
+        Note over AHS,PROM: 1. Initial State - Session is PAUSED
+        AHS->>MAP: pendingInboundDecisions.set(key, pending)
         Note right of MAP: Map contains:<br/>key: "session123:compliance-adapter"<br/>value: { resolve, reject, startedAt, ... }
-        Note right of PROM: await Promise.race([decisionPromise, timeoutPromise])<br/>BLOCKED waiting...
+        AHS->>PROM: await Promise.race([decisionPromise, timeoutPromise])
+        Note right of PROM: BLOCKED waiting for<br/>external decision...
     end
 
     rect rgb(220, 252, 231)
-        Note over EC,HTTP: 1. External Controller Posts Decision
+        Note over EC,HTTP: 2. External Controller Posts Decision (Unblocker)
         EC->>HTTP: POST /api/v1/.../webhook/inbound/decide<br/>{adapterId, sessionId, continue: true, reason}
         HTTP->>HTTP: Validate required fields
     end
 
     rect rgb(187, 247, 208)
-        Note over HTTP,AM: 2. Route Through Dispatcher
+        Note over HTTP,AM: 3. Route Through Dispatcher
         HTTP->>DISP: decideInboundWebhook(req)
         DISP->>DISP: Check !isShuttingDown
         DISP->>DISP: Check adapterManager exists
@@ -33,15 +35,15 @@ sequenceDiagram
     end
 
     rect rgb(254, 249, 195)
-        Note over AM,AHS: 3. Validate & Delegate to Hook Service
+        Note over AM,AHS: 4. Validate and Delegate to Hook Service
         AM->>AM: Validate adapterId exists
         AM->>AM: Validate adapter has inboundWebhook
-        AM->>AHS: processInboundDecision({<br/>  adapterId, sessionId,<br/>  shouldContinue: true, reason<br/>})
+        AM->>AHS: processInboundDecision({<br/>adapterId, sessionId, shouldContinue, reason})
     end
 
     rect rgb(134, 239, 172)
-        Note over AHS,PROM: 4. Resolve the Waiting Promise
-        AHS->>AHS: buildPendingKey("session123", "compliance-adapter")
+        Note over AHS,PROM: 5. Resolve the Waiting Promise
+        AHS->>AHS: buildPendingKey(sessionId, adapterId)
         AHS->>MAP: get("session123:compliance-adapter")
         MAP-->>AHS: PendingInboundDecision { resolve, reject, ... }
         AHS->>MAP: delete("session123:compliance-adapter")
@@ -51,15 +53,15 @@ sequenceDiagram
     end
 
     rect rgb(220, 252, 231)
-        Note over AHS,PROM: 5. runInboundWebhook() Unblocks
+        Note over AHS,PROM: 6. runInboundWebhook() Unblocks
         PROM-->>AHS: decision = { continue: true, reason: "..." }
         AHS->>AHS: Check decision.continue === true
         AHS-->>AM: AdapterHookStepResult { disposition: CONTINUE }
     end
 
     rect rgb(187, 247, 208)
-        Note over AM,EC: 6. Return Success to External Controller
-        AM-->>DISP: { accepted: true, message: "resumed" }
+        Note over AM,EC: 7. Return Success to External Controller
+        AM-->>DISP: { accepted: true }
         DISP-->>HTTP: DecideInboundWebhook200Response
         HTTP-->>EC: 200 OK { accepted: true }
     end

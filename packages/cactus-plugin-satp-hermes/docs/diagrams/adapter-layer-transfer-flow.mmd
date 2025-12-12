@@ -22,20 +22,21 @@ sequenceDiagram
         
         rect rgb(254, 249, 195)
             Note over AM,Ext: Outbound Webhook - Fire & Block
-            AM->>AM: findBindings(0:newSessionRequest:before)
+            AM->>AM: getBindingsForExecutionPoint(0:newSessionRequest:before)
             AM->>Ext: POST /webhook/outbound (blocking)
             Ext-->>AM: 200 OK + response body
             AM-->>SH: disposition: CONTINUE, metrics
         end
         
         SH->>SS: newSessionRequest()
+        SS->>SS: send request to counterparty gateway
         SS-->>SH: NewSessionResponse
         
         SH->>AM: executeAdapters(stage:0, step:newSessionRequest, point:after)
         
         rect rgb(254, 215, 170)
             Note over AM,Ext: Inbound Webhook - PAUSE & Wait
-            AM->>AM: findBindings(0:newSessionRequest:after)
+            AM->>AM: getBindingsForExecutionPoint(0:newSessionRequest:after)
             AM->>AM: Register pending decision
             Note over AM: PAUSED - waiting for callback<br/>POST /api/v1/adapters/inbound/{sessionId}/{adapterId}
             

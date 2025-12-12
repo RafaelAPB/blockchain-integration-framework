@@ -13,36 +13,38 @@ sequenceDiagram
     rect rgb(220, 252, 231)
         Note over SH,AM: Step 1: Adapter Execution Triggers Inbound Wait
         SH->>AM: executeAdapters(stage:0, step:newSessionRequest, point:after)
-        AM->>AM: findBindings() returns inbound-approval adapter
-        AM->>AM: hasInboundWebhook = true
-        AM-->>SH: disposition: SKIP<br/>message: awaiting external controller callbacks
+        AM->>AM: getBindingsForExecutionPoint() returns inbound-approval adapter
+        AM->>AH: runInboundWebhook(context, webhookConfig)
     end
 
     rect rgb(254, 249, 195)
-        Note over SH,AH: Step 2: Gateway Pauses and Waits
-        SH->>AH: registerPendingDecision(adapterId, sessionId)
-        AH->>AH: pendingDecisions.set(adapterId, Promise)
-        Note over AH: Transfer paused<br/>timeoutMs: 300000 (5 min)
+        Note over SH,AH: Step 2: Gateway Pauses and Waits (BLOCKING)
+        AH->>AH: buildPendingKey(sessionId, adapterId)
+        AH->>AH: pendingInboundDecisions.set(key, Promise)
+        Note over AH: Transfer BLOCKED<br/>await Promise.race([decision, timeout])<br/>timeoutMs: 300000 (5 min)
     end
 
     rect rgb(187, 247, 208)
         Note over GW,EC: Step 3: External Decision Arrives
-        EC->>GW: POST /api/v1/webhook/inbound/decide
+        EC->>GW: POST /api/v1/.../webhook/inbound/decide
         Note over EC: Body: adapterId, sessionId, continue, reason
-        GW->>GW: validateInboundDecision(payload)
-        GW->>AH: resolveDecision(adapterId, decision)
+        GW->>AM: decideInboundWebhook(input)
+        AM->>AH: processInboundDecision(input)
     end
 
     rect rgb(240, 253, 244)
         Note over AH,SH: Step 4: Decision Applied
-        AH->>AH: pendingDecisions.get(adapterId).resolve(decision)
+        AH->>AH: pending.resolve(decisionResponse)
         
         alt continue: true
-            AH-->>SH: blockingDecision: CONTINUE<br/>reason: Approved by Alice
-            SH->>SH: Resume transfer flow
+            AH-->>AM: AdapterHookStepResult { disposition: CONTINUE }
+            AM-->>SH: Transfer resumes
         else continue: false
-            AH-->>SH: blockingDecision: ABORT<br/>reason: Failed sanctions check
+            AH--xSH: AdapterInboundWebhookRejectedError
             SH->>SH: Abort transfer, log reason
+        else timeout (no decision)
+            AH--xSH: AdapterInboundWebhookTimeoutError
+            SH->>SH: Abort transfer
         end
     end
 

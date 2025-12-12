@@ -12,12 +12,12 @@ sequenceDiagram
     rect rgb(220, 252, 231)
         Note over SH,AM: 1. Trigger
         SH->>AM: executeAdapters(0, newSessionRequest, before)
-        AM->>AM: findBindings()
+        AM->>AM: getBindingsForExecutionPoint()
     end
 
     rect rgb(254, 249, 195)
         Note over AM,WC: 2. Build Payload
-        AM->>AM: buildPayload(adapter, state)
+        AM->>AM: buildOutboundPayload(adapter, state)
     end
 
     rect rgb(187, 247, 208)
