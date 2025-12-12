@@ -37,6 +37,8 @@ tags:
     description: API endpoints for interacting with blockchains via gateways
   - name: admin
     description: API endpoints for fetching information on SATP sessions
+  - name: webhook
+    description: API endpoints for inbound webhook decisions from external approval controllers
 paths:
   /api/v1/@hyperledger/cactus-plugin-satp-hermes/transact:
     post:
@@ -554,6 +556,66 @@ paths:
           description: Transaction not found
         '500':
           description: Internal server error
+
+  /api/v1/@hyperledger/cactus-plugin-satp-hermes/webhook/inbound/decide:
+    post:
+      summary: Submit inbound webhook decision
+      description: |-
+        External approval controllers use this endpoint to submit decisions (approve/reject)
+        for paused SATP transfers. The gateway validates the adapterId matches the waiting
+        adapter, then uses the continue field to determine whether to proceed or abort.
+        
+        **Decision Semantics:**
+        - `continue: true`: Approve transfer continuation; gateway proceeds to next stage
+        - `continue: false`: Reject transfer; gateway aborts and may trigger rollback
+        
+        **Security Considerations:**
+        - The adapterId and sessionId must match an active inbound webhook wait state
+        - All decisions are logged with timestamps for non-repudiation
+      operationId: DecideInboundWebhook
+      tags:
+        - webhook
+      x-hyperledger-cacti:
+        http:
+          verbLowerCase: post
+          path: /api/v1/@hyperledger/cactus-plugin-satp-hermes/webhook/inbound/decide
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yml#/InboundWebhookDecisionRequest
+      responses:
+        '200':
+          description: Decision accepted and applied to the session
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas.yml#/InboundWebhookDecisionResponse
+        '400':
+          description: Bad request - invalid decision payload
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas.yml#/APIError
+        '404':
+          description: Session or adapter not found, or no pending decision
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas.yml#/APIError
+        '409':
+          description: Decision conflict - session not in waiting state
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas.yml#/APIError
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas.yml#/APIError
 components:
   schemas:
     $ref: ./schemas.yml

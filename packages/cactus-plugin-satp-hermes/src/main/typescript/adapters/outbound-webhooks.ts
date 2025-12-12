@@ -9,10 +9,10 @@
  *
  * @description
  * **Outbound Webhook Purpose:**
- * Outbound webhooks enable external systems to observe SATP protocol execution in
- * real-time without blocking gateway operations. The gateway fires outbound notifications
- * when configured lifecycle events occur, providing full session context and stage-specific
- * metadata to the receiving endpoint.
+ * Outbound webhooks are **fire-and-block** operations that wait for external system
+ * responses before continuing protocol execution. The gateway invokes outbound webhooks
+ * at configured lifecycle events and blocks until a successful response is received.
+ * On timeout or error, the SATP protocol execution is **aborted** to ensure consistency.
  *
  * **Event Types:**
  * - `stage.started`: SATP stage has begun execution (outbound hooks at 'before' step)
@@ -44,7 +44,7 @@
  *   schemaVersion: "v1.0.0",
  *   stage: Stage.STAGE1,
  *   adapterId: "lock-monitor",
- *   sessionId: "sess-abc-123",
+ *   sessionId: "abc-123",
  *   contextId: "ctx-transfer-456",
  *   gatewayId: "gateway-fabric-1",
  *   payload: {
@@ -67,7 +67,7 @@
  *   schemaVersion: "v1.0.0",
  *   stage: Stage.STAGE2,
  *   adapterId: "commitment-validator",
- *   sessionId: "sess-xyz-789",
+ *   sessionId: "xyz-789",
  *   gatewayId: "gateway-besu-2",
  *   payload: {
  *     errorCode: "COMMITMENT_TIMEOUT",

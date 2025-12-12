@@ -1,3 +1,27 @@
+/**
+ * @fileoverview E2E tests for AdapterManager with fully mocked HTTP layer
+ *
+ * @description
+ * **Test Strategy:**
+ * These tests validate adapter execution flow using Jest-mocked fetch calls.
+ * No real HTTP requests are made - all webhook responses are simulated.
+ * This enables fast, deterministic testing of:
+ * - Multi-adapter execution ordering by priority
+ * - Outbound webhook payload construction and response handling
+ * - YAML configuration loading and binding resolution
+ * - Session/context ID propagation through the adapter pipeline
+ *
+ * **When to use mocked tests:**
+ * - Unit-level validation of adapter logic
+ * - CI/CD pipelines requiring no network dependencies
+ * - Testing edge cases difficult to reproduce with real endpoints
+ *
+ * @see adapter-e2e-test-server-outbound.test.ts for real HTTP endpoint tests
+ * @see adapter-e2e-mock-negative.test.ts for error scenario tests
+ *
+ * @module adapter-e2e-mock.test
+ */
+
 import { describe, expect, it, jest } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
 import { Stage } from "../../../../main/typescript/types/satp-protocol";
@@ -17,8 +41,8 @@ import {
 } from "../../adapter-test-utils";
 
 /**
- * End-to-end tests for AdapterManager with fully mocked webhooks.
- * Both outbound and inbound webhooks are mocked to test adapter execution flow.
+ * E2E test suite: Mocked outbound webhooks
+ * Validates adapter execution without network dependencies.
  */
 describe("AdapterManager E2E with fully mocked webhooks", () => {
   describe("outbound webhook mocking", () => {
@@ -235,7 +259,6 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
             timeoutMs: 5000,
           },
           inboundWebhook: {
-            urlSuffix: "/inbound/combined",
             timeoutMs: 3000,
           },
         },

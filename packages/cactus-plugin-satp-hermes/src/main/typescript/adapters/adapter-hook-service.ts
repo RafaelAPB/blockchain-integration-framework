@@ -32,6 +32,7 @@ import type {
   AdapterExecutionBinding,
   GlobalAdapterDefaults,
   OutboundWebhookConfig,
+  InboundWebhookConfig,
 } from "./api3-adapter-types";
 import type {
   AdapterHookResult,
@@ -42,10 +43,32 @@ import type {
 import type { SATPLogger as Logger } from "../core/satp-logger";
 import type { AdapterWebhookMetrics } from "./adapter-webhook-contracts";
 import type { OutboundWebhookPayload } from "./outbound-webhooks";
+import type { InboundWebhookDecisionResponse } from "./inbound-webhooks";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
+const DEFAULT_INBOUND_TIMEOUT_MS = 300_000; // 5 minutes default for inbound webhooks
+
+/**
+ * Represents a pending inbound webhook decision awaiting external callback.
+ */
+interface PendingInboundDecision {
+  /** Adapter ID that initiated the pause */
+  adapterId: string;
+  /** Session ID for the paused transfer */
+  sessionId: string;
+  /** Optional context ID */
+  contextId?: string;
+  /** Timestamp when the wait started */
+  startedAt: number;
+  /** Timeout in milliseconds */
+  timeoutMs: number;
+  /** Resolve function to resume execution */
+  resolve: (decision: InboundWebhookDecisionResponse) => void;
+  /** Reject function to abort on timeout or error */
+  reject: (error: Error) => void;
+}
 
 /**
  * Input for executing webhooks for a set of adapter bindings.
@@ -76,6 +99,25 @@ export interface SessionAwareExecutionInput {
 }
 
 /**
+ * Input for processing an inbound webhook decision from external approval controllers.
+ * Uses `shouldContinue` instead of `continue` since `continue` is a reserved keyword.
+ */
+export interface ProcessInboundDecisionInput {
+  /** Adapter identifier that originally paused the SATP stage */
+  adapterId: string;
+  /** Session identifier for the paused SATP transfer */
+  sessionId: string;
+  /** Optional transfer context identifier */
+  contextId?: string;
+  /** When true, gateway resumes; when false, transfer is rejected */
+  shouldContinue: boolean;
+  /** Human-readable justification for auditing */
+  reason?: string;
+  /** Optional data payload from external system */
+  data?: Record<string, unknown>;
+}
+
+/**
  * Configuration options for AdapterHookService.
  */
 export interface AdapterHookServiceOptions {
@@ -97,6 +139,17 @@ export class AdapterHookService {
   private readonly logger: Logger;
   private readonly globalConfig?: GlobalAdapterDefaults;
 
+  /**
+   * Registry of SATP sessions blocked awaiting external approval decisions, for inbound webhooks.
+   * Each entry stores resolve/reject callbacks that unblock runInboundWebhook()
+   * when processInboundDecision() receives a continue/reject from external controller.
+   * Key: `${sessionId}:${adapterId}` → unique per session-adapter combination, with which the match between client call and awaiting hook happens.
+   */
+  private readonly pendingInboundDecisions: Map<
+    string,
+    PendingInboundDecision
+  > = new Map();
+
   constructor(options: AdapterHookServiceOptions) {
     const fetchImpl =
       options.fetchImpl ?? (globalThis.fetch as typeof fetch | undefined);
@@ -112,10 +165,12 @@ export class AdapterHookService {
 
   /**
    * Executes webhooks for all provided adapter bindings.
-   * Handles both outbound (fire-and-forget) and inbound (blocking) webhooks.
+   * Handles both outbound (fire-and-block) and inbound (blocking) webhooks.
+   * Outbound webhooks block until a response is received or throw an error on timeout/failure.
    *
    * @param input - Execution input with bindings and context data.
    * @returns Aggregated result from all adapter executions, or undefined if no adapters executed.
+   * @throws AdapterOutboundWebhookError if any outbound webhook fails or times out.
    */
   public async executeWebhooks(
     input: AdapterWebhookExecutionInput,
@@ -148,27 +203,30 @@ export class AdapterHookService {
         payload,
       };
 
-      let result: AdapterHookStepResult | undefined;
+      // Collect all outbound webhooks (single or array) and sort by priority
+      const outboundWebhooks = this.collectOutboundWebhooks(adapter);
+      // Collect all inbound webhooks (single or array) and sort by priority
+      const inboundWebhooks = this.collectInboundWebhooks(adapter);
 
-      // Execute outbound webhook if configured
-      if (adapter.outboundWebhook) {
-        result = await this.runOutboundAdapter(context, adapter);
+      // Outbound: fire-and-block notifications to external systems (monitoring, audit)
+      for (const outboundWebhook of outboundWebhooks) {
+        const result = await this.runOutboundWebhook(context, outboundWebhook);
         if (result) {
           steps.push(result);
         }
       }
 
-      // Execute inbound webhook if configured (blocking)
-      if (adapter.inboundWebhook) {
-        result = await this.runInboundAdapter(context, adapter);
+      // Inbound: blocks execution until external controller approves/rejects transfer
+      for (const inboundWebhook of inboundWebhooks) {
+        const result = await this.runInboundWebhook(context, inboundWebhook);
         if (result) {
           steps.push(result);
         }
       }
 
-      // If neither is configured, skip
-      if (!adapter.outboundWebhook && !adapter.inboundWebhook) {
-        result = this.buildSkipResult(
+      // Adapter definition exists but has no webhook endpoints - record skip for audit
+      if (outboundWebhooks.length === 0 && inboundWebhooks.length === 0) {
+        const result = this.buildSkipResult(
           context,
           "Adapter has no webhook configuration",
         );
@@ -191,30 +249,184 @@ export class AdapterHookService {
     };
   }
 
-  private async runOutboundAdapter(
-    context: AdapterInvocationContext,
-    adapter: AdapterDefinition,
-  ): Promise<AdapterHookStepResult> {
-    if (!adapter.outboundWebhook) {
-      return this.buildSkipResult(
-        context,
-        "Adapter has no outbound webhook configuration",
+  // ============================================================================
+  // INBOUND WEBHOOK DECISION PROCESSING
+  // Handles external approval controller decisions for paused sessions
+  // ============================================================================
+
+  /**
+   * Process an inbound webhook decision from an external approval controller.
+   *
+   * This method is called when an external system posts a decision to approve
+   * or reject a paused SATP transfer. It resolves the pending promise to resume
+   * or abort the waiting transfer.
+   *
+   * @param input - Decision input containing adapterId, sessionId, and continue flag
+   * @returns true if the decision was accepted and processed, false otherwise
+   */
+  public async processInboundDecision(
+    input: ProcessInboundDecisionInput,
+  ): Promise<boolean> {
+    const fnTag = "AdapterHookService#processInboundDecision()";
+
+    this.logger.info(
+      `${fnTag} Processing inbound decision: adapter="${input.adapterId}" ` +
+        `session="${input.sessionId}" continue=${input.shouldContinue} ` +
+        `reason="${input.reason || "N/A"}"`,
+    );
+
+    // Build the lookup key
+    const pendingKey = this.buildPendingKey(input.sessionId, input.adapterId);
+    const pending = this.pendingInboundDecisions.get(pendingKey);
+
+    if (!pending) {
+      this.logger.warn(
+        `${fnTag} No pending inbound decision found for key="${pendingKey}". ` +
+          `Either the session timed out, was already processed, or never existed.`,
       );
+      return false;
     }
 
+    // Log the decision for audit trail
+    const decisionType = input.shouldContinue ? "APPROVED" : "REJECTED";
+    const elapsedMs = Date.now() - pending.startedAt;
+    this.logger.info(
+      `${fnTag} Inbound webhook decision ${decisionType} for session="${input.sessionId}" ` +
+        `by adapter="${input.adapterId}" after ${elapsedMs}ms: ${input.reason || "No reason provided"}`,
+    );
+
+    this.pendingInboundDecisions.delete(pendingKey);
+
+    const decisionResponse: InboundWebhookDecisionResponse = {
+      adapterId: input.adapterId,
+      sessionId: input.sessionId,
+      contextId: input.contextId,
+      continue: input.shouldContinue,
+      reason: input.reason,
+      data: input.data,
+    };
+
+    // Resolves the deferred promise in runInboundWebhook(), winning the Promise.race
+    // against timeout and unblocking SATP execution to continue or abort
+    pending.resolve(decisionResponse);
+
+    return true;
+  }
+
+  /**
+   * Constructs lookup key for pendingInboundDecisions registry.
+   * Composite key ensures multiple adapters can pause the same session independently.
+   */
+  private buildPendingKey(sessionId: string, adapterId: string): string {
+    return `${sessionId}:${adapterId}`;
+  }
+
+  /**
+   * Get the count of pending inbound decisions (for monitoring/testing).
+   */
+  public getPendingInboundDecisionCount(): number {
+    return this.pendingInboundDecisions.size;
+  }
+
+  /**
+   * Check if a session/adapter combination is waiting for an inbound decision.
+   */
+  public hasPendingInboundDecision(
+    sessionId: string,
+    adapterId: string,
+  ): boolean {
+    return this.pendingInboundDecisions.has(
+      this.buildPendingKey(sessionId, adapterId),
+    );
+  }
+
+  /**
+   * Merges legacy single-webhook and multi-webhook config into priority-ordered list.
+   * Supports both `outboundWebhook` (v1 schema) and `outboundWebhooks[]` (v2 schema).
+   */
+  private collectOutboundWebhooks(
+    adapter: AdapterDefinition,
+  ): OutboundWebhookConfig[] {
+    const webhooks: OutboundWebhookConfig[] = [];
+
+    if (adapter.outboundWebhook) {
+      webhooks.push(adapter.outboundWebhook);
+    }
+
+    if (adapter.outboundWebhooks && Array.isArray(adapter.outboundWebhooks)) {
+      webhooks.push(...adapter.outboundWebhooks);
+    }
+
+    return webhooks.sort((a, b) => (a.priority ?? 1000) - (b.priority ?? 1000));
+  }
+
+  /**
+   * Merges legacy single-webhook and multi-webhook config into priority-ordered list.
+   * Supports both `inboundWebhook` (v1 schema) and `inboundWebhooks[]` (v2 schema).
+   */
+  private collectInboundWebhooks(
+    adapter: AdapterDefinition,
+  ): InboundWebhookConfig[] {
+    const webhooks: InboundWebhookConfig[] = [];
+
+    if (adapter.inboundWebhook) {
+      webhooks.push(adapter.inboundWebhook);
+    }
+
+    if (adapter.inboundWebhooks && Array.isArray(adapter.inboundWebhooks)) {
+      webhooks.push(...adapter.inboundWebhooks);
+    }
+
+    return webhooks.sort((a, b) => (a.priority ?? 1000) - (b.priority ?? 1000));
+  }
+
+  /**
+   * Executes a single outbound webhook and returns the result.
+   * Outbound webhooks are BLOCKING - execution waits for a response.
+   * On success: logs the response and continues.
+   * On timeout/failure: aborts the SATP process by throwing an error.
+   *
+   * @throws AdapterOutboundWebhookError if the webhook fails or times out after all retries.
+   */
+  private async runOutboundWebhook(
+    context: AdapterInvocationContext,
+    webhookConfig: OutboundWebhookConfig,
+  ): Promise<AdapterHookStepResult> {
     const payload = this.buildOutboundPayload(context);
     const invocationResult = await this.invokeOutboundWebhook(
-      adapter.outboundWebhook,
+      webhookConfig,
       payload,
     );
 
     if (invocationResult.status === "FAILED") {
-      return this.buildFailureResult(
-        context,
-        invocationResult.errorMessage || "Adapter webhook failed",
+      const errorMessage =
+        invocationResult.errorMessage || "Adapter webhook failed";
+      this.logger.error(
+        `AdapterHookService: Outbound webhook FAILED for adapter "${context.adapter.id}" ` +
+          `at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
+          `URL: ${webhookConfig.url}, Retries: ${invocationResult.retriesAttempted}, ` +
+          `Error: ${errorMessage}. Aborting SATP process.`,
+      );
+      // Abort the SATP process - outbound webhook failure is fatal
+      throw new AdapterOutboundWebhookError(
+        `Outbound webhook failed for adapter "${context.adapter.id}": ${errorMessage}`,
+        context.adapter.id,
+        webhookConfig.url,
         invocationResult,
       );
     }
+
+    // Log successful response
+    this.logger.info(
+      `AdapterHookService: Outbound webhook SUCCESS for adapter "${context.adapter.id}" ` +
+        `at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
+        `URL: ${webhookConfig.url}, HTTP ${invocationResult.httpStatus}, ` +
+        `Latency: ${invocationResult.latencyMs}ms, Retries: ${invocationResult.retriesAttempted}`,
+    );
+    this.logger.debug(
+      `AdapterHookService: Outbound webhook response body for adapter "${context.adapter.id}": ` +
+        `${JSON.stringify(invocationResult.responseBody)}`,
+    );
 
     const metrics: AdapterWebhookMetrics = {
       latencyMs: invocationResult.latencyMs,
@@ -229,6 +441,145 @@ export class AdapterHookService {
     };
   }
 
+  /**
+   * Executes a single inbound webhook and returns the result.
+   * Inbound webhooks are BLOCKING - execution pauses until an external controller
+   * posts a decision via processInboundDecision(), or until timeout.
+   *
+   * @param context - The adapter invocation context
+   * @param webhookConfig - The inbound webhook configuration
+   * @returns AdapterHookStepResult with disposition CONTINUE (approved), FAIL (rejected/timeout)
+   * @throws AdapterInboundWebhookTimeoutError if no decision arrives within timeoutMs
+   * @throws AdapterInboundWebhookRejectedError if external controller rejects the transfer
+   */
+  private async runInboundWebhook(
+    context: AdapterInvocationContext,
+    webhookConfig: InboundWebhookConfig,
+  ): Promise<AdapterHookStepResult> {
+    const fnTag = "AdapterHookService#runInboundWebhook()";
+    const adapterId = context.adapter.id;
+    const sessionId = context.sessionId;
+    const timeoutMs =
+      webhookConfig.timeoutMs ??
+      this.globalConfig?.timeoutMs ??
+      DEFAULT_INBOUND_TIMEOUT_MS;
+    const pendingKey = this.buildPendingKey(sessionId, adapterId);
+
+    this.logger.info(
+      `${fnTag} PAUSING execution for inbound webhook: adapter="${adapterId}" ` +
+        `session="${sessionId}" at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
+        `Waiting up to ${timeoutMs}ms for external decision at POST /api/v1/adapters/inbound/${sessionId}/${adapterId}`,
+    );
+
+    const startedAt = Date.now();
+
+    try {
+      // Deferred promise pattern: stores resolve/reject in registry for later invocation
+      // by processInboundDecision() when external controller POSTs approval/rejection
+      const decisionPromise = new Promise<InboundWebhookDecisionResponse>(
+        (resolve, reject) => {
+          const pending: PendingInboundDecision = {
+            adapterId,
+            sessionId,
+            contextId: context.contextId,
+            startedAt,
+            timeoutMs,
+            resolve,
+            reject,
+          };
+          this.pendingInboundDecisions.set(pendingKey, pending);
+        },
+      );
+
+      // Timeout guard: rejects if external controller doesn't respond in time
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          if (this.pendingInboundDecisions.has(pendingKey)) {
+            this.pendingInboundDecisions.delete(pendingKey);
+            reject(
+              new AdapterInboundWebhookTimeoutError(
+                `Inbound webhook timed out after ${timeoutMs}ms for adapter "${adapterId}" session="${sessionId}"`,
+                adapterId,
+                sessionId,
+                timeoutMs,
+              ),
+            );
+          }
+        }, timeoutMs);
+      });
+
+      // Blocks until: (1) external controller POSTs continue/reject, or (2) timeout expires
+      const decision = await Promise.race([decisionPromise, timeoutPromise]);
+
+      const elapsedMs = Date.now() - startedAt;
+
+      // External controller rejected: abort SATP transfer with reason for audit
+      if (!decision.continue) {
+        this.logger.warn(
+          `${fnTag} Inbound webhook REJECTED for adapter="${adapterId}" ` +
+            `session="${sessionId}" after ${elapsedMs}ms. Reason: ${decision.reason || "No reason provided"}. ` +
+            `Aborting SATP process.`,
+        );
+        throw new AdapterInboundWebhookRejectedError(
+          `Inbound webhook rejected by external controller for adapter "${adapterId}": ${decision.reason || "No reason provided"}`,
+          adapterId,
+          sessionId,
+          decision.reason,
+        );
+      }
+
+      // External controller approved: unblock and resume SATP stage execution
+      this.logger.info(
+        `${fnTag} Inbound webhook APPROVED for adapter="${adapterId}" ` +
+          `session="${sessionId}" after ${elapsedMs}ms. Reason: ${decision.reason || "No reason provided"}. ` +
+          `Resuming SATP execution.`,
+      );
+
+      const metrics: AdapterWebhookMetrics = {
+        latencyMs: elapsedMs,
+        retriesAttempted: 0,
+      };
+
+      return {
+        binding: context.binding,
+        disposition: "CONTINUE",
+        message: `Inbound webhook approved: ${decision.reason || "Approved by external controller"}`,
+        metrics,
+        blockingDecision: decision,
+      };
+    } catch (error) {
+      this.pendingInboundDecisions.delete(pendingKey);
+
+      // Propagate known error types unchanged for caller handling
+      if (
+        error instanceof AdapterInboundWebhookTimeoutError ||
+        error instanceof AdapterInboundWebhookRejectedError
+      ) {
+        throw error;
+      }
+
+      this.logger.error(
+        `${fnTag} Unexpected error in inbound webhook for adapter="${adapterId}" ` +
+          `session="${sessionId}": ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  // Legacy methods for backward compatibility (deprecated)
+  private async runOutboundAdapter(
+    context: AdapterInvocationContext,
+    adapter: AdapterDefinition,
+  ): Promise<AdapterHookStepResult> {
+    if (!adapter.outboundWebhook) {
+      return this.buildSkipResult(
+        context,
+        "Adapter has no outbound webhook configuration",
+      );
+    }
+    return this.runOutboundWebhook(context, adapter.outboundWebhook);
+  }
+
   private async runInboundAdapter(
     context: AdapterInvocationContext,
     adapter: AdapterDefinition,
@@ -239,11 +590,7 @@ export class AdapterHookService {
         "Adapter has no inbound webhook configuration",
       );
     }
-
-    return this.buildSkipResult(
-      context,
-      "Inbound adapter hooks require external controller callbacks; no-op execution",
-    );
+    return this.runInboundWebhook(context, adapter.inboundWebhook);
   }
 
   private buildOutboundPayload(
@@ -292,9 +639,9 @@ export class AdapterHookService {
       outboundResult,
       metrics: outboundResult
         ? {
-          latencyMs: outboundResult.latencyMs,
-          retriesAttempted: outboundResult.retriesAttempted,
-        }
+            latencyMs: outboundResult.latencyMs,
+            retriesAttempted: outboundResult.retriesAttempted,
+          }
         : undefined,
     };
   }
@@ -303,11 +650,8 @@ export class AdapterHookService {
     config: OutboundWebhookConfig,
     payload: OutboundWebhookPayload,
   ): Promise<OutboundWebhookInvocationResult> {
-    const method = (config.method ?? "POST").toUpperCase();
-    const headers = {
-      "content-type": "application/json",
-      ...config.headers,
-    };
+    const method = "POST";
+    const headers = { "content-type": "application/json" };
     const timeoutMs = config.timeoutMs ?? this.getGlobalTimeout();
     const maxAttempts = config.retryAttempts ?? this.getGlobalRetryAttempts();
     const retryDelayMs = config.retryDelayMs ?? this.getGlobalRetryDelay();
@@ -322,7 +666,7 @@ export class AdapterHookService {
           {
             method,
             headers,
-            body: method === "GET" ? undefined : JSON.stringify(payload),
+            body: JSON.stringify(payload),
           },
           timeoutMs,
         );
@@ -487,7 +831,7 @@ export class AdapterHookService {
     return executeWebhooks();
   }
 
-  /** Executes the supplied promise with an upper-bound timeout guard. */
+  /** Wraps async operation with timeout - aborts if deadline exceeded. */
   private async runWithDeadline<T>(
     operation: () => Promise<T>,
     timeoutMs: number,
@@ -519,5 +863,112 @@ export class AdapterExecutionTimeoutError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "AdapterExecutionTimeoutError";
+  }
+}
+
+/**
+ * Error thrown when an outbound webhook fails or times out.
+ * This error aborts the SATP process since outbound webhooks are blocking.
+ */
+export class AdapterOutboundWebhookError extends Error {
+  public readonly adapterId: string;
+  public readonly webhookUrl: string;
+  public readonly invocationResult: OutboundWebhookInvocationResult;
+
+  constructor(
+    message: string,
+    adapterId: string,
+    webhookUrl: string,
+    invocationResult: OutboundWebhookInvocationResult,
+  ) {
+    super(message);
+    this.name = "AdapterOutboundWebhookError";
+    this.adapterId = adapterId;
+    this.webhookUrl = webhookUrl;
+    this.invocationResult = invocationResult;
+  }
+}
+
+/**
+ * Error thrown when an inbound webhook times out waiting for external decision.
+ * This error aborts the SATP process since no approval was received in time.
+ */
+export class AdapterInboundWebhookTimeoutError extends Error {
+  public readonly adapterId: string;
+  public readonly sessionId: string;
+  public readonly timeoutMs: number;
+
+  constructor(
+    message: string,
+    adapterId: string,
+    sessionId: string,
+    timeoutMs: number,
+  ) {
+    super(message);
+    this.name = "AdapterInboundWebhookTimeoutError";
+    this.adapterId = adapterId;
+    this.sessionId = sessionId;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+/**
+ * Error thrown when an external controller rejects an inbound webhook decision.
+ * This error aborts the SATP process since the transfer was explicitly rejected.
+ */
+export class AdapterInboundWebhookRejectedError extends Error {
+  public readonly adapterId: string;
+  public readonly sessionId: string;
+  public readonly reason?: string;
+
+  constructor(
+    message: string,
+    adapterId: string,
+    sessionId: string,
+    reason?: string,
+  ) {
+    super(message);
+    this.name = "AdapterInboundWebhookRejectedError";
+    this.adapterId = adapterId;
+    this.sessionId = sessionId;
+    this.reason = reason;
+  }
+}
+
+/**
+ * Generic error for unexpected webhook failures that don't fall into specific
+ * categories (timeout, rejection, HTTP failure). Used as a catch-all for
+ * unforeseen error conditions during webhook execution.
+ *
+ * @example
+ * ```typescript
+ * throw new AdapterWebhookGenericError(
+ *   "Unexpected serialization error during payload construction",
+ *   "compliance-adapter",
+ *   "session-123",
+ *   "outbound",
+ *   originalError
+ * );
+ * ```
+ */
+export class AdapterWebhookGenericError extends Error {
+  public readonly adapterId: string;
+  public readonly sessionId: string;
+  public readonly webhookDirection: "inbound" | "outbound";
+  public readonly cause?: Error;
+
+  constructor(
+    message: string,
+    adapterId: string,
+    sessionId: string,
+    webhookDirection: "inbound" | "outbound",
+    cause?: Error,
+  ) {
+    super(message);
+    this.name = "AdapterWebhookGenericError";
+    this.adapterId = adapterId;
+    this.sessionId = sessionId;
+    this.webhookDirection = webhookDirection;
+    this.cause = cause;
   }
 }

@@ -697,6 +697,170 @@ const gatewayConfig = {
 - **Security**: Credentials and secret material (certificates, private keys, etc.) must be handled securely, never checked into version control, and managed via secure secrets management.
 - **claimFormats**: The claimFormats array may be customized according to the consuming application's expectations.
 - For detailed schema and supported options, refer to your platform's documentation for each supported ledger.
+
+## Adapter Layer
+
+The SATP Hermes plugin includes an Adapter Layer that enables external systems to integrate with and control SATP transfers through webhook-based communication. This enables compliance systems, business logic, and human-in-the-loop workflows to participate in cross-chain asset transfers.
+
+### Adapter Layer Overview
+
+The adapter layer provides two types of webhook integrations:
+
+| Type | Direction | Purpose |
+|------|-----------|---------|
+| **Outbound Webhooks** | Gateway → External System | Notify external systems about SATP events |
+| **Inbound Webhooks** | External System → Gateway | Allow external systems to approve/reject transfers |
+
+### Key Concepts
+
+- **Execution Points**: Adapters are triggered at specific points in the SATP protocol (stage + step + order)
+- **Adapters**: Configuration units that define which webhooks to call and when
+- **Session Control**: Inbound webhooks can pause transfers pending external approval
+
+### Outbound Webhooks
+
+Outbound webhooks notify external systems about SATP activity. The gateway POSTs payload data to configured URLs.
+
+```yaml
+adapters:
+  - id: "notification-adapter"
+    name: "Transfer Notification"
+    executionPoints:
+      - stage: 0
+        step: newSessionRequest
+        point: "before"
+    outboundWebhook:
+      url: "https://compliance.example.com/webhook/notify"
+      timeoutMs: 5000
+      retryAttempts: 3
+      retryDelayMs: 1000
+    active: true
+    priority: 1
+```
+
+### Inbound Webhooks and Approval Workflow
+
+Inbound webhooks enable external systems to control SATP transfer flow. When an adapter with an inbound webhook executes, the gateway pauses and waits for an external decision.
+
+```yaml
+adapters:
+  - id: "compliance-approval"
+    name: "Compliance Approval"
+    executionPoints:
+      - stage: 1
+        step: checkTransferProposalRequestMessage
+        point: "after"
+    inboundWebhook:
+      timeoutMs: 300000  # 5 minutes for manual review
+    active: true
+    priority: 1
+```
+
+#### Decision Endpoint
+
+External systems submit decisions to the gateway's inbound webhook decide endpoint:
+
+```
+POST /api/v1/@hyperledger/cactus-plugin-satp-hermes/webhook/inbound/decide
+```
+
+**Request Body:**
+```json
+{
+  "adapterId": "compliance-approval",
+  "sessionId": "session-abc-123",
+  "continue": true,
+  "reason": "Compliance check passed - all KYC requirements met"
+}
+```
+
+**Response:**
+```json
+{
+  "accepted": true,
+  "sessionId": "session-abc-123",
+  "message": "Decision accepted, transfer resumed",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+#### Decision Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `adapterId` | string | Yes | Adapter that originally paused the transfer |
+| `sessionId` | string | Yes | Session identifier for the paused transfer |
+| `continue` | boolean | Yes | `true` to resume, `false` to abort |
+| `contextId` | string | No | Optional context identifier |
+| `reason` | string | No | Human-readable justification for audit |
+| `data` | object | No | Optional payload from external system |
+
+### Configuration Reference
+
+#### InboundWebhookConfig
+
+```typescript
+interface InboundWebhookConfig {
+  // Inherited from BaseWebhookConfig
+  timeoutMs?: number;       // Timeout for waiting for decision
+  payloadTemplate?: string; // Template for context data
+  retryAttempts?: number;   // Retry configuration
+  retryDelayMs?: number;
+  
+  // Inbound-specific
+  priority?: number;        // Order when multiple inbound webhooks
+}
+```
+
+#### OutboundWebhookConfig
+
+```typescript
+interface OutboundWebhookConfig {
+  url: string;              // Absolute HTTPS endpoint URL
+  timeoutMs?: number;       // HTTP request timeout
+  payloadTemplate?: string; // JSON/XML template for request body
+  retryAttempts?: number;   // Number of retry attempts
+  retryDelayMs?: number;    // Delay between retries
+  priority?: number;        // Order when multiple outbound webhooks
+}
+```
+
+### Execution Points
+
+Adapters can be configured to execute at any combination of:
+
+- **Stages**: 0 (Initialization), 1 (Transfer Agreement), 2 (Lock Evidence), 3 (Commitment)
+- **Steps**: Protocol-specific steps within each stage (e.g., `newSessionRequest`, `checkTransferProposalRequestMessage`)
+- **Points**: `before`, `during`, `after`, or `rollback`
+
+### Example: Complete Adapter Configuration
+
+```yaml
+adapters:
+  - id: "validation-adapter"
+    name: "Transfer Validation Webhook"
+    description: "Validates transfer requests and notifies compliance"
+    executionPoints:
+      - stage: 0
+        step: checkNewSessionRequest
+        point: "before"
+    outboundWebhook:
+      url: "http://localhost:9223/webhook/outbound/validate"
+      timeoutMs: 5000
+      retryAttempts: 3
+      retryDelayMs: 1000
+    inboundWebhook:
+      timeoutMs: 300000
+    active: true
+    priority: 1
+
+global:
+  timeoutMs: 3000
+  retryAttempts: 5
+  retryDelayMs: 500
+  logLevel: "debug"
+```
+
 ## Containerization
 
 ### Building the container image locally

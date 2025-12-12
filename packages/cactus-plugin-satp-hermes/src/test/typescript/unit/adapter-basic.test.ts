@@ -358,3 +358,525 @@ describe("AdapterManager configuration examples", () => {
     expect(config.global?.logLevel).toBe("debug");
   });
 });
+
+describe("AdapterManager priority ordering", () => {
+  it("executes multiple adapters at same execution point in priority order (lower first)", async () => {
+    // Create config with 3 adapters at the SAME execution point with different priorities
+    const config = {
+      adapters: [
+        {
+          id: "adapter-priority-3",
+          name: "Third Priority Adapter",
+          active: true,
+          priority: 3, // Should execute last
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/priority-3" },
+        },
+        {
+          id: "adapter-priority-1",
+          name: "First Priority Adapter",
+          active: true,
+          priority: 1, // Should execute first
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/priority-1" },
+        },
+        {
+          id: "adapter-priority-2",
+          name: "Second Priority Adapter",
+          active: true,
+          priority: 2, // Should execute second
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/priority-2" },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const callOrder: string[] = [];
+    const fetchMock = jest.fn<typeof fetch>().mockImplementation((url) => {
+      callOrder.push(url.toString());
+      return Promise.resolve(createFetchResponse(200, { ok: true }));
+    });
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      fetchImpl: fetchMock,
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    const result = await manager.executeAdapters({
+      stage: 0,
+      stepTag: "newSessionRequest",
+      stepOrder: "before",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      gatewayId: TEST_GATEWAY_ID,
+      metadata: {},
+      payload: {},
+    });
+
+    // Verify all 3 adapters executed
+    expect(result?.steps).toHaveLength(3);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    // Verify execution order matches priority (lower priority executes first)
+    expect(callOrder[0]).toContain("priority-1");
+    expect(callOrder[1]).toContain("priority-2");
+    expect(callOrder[2]).toContain("priority-3");
+
+    // Verify step binding order
+    expect(result?.steps[0].binding.adapterId).toBe("adapter-priority-1");
+    expect(result?.steps[1].binding.adapterId).toBe("adapter-priority-2");
+    expect(result?.steps[2].binding.adapterId).toBe("adapter-priority-3");
+  });
+
+  it("uses default priority (1000) when not specified", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "adapter-no-priority",
+          name: "No Priority Adapter",
+          active: true,
+          // No priority - should default to 1000
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/no-priority" },
+        },
+        {
+          id: "adapter-low-priority",
+          name: "Low Priority Adapter",
+          active: true,
+          priority: 500, // Should execute before default 1000
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/low-priority" },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const callOrder: string[] = [];
+    const fetchMock = jest.fn<typeof fetch>().mockImplementation((url) => {
+      callOrder.push(url.toString());
+      return Promise.resolve(createFetchResponse(200, { ok: true }));
+    });
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      fetchImpl: fetchMock,
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    await manager.executeAdapters({
+      stage: 0,
+      stepTag: "newSessionRequest",
+      stepOrder: "before",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      gatewayId: TEST_GATEWAY_ID,
+      metadata: {},
+      payload: {},
+    });
+
+    // Adapter with priority 500 should execute before default 1000
+    expect(callOrder[0]).toContain("low-priority");
+    expect(callOrder[1]).toContain("no-priority");
+  });
+
+  it("priority only affects adapters at same execution point", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "before-adapter-high-priority",
+          name: "Before Adapter (High Priority)",
+          active: true,
+          priority: 100, // High priority number but different execution point
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/before" },
+        },
+        {
+          id: "after-adapter-low-priority",
+          name: "After Adapter (Low Priority)",
+          active: true,
+          priority: 1, // Low priority number but different execution point
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "after" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/after" },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const fetchMock = jest
+      .fn<typeof fetch>()
+      .mockResolvedValue(createFetchResponse(200, { ok: true }));
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      fetchImpl: fetchMock,
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    // Execute "before" step
+    const beforeResult = await manager.executeAdapters({
+      stage: 0,
+      stepTag: "newSessionRequest",
+      stepOrder: "before",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      gatewayId: TEST_GATEWAY_ID,
+      metadata: {},
+      payload: {},
+    });
+
+    // Execute "after" step
+    const afterResult = await manager.executeAdapters({
+      stage: 0,
+      stepTag: "newSessionRequest",
+      stepOrder: "after",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      gatewayId: TEST_GATEWAY_ID,
+      metadata: {},
+      payload: {},
+    });
+
+    // Each execution point has exactly 1 adapter
+    expect(beforeResult?.steps).toHaveLength(1);
+    expect(afterResult?.steps).toHaveLength(1);
+
+    // "before" adapter executes when stepOrder is "before"
+    expect(beforeResult?.steps[0].binding.adapterId).toBe(
+      "before-adapter-high-priority",
+    );
+
+    // "after" adapter executes when stepOrder is "after"
+    expect(afterResult?.steps[0].binding.adapterId).toBe(
+      "after-adapter-low-priority",
+    );
+  });
+
+  it("sorts adapters by protocol step sequence (not alphabetically)", async () => {
+    // Create config with adapters at different steps in Stage 0
+    // Steps in Stage 0 protocol order:
+    // 1. newSessionRequest (sequence 1)
+    // 2. checkNewSessionRequest (sequence 2)
+    // 3. newSessionResponse (sequence 3)
+    // 4. checkNewSessionResponse (sequence 4)
+    // 5. preSATPTransferRequest (sequence 5)
+    // etc.
+    // If sorted alphabetically: checkNewSessionRequest < newSessionRequest < newSessionResponse
+    // If sorted by protocol sequence: newSessionRequest < checkNewSessionRequest < newSessionResponse
+    const config = {
+      adapters: [
+        {
+          id: "adapter-checkNewSessionRequest", // alphabetically first
+          name: "Check New Session Request Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            {
+              stage: 0,
+              step: "checkNewSessionRequest",
+              point: "before" as const,
+            },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/check-session" },
+        },
+        {
+          id: "adapter-newSessionResponse", // alphabetically last
+          name: "New Session Response Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            { stage: 0, step: "newSessionResponse", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/session-response" },
+        },
+        {
+          id: "adapter-newSessionRequest", // alphabetically middle
+          name: "New Session Request Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/session-request" },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      fetchImpl: jest
+        .fn<typeof fetch>()
+        .mockResolvedValue(createFetchResponse(200, { ok: true })),
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    // Get bindings for each step and verify they're sorted by protocol sequence
+    const binding1 = manager.getBindingsForExecutionPoint(
+      0,
+      "newSessionRequest",
+      "before",
+    );
+    const binding2 = manager.getBindingsForExecutionPoint(
+      0,
+      "checkNewSessionRequest",
+      "before",
+    );
+    const binding3 = manager.getBindingsForExecutionPoint(
+      0,
+      "newSessionResponse",
+      "before",
+    );
+
+    expect(binding1).toHaveLength(1);
+    expect(binding2).toHaveLength(1);
+    expect(binding3).toHaveLength(1);
+
+    // Verify each binding is for the correct step (protocol sequence order)
+    expect(binding1[0].adapterId).toBe("adapter-newSessionRequest"); // sequence 1
+    expect(binding2[0].adapterId).toBe("adapter-checkNewSessionRequest"); // sequence 2
+    expect(binding3[0].adapterId).toBe("adapter-newSessionResponse"); // sequence 3
+  });
+});
+
+describe("AdapterManager decideInboundWebhook", () => {
+  it("accepts a valid inbound webhook decision for existing adapter", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "approval-adapter",
+          name: "Approval Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "after" as const },
+          ],
+          inboundWebhook: { timeoutMs: 5000 },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    const result = await manager.decideInboundWebhook({
+      adapterId: "approval-adapter",
+      sessionId: TEST_SESSION_ID,
+      continue: true,
+      reason: "Manual approval granted",
+    });
+
+    expect(result.accepted).toBe(true);
+    expect(result.sessionId).toBe(TEST_SESSION_ID);
+    expect(result.message).toContain("resumed");
+    expect(result.timestamp).toBeDefined();
+  });
+
+  it("rejects decision for unknown adapter", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "known-adapter",
+          name: "Known Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "after" as const },
+          ],
+          inboundWebhook: { timeoutMs: 5000 },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    const result = await manager.decideInboundWebhook({
+      adapterId: "unknown-adapter",
+      sessionId: TEST_SESSION_ID,
+      continue: true,
+      reason: "Should fail",
+    });
+
+    expect(result.accepted).toBe(false);
+    expect(result.sessionId).toBe(TEST_SESSION_ID);
+    expect(result.message).toContain("Unknown adapter");
+    expect(result.timestamp).toBeDefined();
+  });
+
+  it("rejects decision for adapter without inbound webhook configured", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "outbound-only-adapter",
+          name: "Outbound Only Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "before" as const },
+          ],
+          outboundWebhook: { url: "http://localhost:9999/outbound" },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    const result = await manager.decideInboundWebhook({
+      adapterId: "outbound-only-adapter",
+      sessionId: TEST_SESSION_ID,
+      continue: true,
+      reason: "Should fail - no inbound webhook",
+    });
+
+    expect(result.accepted).toBe(false);
+    expect(result.sessionId).toBe(TEST_SESSION_ID);
+    expect(result.message).toContain("not configured for inbound webhooks");
+    expect(result.timestamp).toBeDefined();
+  });
+
+  it("accepts rejection decision (continue=false) for valid adapter", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "compliance-adapter",
+          name: "Compliance Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            {
+              stage: 1,
+              step: "checkTransferProposalRequestMessage",
+              point: "after" as const,
+            },
+          ],
+          inboundWebhook: { timeoutMs: 30000 },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    const result = await manager.decideInboundWebhook({
+      adapterId: "compliance-adapter",
+      sessionId: TEST_SESSION_ID,
+      continue: false,
+      reason: "Compliance check failed - sanctions match",
+    });
+
+    expect(result.accepted).toBe(true);
+    expect(result.sessionId).toBe(TEST_SESSION_ID);
+    expect(result.message).toContain("aborted");
+    expect(result.timestamp).toBeDefined();
+  });
+
+  it("accepts decision with optional contextId and data", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "data-adapter",
+          name: "Data Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "after" as const },
+          ],
+          inboundWebhook: { timeoutMs: 5000 },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    const result = await manager.decideInboundWebhook({
+      adapterId: "data-adapter",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      continue: true,
+      reason: "Decision with additional data",
+      data: { customField: "value", score: 95 },
+    });
+
+    expect(result.accepted).toBe(true);
+    expect(result.sessionId).toBe(TEST_SESSION_ID);
+    expect(result.timestamp).toBeDefined();
+  });
+
+  it("returns ISO timestamp in decision result", async () => {
+    const config = {
+      adapters: [
+        {
+          id: "timestamp-adapter",
+          name: "Timestamp Adapter",
+          active: true,
+          priority: 1,
+          executionPoints: [
+            { stage: 0, step: "newSessionRequest", point: "after" as const },
+          ],
+          inboundWebhook: { timeoutMs: 5000 },
+        },
+      ],
+      global: { logLevel: "debug" as const },
+    };
+
+    const manager = new AdapterManager({
+      config,
+      monitorService: createMonitorStub(),
+      logLevel: TEST_LOG_LEVEL,
+    });
+
+    const beforeTimestamp = new Date().toISOString();
+    const result = await manager.decideInboundWebhook({
+      adapterId: "timestamp-adapter",
+      sessionId: TEST_SESSION_ID,
+      continue: true,
+    });
+    const afterTimestamp = new Date().toISOString();
+
+    expect(result.timestamp).toBeDefined();
+    expect(result.timestamp >= beforeTimestamp).toBe(true);
+    expect(result.timestamp <= afterTimestamp).toBe(true);
+  });
+});

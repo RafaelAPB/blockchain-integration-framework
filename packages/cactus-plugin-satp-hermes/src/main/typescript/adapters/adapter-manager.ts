@@ -63,6 +63,7 @@ import {
   isValidStage,
   isValidStepForStage,
   getStepByTag,
+  getStepSequenceNumber,
   validateStepTagForStage,
   type SatpStage,
 } from "../core/satp-protocol-map";
@@ -71,7 +72,13 @@ import type { AdapterHookResult } from "./adapter-types";
 import { Stage } from "../types/satp-protocol";
 
 // Re-export for consumers
-export { AdapterExecutionTimeoutError } from "./adapter-hook-service";
+export {
+  AdapterExecutionTimeoutError,
+  AdapterOutboundWebhookError,
+  AdapterInboundWebhookTimeoutError,
+  AdapterInboundWebhookRejectedError,
+  AdapterWebhookGenericError,
+} from "./adapter-hook-service";
 
 /**
  * Configuration for {@link AdapterManager}.
@@ -153,6 +160,38 @@ export interface SessionAdapterExecutionRequest {
 }
 
 /**
+ * Input for processing an inbound webhook decision.
+ */
+export interface InboundWebhookDecisionInput {
+  /** Adapter identifier that originally paused the SATP stage */
+  adapterId: string;
+  /** Session identifier for the paused SATP transfer */
+  sessionId: string;
+  /** Optional transfer context identifier */
+  contextId?: string;
+  /** When true, gateway resumes; when false, transfer is rejected */
+  continue: boolean;
+  /** Human-readable justification for auditing */
+  reason?: string;
+  /** Optional data payload from external system */
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Result of processing an inbound webhook decision.
+ */
+export interface InboundWebhookDecisionResult {
+  /** Whether the decision was accepted and applied */
+  accepted: boolean;
+  /** Session identifier for the affected transfer */
+  sessionId: string;
+  /** Human-readable message describing the result */
+  message?: string;
+  /** Timestamp when the decision was processed */
+  timestamp: string;
+}
+
+/**
  * Central manager for SATP adapter configuration and execution.
  *
  * @description
@@ -197,7 +236,6 @@ export class AdapterManager {
     this.adaptersById = this.buildAdapterIndex(this.config.adapters || []);
     this.executionPlan = this.buildExecutionPlan();
 
-    // Initialize the hook service for webhook execution
     this.hookService = new AdapterHookService({
       logger: this.log,
       globalConfig: this.config.global,
@@ -411,7 +449,6 @@ export class AdapterManager {
       order,
     );
 
-    // Delegate execution to the hook service
     return this.hookService.executeWithDeadline({
       bindings,
       sessionId,
@@ -424,6 +461,92 @@ export class AdapterManager {
       metadata,
       payload,
     });
+  }
+
+  // ============================================================================
+  // INBOUND WEBHOOK DECISION METHODS
+  // Used by external approval controllers to submit decisions for paused sessions
+  // ============================================================================
+
+  /**
+   * Process an inbound webhook decision from an external approval controller.
+   *
+   * This method is called when an external system (compliance check, manual review,
+   * policy enforcement) posts a decision to approve or reject a paused SATP transfer.
+   *
+   * **Decision Processing:**
+   * 1. Validate the adapterId exists in the configuration
+   * 2. Log the decision with justification for audit trail
+   * 3. Return acceptance status to the external controller
+   *
+   * Note: The actual session resume/abort logic is handled by the hook service
+   * when it receives the decision through a separate coordination mechanism.
+   * This method provides the API entry point and validation.
+   *
+   * @param input - Decision input containing adapterId, sessionId, continue flag, and reason
+   * @returns Decision result indicating if the decision was accepted
+   */
+  public async decideInboundWebhook(
+    input: InboundWebhookDecisionInput,
+  ): Promise<InboundWebhookDecisionResult> {
+    const fnTag = `${AdapterManager.CLASS_NAME}#decideInboundWebhook()`;
+
+    this.log.info(
+      `${fnTag} Processing decision: adapter="${input.adapterId}" session="${input.sessionId}" continue=${input.continue} reason="${input.reason || "N/A"}"`,
+    );
+
+    // Validate the adapter exists in our configuration
+    const adapter = this.adaptersById.get(input.adapterId);
+    if (!adapter) {
+      this.log.warn(
+        `${fnTag} Unknown adapterId="${input.adapterId}" - decision rejected`,
+      );
+      return {
+        accepted: false,
+        sessionId: input.sessionId,
+        message: `Unknown adapter: ${input.adapterId}`,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Validate the adapter has an inbound webhook configured
+    if (!adapter.inboundWebhook) {
+      this.log.warn(
+        `${fnTag} Adapter "${input.adapterId}" does not have an inbound webhook configured - decision rejected`,
+      );
+      return {
+        accepted: false,
+        sessionId: input.sessionId,
+        message: `Adapter "${input.adapterId}" is not configured for inbound webhooks`,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Log the decision for audit trail
+    const decisionType = input.continue ? "APPROVED" : "REJECTED";
+    this.log.info(
+      `${fnTag} Decision ${decisionType} for session="${input.sessionId}" by adapter="${input.adapterId}": ${input.reason || "No reason provided"}`,
+    );
+
+    // Delegate to hook service to process the decision
+    // This will resume or abort the waiting session
+    const accepted = await this.hookService.processInboundDecision({
+      adapterId: input.adapterId,
+      sessionId: input.sessionId,
+      contextId: input.contextId,
+      shouldContinue: input.continue,
+      reason: input.reason,
+      data: input.data,
+    });
+
+    return {
+      accepted,
+      sessionId: input.sessionId,
+      message: accepted
+        ? `Decision accepted, transfer ${input.continue ? "resumed" : "aborted"}`
+        : "Decision rejected - session not in waiting state or already processed",
+      timestamp: new Date().toISOString(),
+    };
   }
 
   /** Derives the smallest inbound timeout defined across adapters for an execution point. */
@@ -447,8 +570,7 @@ export class AdapterManager {
       if (!inbound) {
         continue;
       }
-      const candidate =
-        inbound.inboundDeadlineMs ?? inbound.timeoutMs ?? globalTimeout;
+      const candidate = inbound.timeoutMs ?? globalTimeout;
       if (!candidate || candidate <= 0) {
         continue;
       }
@@ -489,16 +611,15 @@ export class AdapterManager {
     for (const adapter of this.adaptersById.values()) {
       for (const executionPoint of adapter.executionPoints) {
         const pointLabel = `stage:${executionPoint.stage}/step:${executionPoint.step}/point:${executionPoint.point}`;
-        // Validate stage
+
         if (!isValidStage(executionPoint.stage)) {
           errors.push(
             `Adapter id="${adapter.id}", execution point "${pointLabel}": ` +
-            `invalid stage ${executionPoint.stage}. Valid stages are 0, 1, 2, 3.`,
+              `invalid stage ${executionPoint.stage}. Valid stages are 0, 1, 2, 3.`,
           );
           continue;
         }
 
-        // Validate stepTag for stage
         const validation = validateStepTagForStage(
           executionPoint.stage,
           executionPoint.step,
@@ -506,7 +627,7 @@ export class AdapterManager {
         if (!validation.valid) {
           errors.push(
             `Adapter id="${adapter.id}", execution point "${pointLabel}": ` +
-            `${validation.errorMessage}`,
+              `${validation.errorMessage}`,
           );
           continue;
         }
@@ -522,7 +643,7 @@ export class AdapterManager {
       }
     }
 
-    // Fail fast if any execution points are invalid
+    // Abort startup on invalid config - operator must fix before gateway can run
     if (errors.length > 0) {
       const errorMessage =
         `${AdapterManager.CLASS_NAME}#buildExecutionPlan() Invalid adapter configuration detected:\n` +
@@ -531,12 +652,22 @@ export class AdapterManager {
       throw new Error(errorMessage);
     }
 
-    // Sort by stage, stepTag, stepOrder, then priority
+    // Deterministic ordering: stage → protocol step sequence → execution order → adapter priority
+    // Priority only distinguishes adapters at the same execution point
+    const stepOrderRank: Record<StageExecutionStep, number> = {
+      before: 0,
+      during: 1,
+      after: 2,
+      rollback: 3,
+    };
     bindings.sort((a, b) => {
       if (a.stage !== b.stage) return a.stage - b.stage;
-      if (a.stepTag !== b.stepTag) return a.stepTag.localeCompare(b.stepTag);
-      if (a.stepOrder !== b.stepOrder)
-        return a.stepOrder.localeCompare(b.stepOrder);
+      const seqA = getStepSequenceNumber(a.stage, a.stepTag) ?? 9999;
+      const seqB = getStepSequenceNumber(b.stage, b.stepTag) ?? 9999;
+      if (seqA !== seqB) return seqA - seqB;
+      if (a.stepOrder !== b.stepOrder) {
+        return stepOrderRank[a.stepOrder] - stepOrderRank[b.stepOrder];
+      }
       return a.priority - b.priority;
     });
 

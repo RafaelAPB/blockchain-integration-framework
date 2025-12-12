@@ -604,6 +604,80 @@ export type DLTProtocol = typeof DLTProtocol[keyof typeof DLTProtocol];
 
 
 /**
+ * Response returned by the gateway after processing an inbound webhook decision. Indicates whether the decision was accepted and the resulting session state.
+ * @export
+ * @interface DecideInboundWebhook200Response
+ */
+export interface DecideInboundWebhook200Response {
+    /**
+     * Whether the decision was accepted and applied to the session.
+     * @type {boolean}
+     * @memberof DecideInboundWebhook200Response
+     */
+    'accepted': boolean;
+    /**
+     * Session identifier for the affected SATP transfer.
+     * @type {string}
+     * @memberof DecideInboundWebhook200Response
+     */
+    'sessionId': string;
+    /**
+     * Human-readable message describing the result.
+     * @type {string}
+     * @memberof DecideInboundWebhook200Response
+     */
+    'message'?: string;
+    /**
+     * Timestamp when the decision was processed.
+     * @type {string}
+     * @memberof DecideInboundWebhook200Response
+     */
+    'timestamp'?: string;
+}
+/**
+ * Request payload posted by external approval controllers to approve or reject  a paused SATP transfer. The gateway validates the adapterId matches the waiting  adapter, then uses the continue field to determine whether to proceed or abort.
+ * @export
+ * @interface DecideInboundWebhookRequest
+ */
+export interface DecideInboundWebhookRequest {
+    /**
+     * Adapter identifier that originally paused the SATP stage.
+     * @type {string}
+     * @memberof DecideInboundWebhookRequest
+     */
+    'adapterId': string;
+    /**
+     * Session identifier for the paused SATP transfer.
+     * @type {string}
+     * @memberof DecideInboundWebhookRequest
+     */
+    'sessionId': string;
+    /**
+     * Optional transfer context identifier.
+     * @type {string}
+     * @memberof DecideInboundWebhookRequest
+     */
+    'contextId'?: string;
+    /**
+     * When true, the gateway resumes the paused stage. When false, the transfer  is rejected and the provided reason is logged.
+     * @type {boolean}
+     * @memberof DecideInboundWebhookRequest
+     */
+    'continue': boolean;
+    /**
+     * Human-readable justification for auditing and operator visibility.
+     * @type {string}
+     * @memberof DecideInboundWebhookRequest
+     */
+    'reason'?: string;
+    /**
+     * Optional data payload from external system.
+     * @type {{ [key: string]: any; }}
+     * @memberof DecideInboundWebhookRequest
+     */
+    'data'?: { [key: string]: any; };
+}
+/**
  * The draft versions supported by the gateway.
  * @export
  * @interface DraftVersions
@@ -2102,6 +2176,80 @@ export const HealthCheckResponseStatusEnum = {
 
 export type HealthCheckResponseStatusEnum = typeof HealthCheckResponseStatusEnum[keyof typeof HealthCheckResponseStatusEnum];
 
+/**
+ * Request payload posted by external approval controllers to approve or reject  a paused SATP transfer. The gateway validates the adapterId matches the waiting  adapter, then uses the continue field to determine whether to proceed or abort.
+ * @export
+ * @interface InboundWebhookDecisionRequest
+ */
+export interface InboundWebhookDecisionRequest {
+    /**
+     * Adapter identifier that originally paused the SATP stage.
+     * @type {string}
+     * @memberof InboundWebhookDecisionRequest
+     */
+    'adapterId': string;
+    /**
+     * Session identifier for the paused SATP transfer.
+     * @type {string}
+     * @memberof InboundWebhookDecisionRequest
+     */
+    'sessionId': string;
+    /**
+     * Optional transfer context identifier.
+     * @type {string}
+     * @memberof InboundWebhookDecisionRequest
+     */
+    'contextId'?: string;
+    /**
+     * When true, the gateway resumes the paused stage. When false, the transfer  is rejected and the provided reason is logged.
+     * @type {boolean}
+     * @memberof InboundWebhookDecisionRequest
+     */
+    'continue': boolean;
+    /**
+     * Human-readable justification for auditing and operator visibility.
+     * @type {string}
+     * @memberof InboundWebhookDecisionRequest
+     */
+    'reason'?: string;
+    /**
+     * Optional data payload from external system.
+     * @type {{ [key: string]: any; }}
+     * @memberof InboundWebhookDecisionRequest
+     */
+    'data'?: { [key: string]: any; };
+}
+/**
+ * Response returned by the gateway after processing an inbound webhook decision. Indicates whether the decision was accepted and the resulting session state.
+ * @export
+ * @interface InboundWebhookDecisionResponse
+ */
+export interface InboundWebhookDecisionResponse {
+    /**
+     * Whether the decision was accepted and applied to the session.
+     * @type {boolean}
+     * @memberof InboundWebhookDecisionResponse
+     */
+    'accepted': boolean;
+    /**
+     * Session identifier for the affected SATP transfer.
+     * @type {string}
+     * @memberof InboundWebhookDecisionResponse
+     */
+    'sessionId': string;
+    /**
+     * Human-readable message describing the result.
+     * @type {string}
+     * @memberof InboundWebhookDecisionResponse
+     */
+    'message'?: string;
+    /**
+     * Timestamp when the decision was processed.
+     * @type {string}
+     * @memberof InboundWebhookDecisionResponse
+     */
+    'timestamp'?: string;
+}
 /**
  * Details a single step within a route including actions and estimates.
  * @export
@@ -5266,6 +5414,113 @@ export class TransactionApi extends BaseAPI {
      */
     public transact(transactRequest: TransactRequest, options?: AxiosRequestConfig) {
         return TransactionApiFp(this.configuration).transact(transactRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+/**
+ * WebhookApi - axios parameter creator
+ * @export
+ */
+export const WebhookApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+         * @summary Submit inbound webhook decision
+         * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        decideInboundWebhook: async (decideInboundWebhookRequest: DecideInboundWebhookRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'decideInboundWebhookRequest' is not null or undefined
+            assertParamExists('decideInboundWebhook', 'decideInboundWebhookRequest', decideInboundWebhookRequest)
+            const localVarPath = `/api/v1/@hyperledger/cactus-plugin-satp-hermes/webhook/inbound/decide`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(decideInboundWebhookRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * WebhookApi - functional programming interface
+ * @export
+ */
+export const WebhookApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = WebhookApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+         * @summary Submit inbound webhook decision
+         * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async decideInboundWebhook(decideInboundWebhookRequest: DecideInboundWebhookRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DecideInboundWebhook200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.decideInboundWebhook(decideInboundWebhookRequest, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * WebhookApi - factory interface
+ * @export
+ */
+export const WebhookApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = WebhookApiFp(configuration)
+    return {
+        /**
+         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+         * @summary Submit inbound webhook decision
+         * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        decideInboundWebhook(decideInboundWebhookRequest: DecideInboundWebhookRequest, options?: any): AxiosPromise<DecideInboundWebhook200Response> {
+            return localVarFp.decideInboundWebhook(decideInboundWebhookRequest, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * WebhookApi - object-oriented interface
+ * @export
+ * @class WebhookApi
+ * @extends {BaseAPI}
+ */
+export class WebhookApi extends BaseAPI {
+    /**
+     * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+     * @summary Submit inbound webhook decision
+     * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof WebhookApi
+     */
+    public decideInboundWebhook(decideInboundWebhookRequest: DecideInboundWebhookRequest, options?: AxiosRequestConfig) {
+        return WebhookApiFp(this.configuration).decideInboundWebhook(decideInboundWebhookRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

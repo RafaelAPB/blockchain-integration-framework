@@ -48,7 +48,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -79,7 +78,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             priority: 1,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -97,14 +95,12 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             priority: 2,
             executionPoints: [
               {
-                
                 stage: 1,
                 step: "checkTransferProposalRequestMessage",
                 point: "after",
               },
             ],
             inboundWebhook: {
-              urlSuffix: "/inbound/adapter2",
               timeoutMs: 10000,
             },
           },
@@ -128,19 +124,16 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
               {
-                
                 stage: 0,
                 step: "newSessionResponse",
                 point: "after",
               },
               {
-                
                 stage: 0,
                 step: "checkPreSATPTransferRequest",
                 point: "before",
@@ -168,7 +161,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
@@ -182,7 +174,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 1,
                 step: "transferProposalRequest",
                 point: "during",
@@ -196,7 +187,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 1,
                 step: "transferProposalResponse",
                 point: "after",
@@ -210,7 +200,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 2,
                 step: "lockAssertionRequest",
                 point: "rollback",
@@ -236,7 +225,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -271,7 +259,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
@@ -280,13 +267,9 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             outboundWebhook: {
               url: "https://compliance.example.com/check",
               timeoutMs: 5000,
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
             },
             inboundWebhook: {
-              urlSuffix: "/inbound/compliance-decision",
               timeoutMs: 300000,
-              method: "POST",
             },
           },
         ],
@@ -300,9 +283,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
       expect(result?.adapters[0].outboundWebhook?.url).toBe(
         "https://compliance.example.com/check",
       );
-      expect(result?.adapters[0].inboundWebhook?.urlSuffix).toBe(
-        "/inbound/compliance-decision",
-      );
+      expect(result?.adapters[0].inboundWebhook?.timeoutMs).toBe(300000);
     });
 
     it("should validate configuration for all SATP stages (0-3)", () => {
@@ -314,7 +295,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -328,7 +308,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
@@ -342,7 +321,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 2,
                 step: "checkLockAssertionRequest",
                 point: "before",
@@ -356,7 +334,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 3,
                 step: "checkCommitPreparationRequest",
                 point: "before",
@@ -397,7 +374,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -421,7 +397,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -435,7 +410,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
@@ -480,7 +454,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 5,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -505,7 +478,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "lockAssertion",
                 point: "before",
@@ -530,7 +502,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "middle" as "before",
@@ -555,7 +526,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -571,31 +541,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
       }).toThrow("outboundWebhook.url must be a valid URL");
     });
 
-    it("should throw when inbound webhook urlSuffix does not start with /", () => {
-      const config: AdapterLayerConfiguration = {
-        adapters: [
-          {
-            id: "invalid-suffix-adapter",
-            name: "Invalid Suffix Adapter",
-            active: true,
-            executionPoints: [
-              {
-                
-                stage: 0,
-                step: "checkNewSessionRequest",
-                point: "before",
-              },
-            ],
-            inboundWebhook: { urlSuffix: "inbound/webhook" }, // Missing leading /
-          },
-        ],
-      };
-
-      expect(() => {
-        validateAdapterConfig({ configValue: config });
-      }).toThrow("inboundWebhook.urlSuffix must be a string starting with '/'");
-    });
-
     it("should throw when global logLevel is invalid", () => {
       const config: AdapterLayerConfiguration = {
         adapters: [
@@ -605,7 +550,6 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                
                 stage: 0,
                 step: "checkNewSessionRequest",
                 point: "before",
@@ -689,7 +633,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
       expect(outboundAdapter.executionPoints[0].point).toBe("before");
       expect(outboundAdapter.outboundWebhook).toBeDefined();
       expect(outboundAdapter.outboundWebhook?.url).toBe(
-        "https://webhook.phase0.omnumi.com/validate",
+        "http://localhost:9223/webhook/outbound/validate",
       );
 
       // Verify inbound webhook adapter (after)

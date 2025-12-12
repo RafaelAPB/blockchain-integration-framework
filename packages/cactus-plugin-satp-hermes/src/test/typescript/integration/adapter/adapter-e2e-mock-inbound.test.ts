@@ -1,3 +1,33 @@
+/**
+ * @fileoverview Integration tests with real outbound HTTP calls to external endpoints
+ *
+ * @description
+ * **Test Strategy:**
+ * These tests validate outbound webhooks against real HTTP endpoints
+ * (jsonplaceholder.typicode.com) to verify actual network behavior.
+ * Inbound webhooks remain mocked since they require gateway callback infrastructure.
+ *
+ * **Key Scenarios Tested:**
+ * - Real HTTP POST to jsonplaceholder.typicode.com/posts
+ * - Network timeout handling with real latency
+ * - Response parsing from actual JSON API responses
+ * - Retry behavior under real network conditions
+ *
+ * **Prerequisites:**
+ * - Network connectivity to jsonplaceholder.typicode.com
+ * - Higher Jest timeout (30s) to accommodate network latency
+ *
+ * **When to use real endpoint tests:**
+ * - Validating HTTP client behavior (headers, timeouts, retries)
+ * - Smoke testing before deployment
+ * - Debugging network-related issues
+ *
+ * @see adapter-e2e-mock.test.ts for fully mocked tests (no network)
+ * @see fixtures/adapter-configuration-integration-test.yml for config
+ *
+ * @module adapter-e2e-mock-inbound.test
+ */
+
 import { describe, expect, it, jest, beforeAll, afterAll } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
 import { Stage } from "../../../../main/typescript/types/satp-protocol";
@@ -12,13 +42,8 @@ import {
 } from "../../adapter-test-utils";
 
 /**
- * Integration tests for AdapterManager with real outbound HTTP calls.
- *
- * These tests call real HTTP endpoints (jsonplaceholder.typicode.com) for outbound webhooks
- * while only mocking inbound webhook responses.
- *
- * NOTE: These tests require network connectivity and may be slower.
- * They are marked with a higher timeout to accommodate network latency.
+ * Integration test suite: Real outbound HTTP calls
+ * Requires network connectivity - uses extended timeout.
  */
 describe("AdapterManager integration with real outbound endpoints", () => {
   // Increase timeout for network calls
@@ -96,10 +121,6 @@ describe("AdapterManager integration with real outbound endpoints", () => {
               url: "https://jsonplaceholder.typicode.com/posts",
               timeoutMs: 15000, // Reasonable timeout for real endpoint
               retryAttempts: 1,
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
             },
           },
         ],
@@ -151,11 +172,6 @@ describe("AdapterManager integration with real outbound endpoints", () => {
               url: "https://jsonplaceholder.typicode.com/posts",
               timeoutMs: 15000,
               retryAttempts: 2,
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
             },
           },
         ],
@@ -213,10 +229,6 @@ describe("AdapterManager integration with real outbound endpoints", () => {
             outboundWebhook: {
               url: "https://jsonplaceholder.typicode.com/posts",
               timeoutMs: 15000,
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
             },
           },
           {
@@ -232,7 +244,6 @@ describe("AdapterManager integration with real outbound endpoints", () => {
               },
             ],
             inboundWebhook: {
-              urlSuffix: "/inbound/hybrid",
               timeoutMs: 5000,
             },
           },
@@ -364,7 +375,6 @@ describe("AdapterManager integration with real outbound endpoints", () => {
               timeoutMs: 5000,
               retryAttempts: 1,
               retryDelayMs: 100,
-              method: "POST",
             },
           },
         ],

@@ -1,5 +1,27 @@
+# =============================================================================
+# newSessionRequest Step Configuration - Stage 0 Focused Testing
+# =============================================================================
+#
+# PURPOSE:
+# Minimal configuration for testing adapters at the newSessionRequest step.
+# Used by adapter-e2e-mock.test.ts for YAML configuration loading tests.
+#
+# EXECUTION FLOW:
+# Stage 0, newSessionRequest:
+#   1. "before" point → Outbound webhook calls validation service
+#   2. SATP processes the new session request
+#   3. "after" point → Inbound webhook pauses for external approval
+#
+# ADAPTER DEFINITIONS:
+# - newSessionRequest-outbound-validator: Pre-validation before processing
+# - newSessionRequest-inbound-approval: Post-processing approval gate
+#
+# TIMEOUT CONFIGURATION:
+# - Outbound: 5 seconds with 3 retries
+# - Inbound: 3 seconds (short for testing, production would be 5+ minutes)
+# =============================================================================
+
 # Adapter configuration for newSessionRequest step in Stage 0
-# This configuration defines:
 # - 1 outbound webhook at "before" point (calls external validation service)
 # - 1 inbound webhook at "after" point (mocked, with 3 second timeout)
 adapters:
@@ -12,13 +34,9 @@ adapters:
         point: "before"
     outboundWebhook:
       url: "http://localhost:9223/webhook/outbound/validate"
-      method: "POST"
       timeoutMs: 5000
       retryAttempts: 3
       retryDelayMs: 1000
-      headers:
-        Content-Type: "application/json"
-        X-API-Version: "v1"
     active: true
     priority: 1
 
@@ -30,11 +48,7 @@ adapters:
         step: newSessionRequest
         point: "after"
     inboundWebhook:
-      urlSuffix: "/inbound/newSessionRequest-approval"
       timeoutMs: 3000  # 3 second timeout for inbound webhook
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
     active: true
     priority: 2
 

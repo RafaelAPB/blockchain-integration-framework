@@ -43,19 +43,38 @@
  *   - id: "compliance-check"
  *     name: "AML/KYC Compliance"
  *     active: true
- *     priority: 100
+ *     priority: 100  # Global priority for ordering between adapters at same execution point
  *     executionPoints:
- *       - name: "Pre-lock compliance check"
- *         stage: 2
- *         step: "lockAsset"
+ *       - stage: 2
+ *         step: "checkLockAssertionRequest"
  *         point: "before"
+ *     # Single outbound webhook (backward compatible)
  *     outboundWebhook:
  *       url: "https://compliance.example.com/check"
  *       timeoutMs: 30000
+ *       priority: 1  # Hook priority for ordering multiple hooks within this adapter
+ *     # OR multiple outbound webhooks with individual priorities
+ *     outboundWebhooks:
+ *       - url: "https://audit.example.com/log"
+ *         timeoutMs: 5000
+ *         priority: 1  # Executes first
+ *       - url: "https://monitor.example.com/notify"
+ *         timeoutMs: 3000
+ *         priority: 2  # Executes second
+ *     # Inbound webhooks pause execution until external approval
+ *     inboundWebhook:
+ *       timeoutMs: 300000  # 5 minutes timeout
+ *       priority: 1
  * global:
  *   timeoutMs: 10000
  *   retryAttempts: 3
  * ```
+ *
+ * **Priority System:**
+ * - `adapter.priority`: Orders adapters at the same execution point (stage/step/point).
+ *   Lower numbers execute first. Default: 1000.
+ * - `webhook.priority`: Orders multiple webhooks within the same adapter.
+ *   Lower numbers execute first. Default: 1000.
  *
  * @module SatpGatewayCLI
  *

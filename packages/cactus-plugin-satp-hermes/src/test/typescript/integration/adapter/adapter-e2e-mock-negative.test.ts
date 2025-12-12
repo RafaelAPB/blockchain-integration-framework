@@ -1,3 +1,31 @@
+/**
+ * @fileoverview Negative test cases for adapter error handling and failure scenarios
+ *
+ * @description
+ * **Test Strategy:**
+ * These tests validate AdapterManager behavior under failure conditions.
+ * All failures are simulated via mocked fetch to ensure deterministic results.
+ *
+ * **Error Scenarios Covered:**
+ * 1. **Timeout:** Webhook doesn't respond within configured timeoutMs
+ * 2. **HTTP Errors:** Server returns 4xx/5xx status codes
+ * 3. **Network Failures:** Connection refused, DNS failure, etc.
+ * 4. **Retry Exhaustion:** All retry attempts fail
+ * 5. **Inbound Rejection:** External controller returns continue=false
+ * 6. **Malformed Responses:** Invalid JSON, unexpected schema
+ *
+ * **Error Handling Expectations:**
+ * - Outbound failures: Logged but may not block (fire-and-block behavior)
+ * - Inbound rejections: Transfer aborted with reason logged
+ * - Timeouts: Retry according to config, then fail gracefully
+ *
+ * @see AdapterOutboundWebhookError for outbound failure type
+ * @see AdapterInboundWebhookRejectedError for rejection failure type
+ * @see AdapterInboundWebhookTimeoutError for timeout failure type
+ *
+ * @module adapter-e2e-mock-negative.test
+ */
+
 import { describe, expect, it, jest } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
 import type {
@@ -14,13 +42,8 @@ import {
 } from "../../adapter-test-utils";
 
 /**
- * Negative test cases for AdapterManager.
- *
- * Tests error handling scenarios:
- * 1. Timeout exceeded on outbound webhook
- * 2. Inbound webhook returns continue: false
- * 3. Outbound webhook returns HTTP errors (4xx, 5xx)
- * 4. Network failures
+ * Negative test suite: Error handling and failure scenarios
+ * Uses mocked fetch to simulate various failure conditions.
  */
 describe("AdapterManager negative test cases", () => {
   describe("timeout scenarios", () => {
@@ -42,7 +65,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://slow-endpoint.example/webhook",
             timeoutMs: 100, // Very short timeout
             retryAttempts: 1, // Try once
-            method: "POST",
           },
         },
       ];
@@ -113,7 +135,6 @@ describe("AdapterManager negative test cases", () => {
             timeoutMs: 100,
             retryAttempts: 2,
             retryDelayMs: 10,
-            method: "POST",
           },
         },
       ];
@@ -185,7 +206,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/webhook",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -246,7 +266,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/secure-webhook",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -304,7 +323,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/webhook",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -363,7 +381,6 @@ describe("AdapterManager negative test cases", () => {
             timeoutMs: 5000,
             retryAttempts: 2,
             retryDelayMs: 10,
-            method: "POST",
           },
         },
       ];
@@ -432,7 +449,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://unreachable.example/webhook",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -486,7 +502,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://nonexistent-domain-12345.invalid/webhook",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -542,7 +557,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/validation",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -613,7 +627,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/first",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
         {
@@ -633,7 +646,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/second",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -700,7 +712,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/webhook",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -764,7 +775,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://api.example/webhook",
             timeoutMs: 5000,
             retryAttempts: 1,
-            method: "POST",
           },
         },
       ];
@@ -829,10 +839,6 @@ describe("AdapterManager negative test cases", () => {
             url: "https://jsonplaceholder.typicode.com/users",
             timeoutMs: 10000,
             retryAttempts: 1,
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
           },
         },
       ];
@@ -853,7 +859,7 @@ describe("AdapterManager negative test cases", () => {
         {
           id: 2,
           name: "Ervin Howell",
-          username: "Antonette",
+          username: "Ervin",
           email: "test2@example.com",
         },
       ];
@@ -917,7 +923,6 @@ describe("AdapterManager negative test cases", () => {
             },
           ],
           inboundWebhook: {
-            urlSuffix: "/inbound/strict-test",
             timeoutMs: 100, // Very short timeout for test
           },
         },

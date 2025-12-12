@@ -1,3 +1,25 @@
+# =============================================================================
+# Full Example Configuration - Production-Style Adapter Setup
+# =============================================================================
+#
+# PURPOSE:
+# Comprehensive example demonstrating all adapter configuration options.
+# Shows multi-stage bindings, priority ordering, and timeout configuration.
+#
+# FEATURES DEMONSTRATED:
+# 1. Multiple execution points per adapter
+# 2. Both outbound and inbound webhooks on same adapter
+# 3. Priority ordering for execution sequence
+# 4. Stage-specific timeout and retry configuration
+#
+# USE CASES:
+# - phase0-adapter-1: Validation with approval gate
+# - phase0-adapter-2: Dashboard notification (outbound only)
+# - stage1-compliance-adapter: Compliance check with manual review gate
+# - stage2-lock-monitor: Asset lock event monitoring
+# - stage3-finalization-adapter: Transfer completion notifications
+# =============================================================================
+
 adapters:
   - id: "phase0-adapter-1"
     name: "Transfer Validation Webhook"
@@ -14,33 +36,10 @@ adapters:
       timeoutMs: 5000
       retryAttempts: 3
       retryDelayMs: 1000
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
-        X-API-Version: "v1"
-      payloadTemplate: |
-        {
-          "phase": 0,
-          "contextId": "{{.contextID}}",
-          "sourceAsset": {{.sourceAsset | toJson}},
-          "timestamp": "{{.timestamp}}"
-        }
     # if defined, the transaction will be automatically paused in SATP 
     # until the inboundWebhook has been called for the specific contextId
     inboundWebhook:
-      urlSuffix: "/inbound/phase0-adapter-1"
       timeoutMs: 300000   # 5 minutes, if not called by then, transaction is cancelled
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
-        X-API-Version: "v1"
-      payloadTemplate: |
-        {
-          "phase": 0,
-          "contextId": "{{.contextID}}",
-          "sourceAsset": {{.sourceAsset | toJson}},
-          "timestamp": "{{.timestamp}}"
-        }
     active: true
     priority: 1
 
@@ -58,23 +57,6 @@ adapters:
       url: "http://localhost:9223/webhook/outbound/inform"
       timeoutMs: 3000
       retryAttempts: 2
-      method: "POST"
-      headers:
-        Content-Type: "application/xml"
-        X-API-Version: "v1"
-        X-Data-Format: "xml"
-      payloadTemplate: |
-        <?xml version="1.0" encoding="UTF-8"?>
-        <BusinessDashboardUpdate>
-          <Phase>0</Phase>
-          <Transaction>
-            <ContextId>{{.contextID}}</ContextId>
-            <SourceAsset>
-              <Id>{{.sourceAsset.id}}</Id>
-              <ReferenceId>{{.sourceAsset.referenceId}}</ReferenceId>
-            </SourceAsset>
-          </Transaction>
-        </BusinessDashboardUpdate>
     active: true
     priority: 2
 
@@ -93,11 +75,7 @@ adapters:
       timeoutMs: 10000
       retryAttempts: 2
       retryDelayMs: 2000
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
     inboundWebhook:
-      urlSuffix: "/inbound/compliance"
       timeoutMs: 600000   # 10 minutes for manual compliance review
     active: true
     priority: 1
@@ -116,9 +94,6 @@ adapters:
       url: "http://localhost:9223/webhook/outbound/lock-events"
       timeoutMs: 3000
       retryAttempts: 3
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
     active: true
     priority: 1
 
@@ -140,9 +115,6 @@ adapters:
       timeoutMs: 5000
       retryAttempts: 3
       retryDelayMs: 1000
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
     active: true
     priority: 1
 
@@ -152,4 +124,3 @@ global:
   retryAttempts: 5
   retryDelayMs: 500
   logLevel: "debug"
-

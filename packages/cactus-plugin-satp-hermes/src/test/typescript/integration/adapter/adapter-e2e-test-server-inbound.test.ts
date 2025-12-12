@@ -1,3 +1,34 @@
+/**
+ * @fileoverview E2E tests for inbound webhook configurations using local test server
+ *
+ * @description
+ * **Test Strategy:**
+ * These tests validate inbound webhook adapter configurations against a real
+ * local HTTP server (adapter-test-server.ts). The test server provides
+ * deterministic endpoints for simulating external approval workflows.
+ *
+ * **Inbound Webhook Lifecycle:**
+ * 1. Gateway reaches execution point with inbound adapter configured
+ * 2. Gateway PAUSES and exposes callback endpoint: POST /api/v1/adapters/inbound/{sessionId}/{adapterId}
+ * 3. External controller (compliance, manual review) evaluates transfer
+ * 4. External controller POSTs decision: { continue: true/false, reason: "..." }
+ * 5. Gateway resumes (continue=true) or aborts (continue=false) the transfer
+ *
+ * **Test Limitations:**
+ * Since tests cannot simulate the full gateway callback infrastructure,
+ * inbound adapters return SKIP disposition indicating they're awaiting callback.
+ * Full inbound flow requires running gateway with HTTP server exposed.
+ *
+ * **Fixtures Used:**
+ * - adapter-configuration-test-server.yml (newSessionRequest focused)
+ * - adapter-configuration-test-server-simple.yml (multi-stage config)
+ *
+ * @see AdapterHookService.runInboundWebhook() for blocking implementation
+ * @see AdapterHookService.processInboundDecision() for callback handling
+ *
+ * @module adapter-e2e-test-server-inbound.test
+ */
+
 import { describe, expect, it, jest, beforeAll, afterAll } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
 import { Stage } from "../../../../main/typescript/types/satp-protocol";
@@ -11,36 +42,17 @@ import {
   startAdapterTestServer,
   stopAdapterTestServer,
   getTestServerBaseUrl,
-  type TestServerInfo,
 } from "../../adapter-test-utils";
 
 /**
- * E2E tests for inbound webhook adapter configurations using the local test server.
- *
- * These tests use:
- * - adapter-configuration-test-server.yml (simple newSessionRequest config)
- * - adapter-configuration-test-server-simple.yml (full example config)
- *
- * The test server runs on localhost:9223 and provides real HTTP endpoints.
- *
- * NOTE: Inbound webhooks in SATP work by:
- * 1. The gateway exposes an endpoint (based on urlSuffix)
- * 2. An external system POSTs to that endpoint with a decision
- * 3. The gateway processes the decision and resumes/aborts the transfer
- *
- * Since the test server cannot interact with the gateway's internal callback
- * mechanism, these tests verify:
- * - Adapter configurations with inbound webhooks are loaded correctly
- * - Adapters with inbound webhooks return SKIP disposition (awaiting external callback)
- * - The test server can receive and respond to inbound webhook decision payloads
+ * E2E test suite: Inbound webhooks with local test server
+ * Validates configuration loading and SKIP disposition for awaiting callbacks.
  */
 describe("AdapterManager E2E inbound webhook tests with test server", () => {
   jest.setTimeout(15000);
 
-  let _serverInfo: TestServerInfo;
-
   beforeAll(async () => {
-    _serverInfo = await startAdapterTestServer();
+    await startAdapterTestServer();
   });
 
   afterAll(async () => {
@@ -61,9 +73,6 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       );
       expect(inboundAdapter).toBeDefined();
       expect(inboundAdapter?.inboundWebhook).toBeDefined();
-      expect(inboundAdapter?.inboundWebhook?.urlSuffix).toBe(
-        "/inbound/newSessionRequest-approval",
-      );
       expect(inboundAdapter?.inboundWebhook?.timeoutMs).toBe(3000);
     });
 
@@ -152,9 +161,6 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       );
       expect(phase0Adapter).toBeDefined();
       expect(phase0Adapter?.inboundWebhook).toBeDefined();
-      expect(phase0Adapter?.inboundWebhook?.urlSuffix).toBe(
-        "/inbound/phase0-adapter-1",
-      );
       expect(phase0Adapter?.inboundWebhook?.timeoutMs).toBe(3000);
 
       // Check stage1-compliance-adapter has inbound webhook
@@ -163,9 +169,6 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       );
       expect(complianceAdapter).toBeDefined();
       expect(complianceAdapter?.inboundWebhook).toBeDefined();
-      expect(complianceAdapter?.inboundWebhook?.urlSuffix).toBe(
-        "/inbound/compliance",
-      );
     });
 
     it("positive: adapter with both outbound and inbound executes outbound first", async () => {

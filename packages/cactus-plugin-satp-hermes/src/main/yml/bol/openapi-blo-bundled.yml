@@ -37,6 +37,8 @@ tags:
     description: API endpoints for interacting with blockchains via gateways
   - name: admin
     description: API endpoints for fetching information on SATP sessions
+  - name: webhook
+    description: API endpoints for inbound webhook decisions from external approval controllers
 paths:
   /api/v1/@hyperledger/cactus-plugin-satp-hermes/transact:
     post:
@@ -3088,6 +3090,250 @@ paths:
           description: Transaction not found
         '500':
           description: Internal server error
+  /api/v1/@hyperledger/cactus-plugin-satp-hermes/webhook/inbound/decide:
+    post:
+      summary: Submit inbound webhook decision
+      description: |-
+        External approval controllers use this endpoint to submit decisions (approve/reject)
+        for paused SATP transfers. The gateway validates the adapterId matches the waiting
+        adapter, then uses the continue field to determine whether to proceed or abort.
+
+        **Decision Semantics:**
+        - `continue: true`: Approve transfer continuation; gateway proceeds to next stage
+        - `continue: false`: Reject transfer; gateway aborts and may trigger rollback
+
+        **Security Considerations:**
+        - The adapterId and sessionId must match an active inbound webhook wait state
+        - All decisions are logged with timestamps for non-repudiation
+      operationId: DecideInboundWebhook
+      tags:
+        - webhook
+      x-hyperledger-cacti:
+        http:
+          verbLowerCase: post
+          path: /api/v1/@hyperledger/cactus-plugin-satp-hermes/webhook/inbound/decide
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: |-
+                Request payload posted by external approval controllers to approve or reject 
+                a paused SATP transfer. The gateway validates the adapterId matches the waiting 
+                adapter, then uses the continue field to determine whether to proceed or abort.
+              x-category: request
+              required:
+                - adapterId
+                - sessionId
+                - continue
+              properties:
+                adapterId:
+                  type: string
+                  description: Adapter identifier that originally paused the SATP stage.
+                  example: compliance-check
+                sessionId:
+                  type: string
+                  description: Session identifier for the paused SATP transfer.
+                  example: session-123
+                contextId:
+                  type: string
+                  description: Optional transfer context identifier.
+                  example: ctx-456
+                continue:
+                  type: boolean
+                  description: |-
+                    When true, the gateway resumes the paused stage. When false, the transfer 
+                    is rejected and the provided reason is logged.
+                  example: true
+                reason:
+                  type: string
+                  description: Human-readable justification for auditing and operator visibility.
+                  example: Transfer approved after KYC verification
+                data:
+                  type: object
+                  description: Optional data payload from external system.
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Decision accepted and applied to the session
+          content:
+            application/json:
+              schema:
+                type: object
+                description: |-
+                  Response returned by the gateway after processing an inbound webhook decision.
+                  Indicates whether the decision was accepted and the resulting session state.
+                x-category: response
+                required:
+                  - accepted
+                  - sessionId
+                properties:
+                  accepted:
+                    type: boolean
+                    description: Whether the decision was accepted and applied to the session.
+                    example: true
+                  sessionId:
+                    type: string
+                    description: Session identifier for the affected SATP transfer.
+                    example: session-123
+                  message:
+                    type: string
+                    description: Human-readable message describing the result.
+                    example: 'Decision accepted, transfer resumed'
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the decision was processed.
+                    example: '2024-01-15T10:30:00Z'
+        '400':
+          description: Bad request - invalid decision payload
+          content:
+            application/json:
+              schema:
+                x-category: response
+                type: object
+                x-go-type: ApiError
+                x-go-name: ApiError
+                description: An Error
+                required:
+                  - message
+                  - type
+                  - code
+                  - status
+                  - timestamp
+                properties:
+                  type:
+                    type: string
+                    description: HTTP error type
+                    example: bad-request
+                  code:
+                    type: integer
+                    description: Numeric error code
+                    example: 16384
+                  status:
+                    type: integer
+                    description: HTTP status of the error
+                    example: 500
+                  message:
+                    type: string
+                    description: Long error description
+                    example: Oops there's been an internal error handling
+                  timestamp:
+                    type: string
+                    description: Timestamp of the error
+                    example: '2021-07-21T17:32:28Z'
+        '404':
+          description: 'Session or adapter not found, or no pending decision'
+          content:
+            application/json:
+              schema:
+                x-category: response
+                type: object
+                x-go-type: ApiError
+                x-go-name: ApiError
+                description: An Error
+                required:
+                  - message
+                  - type
+                  - code
+                  - status
+                  - timestamp
+                properties:
+                  type:
+                    type: string
+                    description: HTTP error type
+                    example: bad-request
+                  code:
+                    type: integer
+                    description: Numeric error code
+                    example: 16384
+                  status:
+                    type: integer
+                    description: HTTP status of the error
+                    example: 500
+                  message:
+                    type: string
+                    description: Long error description
+                    example: Oops there's been an internal error handling
+                  timestamp:
+                    type: string
+                    description: Timestamp of the error
+                    example: '2021-07-21T17:32:28Z'
+        '409':
+          description: Decision conflict - session not in waiting state
+          content:
+            application/json:
+              schema:
+                x-category: response
+                type: object
+                x-go-type: ApiError
+                x-go-name: ApiError
+                description: An Error
+                required:
+                  - message
+                  - type
+                  - code
+                  - status
+                  - timestamp
+                properties:
+                  type:
+                    type: string
+                    description: HTTP error type
+                    example: bad-request
+                  code:
+                    type: integer
+                    description: Numeric error code
+                    example: 16384
+                  status:
+                    type: integer
+                    description: HTTP status of the error
+                    example: 500
+                  message:
+                    type: string
+                    description: Long error description
+                    example: Oops there's been an internal error handling
+                  timestamp:
+                    type: string
+                    description: Timestamp of the error
+                    example: '2021-07-21T17:32:28Z'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                x-category: response
+                type: object
+                x-go-type: ApiError
+                x-go-name: ApiError
+                description: An Error
+                required:
+                  - message
+                  - type
+                  - code
+                  - status
+                  - timestamp
+                properties:
+                  type:
+                    type: string
+                    description: HTTP error type
+                    example: bad-request
+                  code:
+                    type: integer
+                    description: Numeric error code
+                    example: 16384
+                  status:
+                    type: integer
+                    description: HTTP status of the error
+                    example: 500
+                  message:
+                    type: string
+                    description: Long error description
+                    example: Oops there's been an internal error handling
+                  timestamp:
+                    type: string
+                    description: Timestamp of the error
+                    example: '2021-07-21T17:32:28Z'
 components:
   schemas:
     AuthzScope:
@@ -7790,3 +8036,68 @@ components:
         status:
           type: boolean
           description: The status of the request.
+    InboundWebhookDecisionRequest:
+      type: object
+      description: |-
+        Request payload posted by external approval controllers to approve or reject 
+        a paused SATP transfer. The gateway validates the adapterId matches the waiting 
+        adapter, then uses the continue field to determine whether to proceed or abort.
+      x-category: request
+      required:
+        - adapterId
+        - sessionId
+        - continue
+      properties:
+        adapterId:
+          type: string
+          description: Adapter identifier that originally paused the SATP stage.
+          example: compliance-check
+        sessionId:
+          type: string
+          description: Session identifier for the paused SATP transfer.
+          example: session-123
+        contextId:
+          type: string
+          description: Optional transfer context identifier.
+          example: ctx-456
+        continue:
+          type: boolean
+          description: |-
+            When true, the gateway resumes the paused stage. When false, the transfer 
+            is rejected and the provided reason is logged.
+          example: true
+        reason:
+          type: string
+          description: Human-readable justification for auditing and operator visibility.
+          example: Transfer approved after KYC verification
+        data:
+          type: object
+          description: Optional data payload from external system.
+          additionalProperties: true
+    InboundWebhookDecisionResponse:
+      type: object
+      description: |-
+        Response returned by the gateway after processing an inbound webhook decision.
+        Indicates whether the decision was accepted and the resulting session state.
+      x-category: response
+      required:
+        - accepted
+        - sessionId
+      properties:
+        accepted:
+          type: boolean
+          description: Whether the decision was accepted and applied to the session.
+          example: true
+        sessionId:
+          type: string
+          description: Session identifier for the affected SATP transfer.
+          example: session-123
+        message:
+          type: string
+          description: Human-readable message describing the result.
+          example: 'Decision accepted, transfer resumed'
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the decision was processed.
+          example: '2024-01-15T10:30:00Z'

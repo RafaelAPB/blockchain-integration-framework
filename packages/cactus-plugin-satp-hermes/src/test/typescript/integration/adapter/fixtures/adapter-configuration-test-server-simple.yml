@@ -1,6 +1,31 @@
-# Simple adapter configuration using local test server
+# =============================================================================
+# Full Test Server Configuration - Multi-Stage E2E Testing
+# =============================================================================
+#
+# PURPOSE:
+# Comprehensive configuration for testing adapters across all 4 SATP stages.
+# Used by adapter-e2e-test-server-*.test.ts for full protocol flow testing.
+#
+# STAGE COVERAGE:
+# - Stage 0: Session initialization (phase0-adapter-1, phase0-adapter-2)
+# - Stage 1: Transfer proposal (stage1-compliance-adapter)
+# - Stage 2: Lock operations (stage2-lock-monitor)
+# - Stage 3: Finalization (stage3-finalization-adapter)
+#
+# ADAPTER PATTERNS:
+# - Validation + Approval: outbound pre-check + inbound approval gate
+# - Notification Only: outbound fire-and-block for audit/dashboard
+# - Monitoring: outbound logging at completion points
+#
+# TEST SERVER ENDPOINTS:
+# All URLs point to localhost:9223 and are patched at runtime by
+# loadAndPatchTestServerConfig() to use dynamically assigned port.
+#
+# NOTE: Short timeouts (3-5 seconds) are used for fast test execution.
+# Production configurations should use longer timeouts (5+ minutes).
+# =============================================================================
+
 # Uses localhost:9223 endpoints from adapter-test-server.ts
-# Reduced timeouts: 1 second for outbound, 3 seconds for inbound
 adapters:
   - id: "phase0-adapter-1"
     name: "Transfer Validation Webhook"
@@ -17,31 +42,8 @@ adapters:
       timeoutMs: 5000
       retryAttempts: 3
       retryDelayMs: 500
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
-        X-API-Version: "v1"
-      payloadTemplate: |
-        {
-          "phase": 0,
-          "contextId": "{{.contextID}}",
-          "sourceAsset": {{.sourceAsset | toJson}},
-          "timestamp": "{{.timestamp}}"
-        }
     inboundWebhook:
-      urlSuffix: "/inbound/phase0-adapter-1"
       timeoutMs: 3000
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
-        X-API-Version: "v1"
-      payloadTemplate: |
-        {
-          "phase": 0,
-          "contextId": "{{.contextID}}",
-          "sourceAsset": {{.sourceAsset | toJson}},
-          "timestamp": "{{.timestamp}}"
-        }
     active: true
     priority: 1
 
@@ -59,16 +61,6 @@ adapters:
       url: "http://localhost:9223/webhook/outbound/approve"
       timeoutMs: 5000
       retryAttempts: 2
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
-        X-API-Version: "v1"
-      payloadTemplate: |
-        {
-          "phase": 0,
-          "contextId": "{{.contextID}}",
-          "event": "dashboard-update"
-        }
     active: true
     priority: 2
 
@@ -87,11 +79,7 @@ adapters:
       timeoutMs: 5000
       retryAttempts: 2
       retryDelayMs: 500
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
     inboundWebhook:
-      urlSuffix: "/inbound/compliance"
       timeoutMs: 3000
     active: true
     priority: 1
@@ -110,9 +98,6 @@ adapters:
       url: "http://localhost:9223/webhook/outbound"
       timeoutMs: 5000
       retryAttempts: 3
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
     active: true
     priority: 1
 
@@ -134,9 +119,6 @@ adapters:
       timeoutMs: 5000
       retryAttempts: 3
       retryDelayMs: 500
-      method: "POST"
-      headers:
-        Content-Type: "application/json"
     active: true
     priority: 1
 

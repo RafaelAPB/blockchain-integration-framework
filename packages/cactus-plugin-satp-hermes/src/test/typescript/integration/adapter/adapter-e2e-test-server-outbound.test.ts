@@ -1,3 +1,35 @@
+/**
+ * @fileoverview E2E tests for outbound webhooks using local test server
+ *
+ * @description
+ * **Test Strategy:**
+ * These tests validate outbound webhook execution against a real local HTTP
+ * server (adapter-test-server.ts). The test server provides deterministic
+ * endpoints that simulate various external system responses.
+ *
+ * **Outbound Webhook Behavior (Fire-and-Block):**
+ * 1. Gateway reaches execution point with outbound adapter configured
+ * 2. Gateway POSTs OutboundWebhookPayload to configured URL
+ * 3. Gateway BLOCKS until response received or timeout
+ * 4. On success: Logs response, continues SATP execution
+ * 5. On failure: Throws AdapterOutboundWebhookError, aborts transfer
+ *
+ * **Test Server Endpoints:**
+ * - /webhook/outbound - Returns { received: true }
+ * - /webhook/outbound/approve - Returns { continue: true, reason: "..." }
+ * - /webhook/outbound/reject - Returns { continue: false, reason: "..." }
+ * - /webhook/outbound/error/{code} - Returns HTTP error status
+ *
+ * **Fixtures Used:**
+ * - adapter-configuration-test-server.yml (newSessionRequest focused)
+ * - adapter-configuration-test-server-simple.yml (multi-stage config)
+ *
+ * @see AdapterHookService.runOutboundWebhook() for execution implementation
+ * @see AdapterOutboundWebhookError for failure handling
+ *
+ * @module adapter-e2e-test-server-outbound.test
+ */
+
 import { describe, expect, it, jest, beforeAll, afterAll } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
 import { Stage } from "../../../../main/typescript/types/satp-protocol";
@@ -11,26 +43,17 @@ import {
   startAdapterTestServer,
   stopAdapterTestServer,
   getTestServerBaseUrl,
-  type TestServerInfo,
 } from "../../adapter-test-utils";
 
 /**
- * E2E tests for outbound webhooks using the local test server.
- *
- * These tests use:
- * - adapter-configuration-test-server.yml (simple newSessionRequest config)
- * - adapter-configuration-test-server-simple.yml (full example config)
- *
- * The test server runs on a random available port and provides real HTTP endpoints.
- * Outbound webhooks are fire-and-forget style - they call the endpoint and log the response.
+ * E2E test suite: Outbound webhooks with local test server
+ * Validates fire-and-block behavior with real HTTP calls.
  */
 describe("AdapterManager E2E outbound webhook tests with test server", () => {
   jest.setTimeout(15000);
 
-  let _serverInfo: TestServerInfo;
-
   beforeAll(async () => {
-    _serverInfo = await startAdapterTestServer();
+    await startAdapterTestServer();
   });
 
   afterAll(async () => {

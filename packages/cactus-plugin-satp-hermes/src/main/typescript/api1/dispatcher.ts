@@ -64,6 +64,8 @@ import type {
   AddCounterpartyGatewayResponse,
   AuditRequest,
   AuditResponse,
+  DecideInboundWebhook200Response,
+  DecideInboundWebhookRequest,
   GetApproveAddressRequest,
   GetApproveAddressResponse,
   HealthCheckResponse,
@@ -119,6 +121,7 @@ import { GetOracleStatusEndpointV1 } from "./oracle/oracle-get-status-endpoint";
 import safeStableStringify from "safe-stable-stringify";
 import { executeAudit } from "./admin/get-audit-handler-service";
 import { AuditEndpointV1 } from "./admin/audit-endpoint";
+import { DecideInboundWebhookEndpointV1 } from "./webhook/decide-endpoint";
 import { MonitorService } from "../services/monitoring/monitor";
 import { context, SpanStatusCode } from "@opentelemetry/api";
 import type { AdapterManager } from "../adapters/adapter-manager";
@@ -433,6 +436,12 @@ export class BLODispatcher {
           logLevel: this.options.logLevel,
         });
 
+        const decideInboundWebhookEndpointV1 =
+          new DecideInboundWebhookEndpointV1({
+            dispatcher: this,
+            logLevel: this.options.logLevel,
+          });
+
         // TODO: keep getter; add an admin endpoint to get identity of connected gateway to BLO
         const endpoints = [
           getStatusEndpointV1,
@@ -447,6 +456,7 @@ export class BLODispatcher {
           oracleRegisterTaskEndpointV1,
           oracleUnregisterTaskEndpointV1,
           oracleGetStatusEndpointV1,
+          decideInboundWebhookEndpointV1,
         ];
         this.endpoints = endpoints;
         this.logger.debug(`${fnTag} registered ${endpoints.length} endpoints`);
@@ -922,6 +932,67 @@ export class BLODispatcher {
           req,
           this.ccManager.getOracleManager(),
         );
+      } catch (err) {
+        span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+        span.recordException(err);
+        throw err;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  /**
+   * Process an inbound webhook decision from an external approval controller.
+   *
+   * This method handles decisions (approve/reject) posted by external systems
+   * for paused SATP transfers. The decision is validated and delegated to the
+   * adapter manager for processing.
+   *
+   * @param req - The decision request containing adapterId, sessionId, continue flag, and reason
+   * @returns Response indicating whether the decision was accepted
+   * @throws GatewayShuttingDownError if the gateway is shutting down
+   * @throws Error if adapter manager is not configured
+   * @since 0.0.3-beta
+   */
+  public async decideInboundWebhook(
+    req: DecideInboundWebhookRequest,
+  ): Promise<DecideInboundWebhook200Response> {
+    const { span, context: ctx } = this.monitorService.startSpan(
+      "API1#decideInboundWebhook()",
+    );
+    return context.with(ctx, async () => {
+      try {
+        this.logger.info(
+          `Inbound webhook decision request: adapter="${req.adapterId}" ` +
+            `session="${req.sessionId}" continue=${req.continue}`,
+        );
+        if (this.isShuttingDown) {
+          throw new GatewayShuttingDownError(
+            `${BLODispatcher.CLASS_NAME}#decideInboundWebhook()`,
+          );
+        }
+        if (!this.adapterManager) {
+          throw new Error(
+            `${BLODispatcher.CLASS_NAME}#decideInboundWebhook(): AdapterManager is not configured`,
+          );
+        }
+
+        const result = await this.adapterManager.decideInboundWebhook({
+          adapterId: req.adapterId,
+          sessionId: req.sessionId,
+          contextId: req.contextId,
+          continue: req.continue,
+          reason: req.reason,
+          data: req.data,
+        });
+
+        return {
+          accepted: result.accepted,
+          sessionId: result.sessionId,
+          message: result.message,
+          timestamp: result.timestamp,
+        };
       } catch (err) {
         span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
         span.recordException(err);

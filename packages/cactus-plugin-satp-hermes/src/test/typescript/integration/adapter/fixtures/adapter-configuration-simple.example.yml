@@ -1,3 +1,24 @@
+# =============================================================================
+# Example Configuration - Multi-Stage Adapter Setup
+# =============================================================================
+#
+# PURPOSE:
+# Reference example showing how to configure adapters with both outbound
+# and inbound webhooks across multiple SATP protocol stages.
+#
+# ADAPTER TYPES DEMONSTRATED:
+# 1. validation-adapter-1: Both outbound (notify) + inbound (await approval)
+# 2. phase0-adapter-2: Outbound only (dashboard notification)
+#
+# EXECUTION POINTS EXPLAINED:
+# - stage: SATP protocol stage (0=session, 1=transfer, 2=commit, 3=complete)
+# - step: Protocol step within stage (e.g., checkNewSessionRequest)
+# - point: When to execute (before/during/after/rollback)
+#
+# INBOUND WEBHOOK BEHAVIOR:
+# When inboundWebhook is defined, SATP execution PAUSES at that point until:
+# - External controller POSTs approval to /api/v1/adapters/inbound/{sessionId}/{adapterId}
+# - OR timeout expires (transaction cancelled)
 adapters:
   - id: "validation-adapter-1"
     name: "Transfer Validation Webhook"
@@ -19,7 +40,6 @@ adapters:
     # if defined, the transaction will be automatically paused in SATP 
     # until the inboundWebhook has been called for the specific contextId
     inboundWebhook:
-      urlSuffix: "/inbound/phase0-adapter-1"
       timeoutMs: 300000   # 5 minutes, if not called by then, transaction is cancelled
     active: true
     priority: 1

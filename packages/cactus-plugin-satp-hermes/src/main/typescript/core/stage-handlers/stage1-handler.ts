@@ -543,8 +543,8 @@ export class Stage1SATPHandler implements SATPHandler {
           throw new FailedToCreateMessageError(
             fnTag,
             getMessageTypeName(MessageType.INIT_RECEIPT) +
-            "/" +
-            getMessageTypeName(MessageType.INIT_REJECT),
+              "/" +
+              getMessageTypeName(MessageType.INIT_REJECT),
           );
         }
 

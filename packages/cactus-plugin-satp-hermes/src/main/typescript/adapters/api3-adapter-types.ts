@@ -43,61 +43,55 @@
  * Minimal adapter configuration for stage 1 monitoring:
  * ```typescript
  * const config: AdapterLayerConfiguration = {
- *   satpStages: {
- *     stage1: {
- *       adapters: [
- *         {
- *           id: "lock-monitor",
- *           name: "Asset Lock Notification",
- *           active: true,
- *           outboundWebhook: {
- *             url: "https://monitor.example.com/satp/lock-detected",
- *             method: "POST",
- *             timeoutMs: 5000
- *           }
- *         }
- *       ]
+ *   adapters: [
+ *     {
+ *       id: "lock-monitor",
+ *       name: "Asset Lock Notification",
+ *       active: true,
+ *       executionPoints: [
+ *         { stage: 1, step: "checkTransferProposalRequestMessage", point: "before" }
+ *       ],
+ *       outboundWebhook: {
+ *         url: "https://monitor.example.com/satp/lock-detected",
+ *         timeoutMs: 5000
+ *       }
  *     }
- *   }
+ *   ]
  * };
  * ```
  *
  * @example
- * Advanced configuration with step mapping and inbound approval:
+ * Advanced configuration with inbound approval (priority only affects adapters at same execution point):
  * ```typescript
  * const config: AdapterLayerConfiguration = {
- *   satpStages: {
- *     stage2: {
- *       adapters: [
- *         {
- *           id: "compliance-check",
- *           name: "AML/KYC Compliance Verification",
- *           active: true,
- *           priority: 100,
- *           inboundWebhook: {
- *             urlSuffix: "/adapters/compliance-decision",
- *             inboundDeadlineMs: 300000, // 5 min timeout
- *             method: "POST"
- *           }
- *         },
- *         {
- *           id: "audit-log",
- *           name: "Commitment Audit Logger",
- *           active: true,
- *           priority: 200,
- *           outboundWebhook: {
- *             url: "https://audit.example.com/satp/commitments",
- *             retryAttempts: 5,
- *             retryDelayMs: 2000
- *           }
- *         }
+ *   adapters: [
+ *     {
+ *       id: "compliance-check",
+ *       name: "AML/KYC Compliance Verification",
+ *       active: true,
+ *       priority: 1, // runs before audit-log at same execution point
+ *       executionPoints: [
+ *         { stage: 2, step: "checkLockAssertionRequest", point: "before" }
  *       ],
- *       steps: {
- *         before: ["compliance-check"],
- *         after: ["audit-log"]
+ *       inboundWebhook: {
+ *         timeoutMs: 300000 // 5 min timeout
+ *       }
+ *     },
+ *     {
+ *       id: "audit-log",
+ *       name: "Commitment Audit Logger",
+ *       active: true,
+ *       priority: 2, // runs after compliance-check at same execution point
+ *       executionPoints: [
+ *         { stage: 2, step: "checkLockAssertionRequest", point: "before" }
+ *       ],
+ *       outboundWebhook: {
+ *         url: "https://audit.example.com/satp/commitments",
+ *         retryAttempts: 5,
+ *         retryDelayMs: 2000
  *       }
  *     }
- *   },
+ *   ],
  *   global: {
  *     timeoutMs: 30000,
  *     retryAttempts: 3,
@@ -116,9 +110,6 @@
  * @since 0.0.3-beta
  */
 
-/** Supported HTTP methods for adapter webhooks. */
-export type WebhookHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-
 /**
  * Common retry policy applied to outbound/inbound webhook invocations.
  */
@@ -135,43 +126,50 @@ export interface RetryPolicy {
 export interface BaseWebhookConfig extends RetryPolicy {
   /** Maximum time the gateway waits for the remote endpoint before aborting. */
   timeoutMs?: number;
-  /** HTTP method used for the invocation. Defaults to POST when omitted. */
-  method?: WebhookHttpMethod;
-  /** Free-form header list applied to the request. */
-  headers?: Record<string, string>;
   /** Optional Mustache/Handlebars-style payload template rendered per invocation. */
   payloadTemplate?: string;
 }
 
 /**
  * Outbound webhook definition used to notify external systems about SATP activity.
+ * Always uses POST method with application/json content-type.
  */
 export interface OutboundWebhookConfig extends BaseWebhookConfig {
   /** Absolute HTTPS endpoint the gateway should call. */
   url: string;
+  /**
+   * Priority for ordering multiple outbound webhooks within the same adapter.
+   * Lower numbers execute first. Defaults to 1000 if not specified.
+   */
+  priority?: number;
 }
 
 /**
  * Inbound webhook definition used to pause SATP execution until an external
- * controller posts a decision. The gateway exposes the suffix under its API3
- * adapter base path.
+ * controller posts a decision. The gateway exposes endpoints under its API3
+ * adapter base path, using the adapter ID and context ID for routing.
  */
 export interface InboundWebhookConfig extends BaseWebhookConfig {
-  /** Relative URL suffix registered by the gateway (e.g., "/inbound/phase0"). */
-  urlSuffix: string;
   /**
-   * Hard deadline (ms) for receiving the inbound call before the SATP session
-   * is cancelled. Defaults to the adapter/global timeout when omitted.
+   * Priority for ordering multiple inbound webhooks within the same adapter.
+   * Lower numbers execute first. Defaults to 1000 if not specified.
    */
-  inboundDeadlineMs?: number;
+  priority?: number;
 }
 
 /**
  * Combined webhook configuration used per adapter entry.
+ * Supports multiple webhooks of each type, each with their own priority.
  */
 export interface AdapterWebhookConfig {
+  /** Single outbound webhook (for backward compatibility) or array of outbound webhooks. */
   outboundWebhook?: OutboundWebhookConfig;
+  /** Array of outbound webhooks when multiple notifications are needed. */
+  outboundWebhooks?: OutboundWebhookConfig[];
+  /** Single inbound webhook (for backward compatibility) or array of inbound webhooks. */
   inboundWebhook?: InboundWebhookConfig;
+  /** Array of inbound webhooks when multiple approvals are needed. */
+  inboundWebhooks?: InboundWebhookConfig[];
 }
 
 /**
@@ -198,7 +196,11 @@ export interface AdapterDefinition extends AdapterWebhookConfig {
   description?: string;
   /** Enables/disables adapter without removing its configuration. */
   active: boolean;
-  /** Lower numbers run earlier when multiple adapters are registered. */
+  /**
+   * Priority ordering when multiple adapters are registered at the same execution point.
+   * Lower numbers run earlier. Only affects ordering relative to other adapters
+   * at the exact same stage/step/point combination.
+   */
   priority?: number;
   /** Execution points where this adapter should be invoked. */
   executionPoints: AdapterExecutionPointDefinition[];

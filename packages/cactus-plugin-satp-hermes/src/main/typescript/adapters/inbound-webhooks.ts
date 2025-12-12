@@ -21,7 +21,7 @@
  * - `reason`: Human-readable justification stored in audit logs
  *
  * **Timeout Handling:**
- * Each inbound webhook declares an `inboundDeadlineMs` timeout. If no decision arrives
+ * Each inbound webhook declares a `timeoutMs` timeout. If no decision arrives
  * within this window, the gateway treats it as a rejection and aborts the transfer.
  * Operators should configure timeouts based on SLA requirements and approval workflow
  * complexity (e.g., 30s for automated checks, 5min for manual review).
@@ -40,7 +40,7 @@
  *   reason: "Transfer approved by operations manager after KYC verification",
  * };
  *
- * // POST to: https://gateway.example.com/api/v1/adapters/inbound/manager-approval
+ * // POST to: https://gateway.example.com/api/v1/adapters/inbound/{contextId}/{adapterId}
  * const response = await fetch(inboundUrl, {
  *   method: "POST",
  *   headers: { "Content-Type": "application/json", "Authorization": "Bearer ..." },
@@ -54,7 +54,7 @@
  * const rejection: InboundWebhookDecisionResponse = {
  *   adapterId: "sanctions-check",
  *   continue: false,
- *   reason: "Transfer rejected: counterparty matches OFAC sanctions list",
+ *   reason: "Transfer rejected: counterparty matches sanctions list",
  * };
  * ```
  *
@@ -78,6 +78,8 @@
 export interface InboundWebhookDecisionResponse {
   /** Adapter identifier that originally paused the SATP stage. */
   adapterId: string;
+  sessionId: string;
+  contextId?: string;
   /**
    * When true the gateway resumes the paused stage; otherwise the transfer is
    * rejected and the provided reason is logged.

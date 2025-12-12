@@ -27,9 +27,8 @@
  *
  * 3. **Webhook Configuration:**
  *    - Outbound webhook URLs must be valid absolute URLs (HTTP/HTTPS)
- *    - Inbound webhook urlSuffix must start with '/' character
- *    - HTTP methods, timeouts, and retry settings are validated for type correctness
- *    - Headers must be valid Record<string, string> if present
+ *    - Timeouts and retry settings are validated for type correctness
+ *    - Inbound webhooks only require optional timeoutMs and priority
  *
  * 4. **Global Defaults:**
  *    - Timeout, retry, and log level settings are validated for type correctness
@@ -117,6 +116,8 @@ import type {
   AdapterExecutionPointDefinition,
   StageExecutionStep,
   GlobalAdapterDefaults,
+  OutboundWebhookConfig,
+  InboundWebhookConfig,
 } from "../../../adapters/api3-adapter-types";
 import {
   SATP_PROTOCOL_MAP,
@@ -180,10 +181,6 @@ function validateExecutionPoint(
 ): void {
   const prefix = `Execution point ${index} in adapter "${adapterId}"`;
 
-  if (!point.name || typeof point.name !== "string") {
-    throw new Error(`${prefix} must have a valid 'name' string`);
-  }
-
   if (
     typeof point.stage !== "number" ||
     !VALID_STAGES.includes(point.stage as SatpStage)
@@ -223,55 +220,130 @@ function validateExecutionPoint(
  * @throws {Error} When webhook configuration is invalid
  */
 function validateWebhooks(adapter: AdapterDefinition): void {
-  const { outboundWebhook, inboundWebhook } = adapter;
+  const { outboundWebhook, outboundWebhooks, inboundWebhook, inboundWebhooks } =
+    adapter;
 
-  if (outboundWebhook?.url) {
-    try {
-      new URL(outboundWebhook.url);
-    } catch {
-      throw new Error(
-        `Adapter "${adapter.id}" outboundWebhook.url must be a valid URL, got: "${outboundWebhook.url}"`,
-      );
-    }
-
-    if (
-      outboundWebhook.timeoutMs !== undefined &&
-      (typeof outboundWebhook.timeoutMs !== "number" ||
-        outboundWebhook.timeoutMs <= 0)
-    ) {
-      throw new Error(
-        `Adapter "${adapter.id}" outboundWebhook.timeoutMs must be a positive number`,
-      );
-    }
-
-    if (
-      outboundWebhook.retryAttempts !== undefined &&
-      (typeof outboundWebhook.retryAttempts !== "number" ||
-        outboundWebhook.retryAttempts < 0)
-    ) {
-      throw new Error(
-        `Adapter "${adapter.id}" outboundWebhook.retryAttempts must be a non-negative number`,
-      );
-    }
+  // Collect all outbound webhooks (single + array)
+  const allOutbound: OutboundWebhookConfig[] = [];
+  if (outboundWebhook) allOutbound.push(outboundWebhook);
+  if (outboundWebhooks && Array.isArray(outboundWebhooks)) {
+    allOutbound.push(...outboundWebhooks);
   }
 
-  if (inboundWebhook) {
-    const suffix = inboundWebhook.urlSuffix;
-    if (!suffix || typeof suffix !== "string" || !suffix.startsWith("/")) {
-      throw new Error(
-        `Adapter "${adapter.id}" inboundWebhook.urlSuffix must be a string starting with '/', got: "${suffix}"`,
-      );
-    }
+  // Validate each outbound webhook
+  allOutbound.forEach((webhook, index) => {
+    validateOutboundWebhook(webhook, adapter.id, index, allOutbound.length > 1);
+  });
 
-    if (
-      inboundWebhook.inboundDeadlineMs !== undefined &&
-      (typeof inboundWebhook.inboundDeadlineMs !== "number" ||
-        inboundWebhook.inboundDeadlineMs <= 0)
-    ) {
-      throw new Error(
-        `Adapter "${adapter.id}" inboundWebhook.inboundDeadlineMs must be a positive number`,
-      );
-    }
+  // Collect all inbound webhooks (single + array)
+  const allInbound: InboundWebhookConfig[] = [];
+  if (inboundWebhook) allInbound.push(inboundWebhook);
+  if (inboundWebhooks && Array.isArray(inboundWebhooks)) {
+    allInbound.push(...inboundWebhooks);
+  }
+
+  // Validate each inbound webhook
+  allInbound.forEach((webhook, index) => {
+    validateInboundWebhook(webhook, adapter.id, index, allInbound.length > 1);
+  });
+
+  // Check for priority conflicts within the same type
+  validateWebhookPriorities(allOutbound, adapter.id, "outbound");
+  validateWebhookPriorities(allInbound, adapter.id, "inbound");
+}
+
+/**
+ * Validates a single outbound webhook configuration.
+ */
+function validateOutboundWebhook(
+  webhook: OutboundWebhookConfig,
+  adapterId: string,
+  index: number,
+  hasMultiple: boolean,
+): void {
+  const prefix = hasMultiple
+    ? `Adapter "${adapterId}" outboundWebhook[${index}]`
+    : `Adapter "${adapterId}" outboundWebhook`;
+
+  if (!webhook.url) {
+    throw new Error(`${prefix} must have a 'url' property`);
+  }
+
+  try {
+    new URL(webhook.url);
+  } catch {
+    throw new Error(`${prefix}.url must be a valid URL, got: "${webhook.url}"`);
+  }
+
+  if (
+    webhook.timeoutMs !== undefined &&
+    (typeof webhook.timeoutMs !== "number" || webhook.timeoutMs <= 0)
+  ) {
+    throw new Error(`${prefix}.timeoutMs must be a positive number`);
+  }
+
+  if (
+    webhook.retryAttempts !== undefined &&
+    (typeof webhook.retryAttempts !== "number" || webhook.retryAttempts < 0)
+  ) {
+    throw new Error(`${prefix}.retryAttempts must be a non-negative number`);
+  }
+
+  if (
+    webhook.priority !== undefined &&
+    (typeof webhook.priority !== "number" || webhook.priority < 0)
+  ) {
+    throw new Error(`${prefix}.priority must be a non-negative number`);
+  }
+}
+
+/**
+ * Validates a single inbound webhook configuration.
+ */
+function validateInboundWebhook(
+  webhook: InboundWebhookConfig,
+  adapterId: string,
+  index: number,
+  hasMultiple: boolean,
+): void {
+  const prefix = hasMultiple
+    ? `Adapter "${adapterId}" inboundWebhook[${index}]`
+    : `Adapter "${adapterId}" inboundWebhook`;
+
+  if (
+    webhook.timeoutMs !== undefined &&
+    (typeof webhook.timeoutMs !== "number" || webhook.timeoutMs <= 0)
+  ) {
+    throw new Error(`${prefix}.timeoutMs must be a positive number`);
+  }
+
+  if (
+    webhook.priority !== undefined &&
+    (typeof webhook.priority !== "number" || webhook.priority < 0)
+  ) {
+    throw new Error(`${prefix}.priority must be a non-negative number`);
+  }
+}
+
+/**
+ * Validates that webhook priorities are unique within the same type (for ordering).
+ * Warns if multiple webhooks have the same priority (ties will be broken by array order).
+ */
+function validateWebhookPriorities(
+  webhooks: Array<{ priority?: number }>,
+  adapterId: string,
+  type: "outbound" | "inbound",
+): void {
+  if (webhooks.length <= 1) return;
+
+  const priorities = webhooks.map((w) => w.priority ?? 1000);
+  const uniquePriorities = new Set(priorities);
+
+  if (uniquePriorities.size < webhooks.length) {
+    console.warn(
+      `Warning: Adapter "${adapterId}" has multiple ${type} webhooks with the same priority. ` +
+        `Execution order for ties will be determined by array order.`,
+    );
   }
 }
 
@@ -332,7 +404,15 @@ function validateAdapter(
 
   validateWebhooks(adapter);
 
-  if (!adapter.outboundWebhook && !adapter.inboundWebhook) {
+  // Check if at least one webhook is configured (single or array)
+  const hasOutbound =
+    adapter.outboundWebhook ||
+    (adapter.outboundWebhooks && adapter.outboundWebhooks.length > 0);
+  const hasInbound =
+    adapter.inboundWebhook ||
+    (adapter.inboundWebhooks && adapter.inboundWebhooks.length > 0);
+
+  if (!hasOutbound && !hasInbound) {
     console.warn(`Warning: Adapter "${adapter.id}" has no webhooks configured`);
   }
 }

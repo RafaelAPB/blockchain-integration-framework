@@ -79,14 +79,9 @@ export const STAGE0_NEW_SESSION_REQUEST_CONFIG: AdapterLayerConfiguration = {
       ],
       outboundWebhook: {
         url: "http://localhost:9223/webhook/outbound/validate",
-        method: "POST",
         timeoutMs: 5000,
         retryAttempts: 3,
         retryDelayMs: 1000,
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Version": "v1",
-        },
       },
     },
     {
@@ -103,12 +98,7 @@ export const STAGE0_NEW_SESSION_REQUEST_CONFIG: AdapterLayerConfiguration = {
         },
       ],
       inboundWebhook: {
-        urlSuffix: "/inbound/newSessionRequest-approval",
         timeoutMs: 3000, // 3 second timeout
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
       },
     },
   ],
@@ -173,15 +163,11 @@ export function createAdapterHarness(
       url:
         overrides.adapterOverrides?.outboundWebhook?.url ??
         "https://adapter.test/outbound",
-      method: overrides.adapterOverrides?.outboundWebhook?.method ?? "POST",
       retryAttempts:
         overrides.adapterOverrides?.outboundWebhook?.retryAttempts ?? 3,
       retryDelayMs:
         overrides.adapterOverrides?.outboundWebhook?.retryDelayMs ?? 0,
       timeoutMs: overrides.adapterOverrides?.outboundWebhook?.timeoutMs ?? 250,
-      headers: overrides.adapterOverrides?.outboundWebhook?.headers ?? {
-        "content-type": "application/json",
-      },
     },
     inboundWebhook: overrides.adapterOverrides?.inboundWebhook,
   };

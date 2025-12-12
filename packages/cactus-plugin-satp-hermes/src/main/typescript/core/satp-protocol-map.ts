@@ -481,6 +481,35 @@ export function getStepTagsForStage(stage: SatpStage): SatpStepTag[] {
 }
 
 /**
+ * Get the protocol sequence number for a step tag within a stage.
+ * The sequence number defines the execution order of steps within a stage
+ * as defined in the SATP protocol specification.
+ *
+ * @param stage - The SATP stage number (0-3)
+ * @param stepTag - The step tag to get the sequence for
+ * @returns The sequence number (1-based), or undefined if the step tag is not found
+ *
+ * @example
+ * ```typescript
+ * // Returns 1 (first step in stage 0)
+ * getStepSequenceNumber(0, "newSessionRequest");
+ *
+ * // Returns 3 (third step in stage 0)
+ * getStepSequenceNumber(0, "newSessionResponse");
+ * ```
+ */
+export function getStepSequenceNumber(
+  stage: number,
+  stepTag: string,
+): number | undefined {
+  if (!isValidStage(stage)) {
+    return undefined;
+  }
+  const step = SATP_PROTOCOL_MAP[stage].steps.find((s) => s.tag === stepTag);
+  return step?.sequence;
+}
+
+/**
  * Helper function to get step details by tag
  */
 export function getStepByTag(
