@@ -1,14 +1,14 @@
 # SATP Gateway Configuration Examples
 
-This directory contains comprehensive configuration examples for the SATP Hermes gateway implementation. These configurations demonstrate various deployment scenarios and use cases for cross-chain asset transfers.
+This directory contains comprehensive configuration examples for the SATP Hermes gateway implementation. These configurations demonstrate various deployment scenarios and use cases for cross-chain asset transfers. Please check the [Cacti demo][https://github.com/AndreAugusto11/satp-gateway-demo](https://github.com/hyperledger-cacti/cacti-demos)  repository for updated examples.
 
 ## Source and Attribution
 
-These configuration examples are inspired by and derived from the [SATP Gateway Demo](https://github.com/RafaelAPB/satp-gateway-demo) repository, by André Augusto, which provides reference implementations and working examples of SATP gateway configurations in practice.
+These configuration examples are inspired by and derived from the [SATP Gateway Demo](https://github.com/AndreAugusto11/satp-gateway-demo) repository, by André Augusto, which provides reference implementations and working examples of SATP gateway configurations in practice.
 
 ## Available Configuration Templates
 
-These configurations are based on working examples from the [SATP Gateway Demo](https://github.com/RafaelAPB/satp-gateway-demo) repository and are known to work in practice.
+These configurations are based on working examples from the [SATP Gateway Demo](https://github.com/AndreAugusto11/satp-gateway-demo) repository and are known to work in practice.
 
 ### Oracle Configurations
 
