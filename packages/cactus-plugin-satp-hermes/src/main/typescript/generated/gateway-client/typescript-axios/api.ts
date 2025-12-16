@@ -3017,6 +3017,223 @@ export const OracleUnregisterResponseStatusEnum = {
 export type OracleUnregisterResponseStatusEnum = typeof OracleUnregisterResponseStatusEnum[keyof typeof OracleUnregisterResponseStatusEnum];
 
 /**
+ * Event type representing a distinct lifecycle moment in SATP protocol execution. External systems can filter and route events based on type.
+ * @export
+ * @enum {string}
+ */
+
+export const OutboundWebhookEventType = {
+    StageStarted: 'stage.started',
+    StageCompleted: 'stage.completed',
+    StageFailed: 'stage.failed',
+    AdapterRetry: 'adapter.retry',
+    AdapterSkipped: 'adapter.skipped'
+} as const;
+
+export type OutboundWebhookEventType = typeof OutboundWebhookEventType[keyof typeof OutboundWebhookEventType];
+
+
+/**
+ * Execution point info embedded in outbound webhook payloads. Includes a computed name for logging/display purposes.
+ * @export
+ * @interface OutboundWebhookExecutionPoint
+ */
+export interface OutboundWebhookExecutionPoint {
+    /**
+     * Computed name for the execution point (stepTag-point format).
+     * @type {string}
+     * @memberof OutboundWebhookExecutionPoint
+     */
+    'name': string;
+    /**
+     * SATP stage number (0-3).
+     * @type {number}
+     * @memberof OutboundWebhookExecutionPoint
+     */
+    'stage': number;
+    /**
+     * Stage-specific step identifier.
+     * @type {string}
+     * @memberof OutboundWebhookExecutionPoint
+     */
+    'step': string;
+    /**
+     * Execution order within the step.
+     * @type {string}
+     * @memberof OutboundWebhookExecutionPoint
+     */
+    'point': OutboundWebhookExecutionPointPointEnum;
+}
+
+export const OutboundWebhookExecutionPointPointEnum = {
+    Before: 'before',
+    During: 'during',
+    After: 'after',
+    Rollback: 'rollback'
+} as const;
+
+export type OutboundWebhookExecutionPointPointEnum = typeof OutboundWebhookExecutionPointPointEnum[keyof typeof OutboundWebhookExecutionPointPointEnum];
+
+/**
+ * Outbound webhook payload delivering SATP transfer telemetry to external monitoring or automation systems. All outbound payloads follow a consistent  envelope containing event type, session identifiers, gateway identity, and stage-specific payload data.
+ * @export
+ * @interface OutboundWebhookPayload
+ */
+export interface OutboundWebhookPayload {
+    /**
+     * Event type representing a distinct lifecycle moment in SATP protocol execution. External systems can filter and route events based on type.
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'eventType': OutboundWebhookPayloadEventTypeEnum;
+    /**
+     * Semantic version of the payload contract.
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'schemaVersion': string;
+    /**
+     * 
+     * @type {OutboundWebhookPayloadExecutionPoints}
+     * @memberof OutboundWebhookPayload
+     */
+    'executionPoints': OutboundWebhookPayloadExecutionPoints;
+    /**
+     * Adapter identifier (matches configuration id).
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'adapterId': string;
+    /**
+     * SATP session identifier for correlation.
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'sessionId': string;
+    /**
+     * Optional transfer context identifier propagated from API1.
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'contextId'?: string;
+    /**
+     * Gateway identifier emitting the notification.
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'gatewayId': string;
+    /**
+     * Stage-specific metadata. For example, Stage 1 includes lock proofs while Stage 3 may contain mint/burn receipts.
+     * @type {{ [key: string]: any; }}
+     * @memberof OutboundWebhookPayload
+     */
+    'payload'?: { [key: string]: any; };
+    /**
+     * ISO 8601 timestamp for when the event was emitted.
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'timestamp': string;
+    /**
+     * Optional human-readable description or error message.
+     * @type {string}
+     * @memberof OutboundWebhookPayload
+     */
+    'message'?: string;
+}
+
+export const OutboundWebhookPayloadEventTypeEnum = {
+    StageStarted: 'stage.started',
+    StageCompleted: 'stage.completed',
+    StageFailed: 'stage.failed',
+    AdapterRetry: 'adapter.retry',
+    AdapterSkipped: 'adapter.skipped'
+} as const;
+
+export type OutboundWebhookPayloadEventTypeEnum = typeof OutboundWebhookPayloadEventTypeEnum[keyof typeof OutboundWebhookPayloadEventTypeEnum];
+
+/**
+ * Execution point info embedded in outbound webhook payloads. Includes a computed name for logging/display purposes.
+ * @export
+ * @interface OutboundWebhookPayloadExecutionPoints
+ */
+export interface OutboundWebhookPayloadExecutionPoints {
+    /**
+     * Computed name for the execution point (stepTag-point format).
+     * @type {string}
+     * @memberof OutboundWebhookPayloadExecutionPoints
+     */
+    'name': string;
+    /**
+     * SATP stage number (0-3).
+     * @type {number}
+     * @memberof OutboundWebhookPayloadExecutionPoints
+     */
+    'stage': number;
+    /**
+     * Stage-specific step identifier.
+     * @type {string}
+     * @memberof OutboundWebhookPayloadExecutionPoints
+     */
+    'step': string;
+    /**
+     * Execution order within the step.
+     * @type {string}
+     * @memberof OutboundWebhookPayloadExecutionPoints
+     */
+    'point': OutboundWebhookPayloadExecutionPointsPointEnum;
+}
+
+export const OutboundWebhookPayloadExecutionPointsPointEnum = {
+    Before: 'before',
+    During: 'during',
+    After: 'after',
+    Rollback: 'rollback'
+} as const;
+
+export type OutboundWebhookPayloadExecutionPointsPointEnum = typeof OutboundWebhookPayloadExecutionPointsPointEnum[keyof typeof OutboundWebhookPayloadExecutionPointsPointEnum];
+
+/**
+ * Expected response from external systems receiving outbound webhook payloads. The gateway uses this response to determine whether to continue or abort.
+ * @export
+ * @interface OutboundWebhookResponse
+ */
+export interface OutboundWebhookResponse {
+    /**
+     * Whether the webhook was successfully received and processed.
+     * @type {boolean}
+     * @memberof OutboundWebhookResponse
+     */
+    'received'?: boolean;
+    /**
+     * Status of the webhook processing.
+     * @type {string}
+     * @memberof OutboundWebhookResponse
+     */
+    'status'?: OutboundWebhookResponseStatusEnum;
+    /**
+     * Optional message from the external system.
+     * @type {string}
+     * @memberof OutboundWebhookResponse
+     */
+    'message'?: string;
+    /**
+     * Optional response data from the external system.
+     * @type {{ [key: string]: any; }}
+     * @memberof OutboundWebhookResponse
+     */
+    'data'?: { [key: string]: any; };
+}
+
+export const OutboundWebhookResponseStatusEnum = {
+    Ok: 'OK',
+    Error: 'ERROR',
+    Retry: 'RETRY'
+} as const;
+
+export type OutboundWebhookResponseStatusEnum = typeof OutboundWebhookResponseStatusEnum[keyof typeof OutboundWebhookResponseStatusEnum];
+
+/**
  * Response for a pause transaction request. Returns the current status of the SATP session post-pause action.
  * @export
  * @interface Pause200Response

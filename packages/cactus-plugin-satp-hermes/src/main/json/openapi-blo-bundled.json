@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "SATP Gateway Client (Business Logic Orchestrator)",
+    "title": "SATP Gateway Client (API-Type 1)",
     "version": "0.0.2",
-    "description": "SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.\n\nThis API defines the gateway client facing API (business logic orchestrator, or BLO), which is named API-Type 1 in the SATP-Core specification.\n\n**Additional Resources**:\n- [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/)\n- [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core)\n- [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/)\n- [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/)\n- [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/)\n- [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing)\n- [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)",
+    "description": "SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.\n\nThis API defines the gateway client facing API (API-Type 1 in the SATP-Core specification).\n\n**Additional Resources**:\n- [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/)\n- [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core)\n- [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/)\n- [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/)\n- [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/)\n- [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing)\n- [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)",
     "contact": {
       "name": "Hyperledger Cacti"
     },
@@ -10632,6 +10632,199 @@
           "status": {
             "type": "boolean",
             "description": "The status of the request."
+          }
+        }
+      },
+      "OutboundWebhookEventType": {
+        "type": "string",
+        "description": "Event type representing a distinct lifecycle moment in SATP protocol execution.\nExternal systems can filter and route events based on type.",
+        "enum": [
+          "stage.started",
+          "stage.completed",
+          "stage.failed",
+          "adapter.retry",
+          "adapter.skipped"
+        ],
+        "example": "stage.completed"
+      },
+      "OutboundWebhookExecutionPoint": {
+        "type": "object",
+        "description": "Execution point info embedded in outbound webhook payloads.\nIncludes a computed name for logging/display purposes.",
+        "required": [
+          "name",
+          "stage",
+          "step",
+          "point"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Computed name for the execution point (stepTag-point format).",
+            "example": "newSessionRequest-before"
+          },
+          "stage": {
+            "type": "integer",
+            "description": "SATP stage number (0-3).",
+            "minimum": 0,
+            "maximum": 3,
+            "example": 0
+          },
+          "step": {
+            "type": "string",
+            "description": "Stage-specific step identifier.",
+            "example": "newSessionRequest"
+          },
+          "point": {
+            "type": "string",
+            "description": "Execution order within the step.",
+            "enum": [
+              "before",
+              "during",
+              "after",
+              "rollback"
+            ],
+            "example": "before"
+          }
+        }
+      },
+      "OutboundWebhookPayload": {
+        "type": "object",
+        "description": "Outbound webhook payload delivering SATP transfer telemetry to external\nmonitoring or automation systems. All outbound payloads follow a consistent \nenvelope containing event type, session identifiers, gateway identity, and\nstage-specific payload data.",
+        "x-category": "request",
+        "required": [
+          "eventType",
+          "schemaVersion",
+          "executionPoints",
+          "adapterId",
+          "sessionId",
+          "gatewayId",
+          "timestamp"
+        ],
+        "properties": {
+          "eventType": {
+            "type": "string",
+            "description": "Event type representing a distinct lifecycle moment in SATP protocol execution.\nExternal systems can filter and route events based on type.",
+            "enum": [
+              "stage.started",
+              "stage.completed",
+              "stage.failed",
+              "adapter.retry",
+              "adapter.skipped"
+            ],
+            "example": "stage.completed"
+          },
+          "schemaVersion": {
+            "type": "string",
+            "description": "Semantic version of the payload contract.",
+            "example": "v1.0.0"
+          },
+          "executionPoints": {
+            "type": "object",
+            "description": "Execution point info embedded in outbound webhook payloads.\nIncludes a computed name for logging/display purposes.",
+            "required": [
+              "name",
+              "stage",
+              "step",
+              "point"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Computed name for the execution point (stepTag-point format).",
+                "example": "newSessionRequest-before"
+              },
+              "stage": {
+                "type": "integer",
+                "description": "SATP stage number (0-3).",
+                "minimum": 0,
+                "maximum": 3,
+                "example": 0
+              },
+              "step": {
+                "type": "string",
+                "description": "Stage-specific step identifier.",
+                "example": "newSessionRequest"
+              },
+              "point": {
+                "type": "string",
+                "description": "Execution order within the step.",
+                "enum": [
+                  "before",
+                  "during",
+                  "after",
+                  "rollback"
+                ],
+                "example": "before"
+              }
+            }
+          },
+          "adapterId": {
+            "type": "string",
+            "description": "Adapter identifier (matches configuration id).",
+            "example": "lock-monitor"
+          },
+          "sessionId": {
+            "type": "string",
+            "description": "SATP session identifier for correlation.",
+            "example": "session-abc-123"
+          },
+          "contextId": {
+            "type": "string",
+            "description": "Optional transfer context identifier propagated from API1.",
+            "example": "ctx-transfer-456"
+          },
+          "gatewayId": {
+            "type": "string",
+            "description": "Gateway identifier emitting the notification.",
+            "example": "gateway-fabric-1"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Stage-specific metadata. For example, Stage 1 includes lock proofs while\nStage 3 may contain mint/burn receipts.",
+            "additionalProperties": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp for when the event was emitted.",
+            "example": "2025-12-06T10:30:45.123Z"
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional human-readable description or error message.",
+            "example": "Asset locked successfully on source ledger"
+          }
+        }
+      },
+      "OutboundWebhookResponse": {
+        "type": "object",
+        "description": "Expected response from external systems receiving outbound webhook payloads.\nThe gateway uses this response to determine whether to continue or abort.",
+        "x-category": "response",
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "description": "Whether the webhook was successfully received and processed.",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the webhook processing.",
+            "enum": [
+              "OK",
+              "ERROR",
+              "RETRY"
+            ],
+            "example": "OK"
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional message from the external system.",
+            "example": "Webhook processed successfully"
+          },
+          "data": {
+            "type": "object",
+            "description": "Optional response data from the external system.",
+            "additionalProperties": true
           }
         }
       },
