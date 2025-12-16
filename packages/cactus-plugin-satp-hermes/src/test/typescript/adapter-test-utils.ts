@@ -46,13 +46,8 @@ export const TEST_CONTEXT_ID = "ctx-xyz";
 /** Test gateway identifier */
 export const TEST_GATEWAY_ID = "gateway-test";
 
-/** Fixtures directory path relative to adapter-test-utils.ts */
-export const FIXTURES_DIR = path.resolve(
-  __dirname,
-  "integration",
-  "adapter",
-  "fixtures",
-);
+/** Fixtures directory path - YAML adapter configuration fixtures */
+export const FIXTURES_DIR = path.resolve(__dirname, "..", "yaml", "fixtures");
 
 // ============================================================================
 // Pre-built Configurations for Stage 0 newSessionRequest
