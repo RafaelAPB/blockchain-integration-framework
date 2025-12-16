@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SATP Gateway Client (Business Logic Orchestrator)
- * SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.  This API defines the gateway client facing API (business logic orchestrator, or BLO), which is named API-Type 1 in the SATP-Core specification.  **Additional Resources**: - [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/) - [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core) - [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/) - [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/) - [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/) - [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing) - [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)
+ * SATP Gateway Client (API-Type 1)
+ * SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.  This API defines the gateway client facing API (API-Type 1 in the SATP-Core specification).  **Additional Resources**: - [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/) - [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core) - [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/) - [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/) - [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/) - [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing) - [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)
  *
  * The version of the OpenAPI document: 0.0.2
  * 
@@ -103,6 +103,551 @@ export interface Action {
      */
     'toAddress'?: string;
 }
+/**
+ * Common HTTP attributes shared by adapter webhook definitions.
+ * @export
+ * @interface AdapterBaseWebhookConfig
+ */
+export interface AdapterBaseWebhookConfig {
+    /**
+     * Maximum time the gateway waits for the remote endpoint before aborting.
+     * @type {number}
+     * @memberof AdapterBaseWebhookConfig
+     */
+    'timeoutMs'?: number;
+    /**
+     * Optional Mustache/Handlebars-style payload template rendered per invocation.
+     * @type {string}
+     * @memberof AdapterBaseWebhookConfig
+     */
+    'payloadTemplate'?: string;
+    /**
+     * Maximum number of attempts (initial + retries).
+     * @type {number}
+     * @memberof AdapterBaseWebhookConfig
+     */
+    'retryAttempts'?: number;
+    /**
+     * Backoff delay between attempts in milliseconds.
+     * @type {number}
+     * @memberof AdapterBaseWebhookConfig
+     */
+    'retryDelayMs'?: number;
+}
+/**
+ * Adapter definition - a configuration unit that defines webhooks for specific execution points in the SATP protocol flow.
+ * @export
+ * @interface AdapterDefinition
+ */
+export interface AdapterDefinition {
+    /**
+     * Stable identifier used for logging and inbound routing.
+     * @type {string}
+     * @memberof AdapterDefinition
+     */
+    'id': string;
+    /**
+     * Human-friendly adapter label.
+     * @type {string}
+     * @memberof AdapterDefinition
+     */
+    'name': string;
+    /**
+     * Optional textual description for operators.
+     * @type {string}
+     * @memberof AdapterDefinition
+     */
+    'description'?: string;
+    /**
+     * Enables/disables adapter without removing its configuration.
+     * @type {boolean}
+     * @memberof AdapterDefinition
+     */
+    'active': boolean;
+    /**
+     * Priority ordering when multiple adapters are registered at the same execution point. Lower numbers run earlier.
+     * @type {number}
+     * @memberof AdapterDefinition
+     */
+    'priority'?: number;
+    /**
+     * Execution points where this adapter should be invoked.
+     * @type {Array<AdapterDefinitionExecutionPointsInner>}
+     * @memberof AdapterDefinition
+     */
+    'executionPoints': Array<AdapterDefinitionExecutionPointsInner>;
+    /**
+     * 
+     * @type {AdapterDefinitionOutboundWebhook}
+     * @memberof AdapterDefinition
+     */
+    'outboundWebhook'?: AdapterDefinitionOutboundWebhook;
+    /**
+     * Array of outbound webhooks when multiple notifications are needed.
+     * @type {Array<AdapterDefinitionOutboundWebhook>}
+     * @memberof AdapterDefinition
+     */
+    'outboundWebhooks'?: Array<AdapterDefinitionOutboundWebhook>;
+    /**
+     * 
+     * @type {AdapterDefinitionInboundWebhook}
+     * @memberof AdapterDefinition
+     */
+    'inboundWebhook'?: AdapterDefinitionInboundWebhook;
+    /**
+     * Array of inbound webhooks when multiple approvals are needed.
+     * @type {Array<AdapterDefinitionInboundWebhook>}
+     * @memberof AdapterDefinition
+     */
+    'inboundWebhooks'?: Array<AdapterDefinitionInboundWebhook>;
+}
+/**
+ * Execution point definition - specifies where an adapter should execute within the SATP protocol flow.
+ * @export
+ * @interface AdapterDefinitionExecutionPointsInner
+ */
+export interface AdapterDefinitionExecutionPointsInner {
+    /**
+     * SATP stage number (0-3).
+     * @type {number}
+     * @memberof AdapterDefinitionExecutionPointsInner
+     */
+    'stage': number;
+    /**
+     * Stage-specific step identifier.
+     * @type {string}
+     * @memberof AdapterDefinitionExecutionPointsInner
+     */
+    'step': string;
+    /**
+     * Execution order within the step.
+     * @type {string}
+     * @memberof AdapterDefinitionExecutionPointsInner
+     */
+    'point': AdapterDefinitionExecutionPointsInnerPointEnum;
+}
+
+export const AdapterDefinitionExecutionPointsInnerPointEnum = {
+    Before: 'before',
+    During: 'during',
+    After: 'after',
+    Rollback: 'rollback'
+} as const;
+
+export type AdapterDefinitionExecutionPointsInnerPointEnum = typeof AdapterDefinitionExecutionPointsInnerPointEnum[keyof typeof AdapterDefinitionExecutionPointsInnerPointEnum];
+
+/**
+ * Inbound webhook definition used to pause SATP execution until an external controller posts a decision. The gateway exposes endpoints under its API3 adapter base path, using the adapter ID and context ID for routing.
+ * @export
+ * @interface AdapterDefinitionInboundWebhook
+ */
+export interface AdapterDefinitionInboundWebhook {
+    /**
+     * Maximum time the gateway waits for external decision before timing out.
+     * @type {number}
+     * @memberof AdapterDefinitionInboundWebhook
+     */
+    'timeoutMs'?: number;
+    /**
+     * Optional payload template for context data.
+     * @type {string}
+     * @memberof AdapterDefinitionInboundWebhook
+     */
+    'payloadTemplate'?: string;
+    /**
+     * Maximum number of retry attempts.
+     * @type {number}
+     * @memberof AdapterDefinitionInboundWebhook
+     */
+    'retryAttempts'?: number;
+    /**
+     * Backoff delay between attempts in milliseconds.
+     * @type {number}
+     * @memberof AdapterDefinitionInboundWebhook
+     */
+    'retryDelayMs'?: number;
+    /**
+     * Priority for ordering multiple inbound webhooks within the same adapter. Lower numbers execute first. Defaults to 1000 if not specified.
+     * @type {number}
+     * @memberof AdapterDefinitionInboundWebhook
+     */
+    'priority'?: number;
+}
+/**
+ * Outbound webhook definition used to notify external systems about SATP activity. Always uses POST method with application/json content-type.
+ * @export
+ * @interface AdapterDefinitionOutboundWebhook
+ */
+export interface AdapterDefinitionOutboundWebhook {
+    /**
+     * Absolute HTTPS endpoint the gateway should call.
+     * @type {string}
+     * @memberof AdapterDefinitionOutboundWebhook
+     */
+    'url': string;
+    /**
+     * Maximum time the gateway waits for the remote endpoint before aborting.
+     * @type {number}
+     * @memberof AdapterDefinitionOutboundWebhook
+     */
+    'timeoutMs'?: number;
+    /**
+     * Optional payload template rendered per invocation.
+     * @type {string}
+     * @memberof AdapterDefinitionOutboundWebhook
+     */
+    'payloadTemplate'?: string;
+    /**
+     * Maximum number of retry attempts.
+     * @type {number}
+     * @memberof AdapterDefinitionOutboundWebhook
+     */
+    'retryAttempts'?: number;
+    /**
+     * Backoff delay between attempts in milliseconds.
+     * @type {number}
+     * @memberof AdapterDefinitionOutboundWebhook
+     */
+    'retryDelayMs'?: number;
+    /**
+     * Priority for ordering multiple outbound webhooks within the same adapter. Lower numbers execute first. Defaults to 1000 if not specified.
+     * @type {number}
+     * @memberof AdapterDefinitionOutboundWebhook
+     */
+    'priority'?: number;
+}
+/**
+ * Execution point definition - specifies where an adapter should execute within the SATP protocol flow.
+ * @export
+ * @interface AdapterExecutionPointDefinition
+ */
+export interface AdapterExecutionPointDefinition {
+    /**
+     * SATP stage number (0-3).
+     * @type {number}
+     * @memberof AdapterExecutionPointDefinition
+     */
+    'stage': number;
+    /**
+     * Stage-specific step identifier.
+     * @type {string}
+     * @memberof AdapterExecutionPointDefinition
+     */
+    'step': string;
+    /**
+     * Execution order within the step.
+     * @type {string}
+     * @memberof AdapterExecutionPointDefinition
+     */
+    'point': AdapterExecutionPointDefinitionPointEnum;
+}
+
+export const AdapterExecutionPointDefinitionPointEnum = {
+    Before: 'before',
+    During: 'during',
+    After: 'after',
+    Rollback: 'rollback'
+} as const;
+
+export type AdapterExecutionPointDefinitionPointEnum = typeof AdapterExecutionPointDefinitionPointEnum[keyof typeof AdapterExecutionPointDefinitionPointEnum];
+
+/**
+ * Global defaults for adapter execution. Applied to every adapter unless overridden at the adapter level.
+ * @export
+ * @interface AdapterGlobalDefaults
+ */
+export interface AdapterGlobalDefaults {
+    /**
+     * Default timeout in milliseconds.
+     * @type {number}
+     * @memberof AdapterGlobalDefaults
+     */
+    'timeoutMs'?: number;
+    /**
+     * Default number of retry attempts.
+     * @type {number}
+     * @memberof AdapterGlobalDefaults
+     */
+    'retryAttempts'?: number;
+    /**
+     * Default backoff delay in milliseconds.
+     * @type {number}
+     * @memberof AdapterGlobalDefaults
+     */
+    'retryDelayMs'?: number;
+    /**
+     * Logging level for adapter operations.
+     * @type {string}
+     * @memberof AdapterGlobalDefaults
+     */
+    'logLevel'?: AdapterGlobalDefaultsLogLevelEnum;
+    /**
+     * Default HTTP headers to include in webhook requests.
+     * @type {{ [key: string]: string; }}
+     * @memberof AdapterGlobalDefaults
+     */
+    'headers'?: { [key: string]: string; };
+}
+
+export const AdapterGlobalDefaultsLogLevelEnum = {
+    Trace: 'trace',
+    Debug: 'debug',
+    Info: 'info',
+    Warn: 'warn',
+    Error: 'error'
+} as const;
+
+export type AdapterGlobalDefaultsLogLevelEnum = typeof AdapterGlobalDefaultsLogLevelEnum[keyof typeof AdapterGlobalDefaultsLogLevelEnum];
+
+/**
+ * Inbound webhook definition used to pause SATP execution until an external controller posts a decision. The gateway exposes endpoints under its API3 adapter base path, using the adapter ID and context ID for routing.
+ * @export
+ * @interface AdapterInboundWebhookConfig
+ */
+export interface AdapterInboundWebhookConfig {
+    /**
+     * Maximum time the gateway waits for external decision before timing out.
+     * @type {number}
+     * @memberof AdapterInboundWebhookConfig
+     */
+    'timeoutMs'?: number;
+    /**
+     * Optional payload template for context data.
+     * @type {string}
+     * @memberof AdapterInboundWebhookConfig
+     */
+    'payloadTemplate'?: string;
+    /**
+     * Maximum number of retry attempts.
+     * @type {number}
+     * @memberof AdapterInboundWebhookConfig
+     */
+    'retryAttempts'?: number;
+    /**
+     * Backoff delay between attempts in milliseconds.
+     * @type {number}
+     * @memberof AdapterInboundWebhookConfig
+     */
+    'retryDelayMs'?: number;
+    /**
+     * Priority for ordering multiple inbound webhooks within the same adapter. Lower numbers execute first. Defaults to 1000 if not specified.
+     * @type {number}
+     * @memberof AdapterInboundWebhookConfig
+     */
+    'priority'?: number;
+}
+/**
+ * Root configuration structure for the adapter layer. Loaded from YAML configuration files (e.g., adapter-config.yml) and used to configure webhook-based integrations with external systems.
+ * @export
+ * @interface AdapterLayerConfiguration
+ */
+export interface AdapterLayerConfiguration {
+    /**
+     * Flat list of adapters, each defining their own execution points.
+     * @type {Array<AdapterLayerConfigurationAdaptersInner>}
+     * @memberof AdapterLayerConfiguration
+     */
+    'adapters': Array<AdapterLayerConfigurationAdaptersInner>;
+    /**
+     * 
+     * @type {AdapterLayerConfigurationGlobal}
+     * @memberof AdapterLayerConfiguration
+     */
+    'global'?: AdapterLayerConfigurationGlobal;
+}
+/**
+ * Adapter definition - a configuration unit that defines webhooks for specific execution points in the SATP protocol flow.
+ * @export
+ * @interface AdapterLayerConfigurationAdaptersInner
+ */
+export interface AdapterLayerConfigurationAdaptersInner {
+    /**
+     * Stable identifier used for logging and inbound routing.
+     * @type {string}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'id': string;
+    /**
+     * Human-friendly adapter label.
+     * @type {string}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'name': string;
+    /**
+     * Optional textual description for operators.
+     * @type {string}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'description'?: string;
+    /**
+     * Enables/disables adapter without removing its configuration.
+     * @type {boolean}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'active': boolean;
+    /**
+     * Priority ordering when multiple adapters are registered at the same execution point. Lower numbers run earlier.
+     * @type {number}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'priority'?: number;
+    /**
+     * Execution points where this adapter should be invoked.
+     * @type {Array<AdapterDefinitionExecutionPointsInner>}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'executionPoints': Array<AdapterDefinitionExecutionPointsInner>;
+    /**
+     * 
+     * @type {AdapterDefinitionOutboundWebhook}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'outboundWebhook'?: AdapterDefinitionOutboundWebhook;
+    /**
+     * Array of outbound webhooks when multiple notifications are needed.
+     * @type {Array<AdapterDefinitionOutboundWebhook>}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'outboundWebhooks'?: Array<AdapterDefinitionOutboundWebhook>;
+    /**
+     * 
+     * @type {AdapterDefinitionInboundWebhook}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'inboundWebhook'?: AdapterDefinitionInboundWebhook;
+    /**
+     * Array of inbound webhooks when multiple approvals are needed.
+     * @type {Array<AdapterDefinitionInboundWebhook>}
+     * @memberof AdapterLayerConfigurationAdaptersInner
+     */
+    'inboundWebhooks'?: Array<AdapterDefinitionInboundWebhook>;
+}
+/**
+ * Global defaults for adapter execution. Applied to every adapter unless overridden at the adapter level.
+ * @export
+ * @interface AdapterLayerConfigurationGlobal
+ */
+export interface AdapterLayerConfigurationGlobal {
+    /**
+     * Default timeout in milliseconds.
+     * @type {number}
+     * @memberof AdapterLayerConfigurationGlobal
+     */
+    'timeoutMs'?: number;
+    /**
+     * Default number of retry attempts.
+     * @type {number}
+     * @memberof AdapterLayerConfigurationGlobal
+     */
+    'retryAttempts'?: number;
+    /**
+     * Default backoff delay in milliseconds.
+     * @type {number}
+     * @memberof AdapterLayerConfigurationGlobal
+     */
+    'retryDelayMs'?: number;
+    /**
+     * Logging level for adapter operations.
+     * @type {string}
+     * @memberof AdapterLayerConfigurationGlobal
+     */
+    'logLevel'?: AdapterLayerConfigurationGlobalLogLevelEnum;
+    /**
+     * Default HTTP headers to include in webhook requests.
+     * @type {{ [key: string]: string; }}
+     * @memberof AdapterLayerConfigurationGlobal
+     */
+    'headers'?: { [key: string]: string; };
+}
+
+export const AdapterLayerConfigurationGlobalLogLevelEnum = {
+    Trace: 'trace',
+    Debug: 'debug',
+    Info: 'info',
+    Warn: 'warn',
+    Error: 'error'
+} as const;
+
+export type AdapterLayerConfigurationGlobalLogLevelEnum = typeof AdapterLayerConfigurationGlobalLogLevelEnum[keyof typeof AdapterLayerConfigurationGlobalLogLevelEnum];
+
+/**
+ * Outbound webhook definition used to notify external systems about SATP activity. Always uses POST method with application/json content-type.
+ * @export
+ * @interface AdapterOutboundWebhookConfig
+ */
+export interface AdapterOutboundWebhookConfig {
+    /**
+     * Absolute HTTPS endpoint the gateway should call.
+     * @type {string}
+     * @memberof AdapterOutboundWebhookConfig
+     */
+    'url': string;
+    /**
+     * Maximum time the gateway waits for the remote endpoint before aborting.
+     * @type {number}
+     * @memberof AdapterOutboundWebhookConfig
+     */
+    'timeoutMs'?: number;
+    /**
+     * Optional payload template rendered per invocation.
+     * @type {string}
+     * @memberof AdapterOutboundWebhookConfig
+     */
+    'payloadTemplate'?: string;
+    /**
+     * Maximum number of retry attempts.
+     * @type {number}
+     * @memberof AdapterOutboundWebhookConfig
+     */
+    'retryAttempts'?: number;
+    /**
+     * Backoff delay between attempts in milliseconds.
+     * @type {number}
+     * @memberof AdapterOutboundWebhookConfig
+     */
+    'retryDelayMs'?: number;
+    /**
+     * Priority for ordering multiple outbound webhooks within the same adapter. Lower numbers execute first. Defaults to 1000 if not specified.
+     * @type {number}
+     * @memberof AdapterOutboundWebhookConfig
+     */
+    'priority'?: number;
+}
+/**
+ * Common retry policy applied to outbound/inbound webhook invocations.
+ * @export
+ * @interface AdapterRetryPolicy
+ */
+export interface AdapterRetryPolicy {
+    /**
+     * Maximum number of attempts (initial + retries).
+     * @type {number}
+     * @memberof AdapterRetryPolicy
+     */
+    'retryAttempts'?: number;
+    /**
+     * Backoff delay between attempts in milliseconds.
+     * @type {number}
+     * @memberof AdapterRetryPolicy
+     */
+    'retryDelayMs'?: number;
+}
+/**
+ * Execution steps inside a stage where adapters can hook into.
+ * @export
+ * @enum {string}
+ */
+
+export const AdapterStageExecutionStep = {
+    Before: 'before',
+    During: 'during',
+    After: 'after',
+    Rollback: 'rollback'
+} as const;
+
+export type AdapterStageExecutionStep = typeof AdapterStageExecutionStep[keyof typeof AdapterStageExecutionStep];
+
+
 /**
  * Response schema for adding a counterparty.
  * @export

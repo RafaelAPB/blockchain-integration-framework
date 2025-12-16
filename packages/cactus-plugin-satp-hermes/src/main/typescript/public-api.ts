@@ -430,7 +430,6 @@ export { OracleManager } from "./cross-chain-mechanisms/oracle/oracle-manager";
  * Adapter Hook Contracts - Configuration structures and execution results for API3 adapters.
  */
 export {
-  WebhookHttpMethod,
   RetryPolicy,
   BaseWebhookConfig,
   OutboundWebhookConfig,

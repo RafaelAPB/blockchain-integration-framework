@@ -8036,6 +8036,665 @@ components:
         status:
           type: boolean
           description: The status of the request.
+    AdapterRetryPolicy:
+      type: object
+      description: Common retry policy applied to outbound/inbound webhook invocations.
+      properties:
+        retryAttempts:
+          type: integer
+          description: Maximum number of attempts (initial + retries).
+          minimum: 0
+          default: 3
+          example: 3
+        retryDelayMs:
+          type: integer
+          description: Backoff delay between attempts in milliseconds.
+          minimum: 0
+          default: 1000
+          example: 1000
+    AdapterBaseWebhookConfig:
+      type: object
+      description: Common HTTP attributes shared by adapter webhook definitions.
+      properties:
+        timeoutMs:
+          type: integer
+          description: Maximum time the gateway waits for the remote endpoint before aborting.
+          minimum: 0
+          default: 5000
+          example: 5000
+        payloadTemplate:
+          type: string
+          description: Optional Mustache/Handlebars-style payload template rendered per invocation.
+          example: '{"sessionId": "{{sessionId}}", "stage": {{stage}}}'
+        retryAttempts:
+          type: integer
+          description: Maximum number of attempts (initial + retries).
+          minimum: 0
+          default: 3
+        retryDelayMs:
+          type: integer
+          description: Backoff delay between attempts in milliseconds.
+          minimum: 0
+          default: 1000
+    AdapterOutboundWebhookConfig:
+      type: object
+      description: |-
+        Outbound webhook definition used to notify external systems about SATP activity.
+        Always uses POST method with application/json content-type.
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Absolute HTTPS endpoint the gateway should call.
+          example: 'https://monitor.example.com/satp/lock-detected'
+        timeoutMs:
+          type: integer
+          description: Maximum time the gateway waits for the remote endpoint before aborting.
+          minimum: 0
+          default: 5000
+        payloadTemplate:
+          type: string
+          description: Optional payload template rendered per invocation.
+        retryAttempts:
+          type: integer
+          description: Maximum number of retry attempts.
+          minimum: 0
+          default: 3
+        retryDelayMs:
+          type: integer
+          description: Backoff delay between attempts in milliseconds.
+          minimum: 0
+          default: 1000
+        priority:
+          type: integer
+          description: |-
+            Priority for ordering multiple outbound webhooks within the same adapter.
+            Lower numbers execute first. Defaults to 1000 if not specified.
+          default: 1000
+          example: 1
+    AdapterInboundWebhookConfig:
+      type: object
+      description: |-
+        Inbound webhook definition used to pause SATP execution until an external
+        controller posts a decision. The gateway exposes endpoints under its API3
+        adapter base path, using the adapter ID and context ID for routing.
+      properties:
+        timeoutMs:
+          type: integer
+          description: Maximum time the gateway waits for external decision before timing out.
+          minimum: 0
+          default: 300000
+          example: 300000
+        payloadTemplate:
+          type: string
+          description: Optional payload template for context data.
+        retryAttempts:
+          type: integer
+          description: Maximum number of retry attempts.
+          minimum: 0
+          default: 3
+        retryDelayMs:
+          type: integer
+          description: Backoff delay between attempts in milliseconds.
+          minimum: 0
+          default: 1000
+        priority:
+          type: integer
+          description: |-
+            Priority for ordering multiple inbound webhooks within the same adapter.
+            Lower numbers execute first. Defaults to 1000 if not specified.
+          default: 1000
+    AdapterExecutionPointDefinition:
+      type: object
+      description: |-
+        Execution point definition - specifies where an adapter should execute
+        within the SATP protocol flow.
+      required:
+        - stage
+        - step
+        - point
+      properties:
+        stage:
+          type: integer
+          description: SATP stage number (0-3).
+          minimum: 0
+          maximum: 3
+          example: 1
+        step:
+          type: string
+          description: Stage-specific step identifier.
+          example: checkTransferProposalRequestMessage
+        point:
+          type: string
+          description: Execution order within the step.
+          enum:
+            - before
+            - during
+            - after
+            - rollback
+          example: before
+    AdapterStageExecutionStep:
+      type: string
+      description: Execution steps inside a stage where adapters can hook into.
+      enum:
+        - before
+        - during
+        - after
+        - rollback
+      example: before
+    AdapterDefinition:
+      type: object
+      description: |-
+        Adapter definition - a configuration unit that defines webhooks for
+        specific execution points in the SATP protocol flow.
+      required:
+        - id
+        - name
+        - active
+        - executionPoints
+      properties:
+        id:
+          type: string
+          description: Stable identifier used for logging and inbound routing.
+          example: compliance-check
+        name:
+          type: string
+          description: Human-friendly adapter label.
+          example: AML/KYC Compliance Verification
+        description:
+          type: string
+          description: Optional textual description for operators.
+          example: Validates transfer against compliance rules before lock
+        active:
+          type: boolean
+          description: Enables/disables adapter without removing its configuration.
+          example: true
+        priority:
+          type: integer
+          description: |-
+            Priority ordering when multiple adapters are registered at the same
+            execution point. Lower numbers run earlier.
+          default: 1000
+          example: 1
+        executionPoints:
+          type: array
+          description: Execution points where this adapter should be invoked.
+          items:
+            type: object
+            description: |-
+              Execution point definition - specifies where an adapter should execute
+              within the SATP protocol flow.
+            required:
+              - stage
+              - step
+              - point
+            properties:
+              stage:
+                type: integer
+                description: SATP stage number (0-3).
+                minimum: 0
+                maximum: 3
+                example: 1
+              step:
+                type: string
+                description: Stage-specific step identifier.
+                example: checkTransferProposalRequestMessage
+              point:
+                type: string
+                description: Execution order within the step.
+                enum:
+                  - before
+                  - during
+                  - after
+                  - rollback
+                example: before
+          minItems: 1
+        outboundWebhook:
+          type: object
+          description: |-
+            Outbound webhook definition used to notify external systems about SATP activity.
+            Always uses POST method with application/json content-type.
+          required:
+            - url
+          properties:
+            url:
+              type: string
+              format: uri
+              description: Absolute HTTPS endpoint the gateway should call.
+              example: 'https://monitor.example.com/satp/lock-detected'
+            timeoutMs:
+              type: integer
+              description: Maximum time the gateway waits for the remote endpoint before aborting.
+              minimum: 0
+              default: 5000
+            payloadTemplate:
+              type: string
+              description: Optional payload template rendered per invocation.
+            retryAttempts:
+              type: integer
+              description: Maximum number of retry attempts.
+              minimum: 0
+              default: 3
+            retryDelayMs:
+              type: integer
+              description: Backoff delay between attempts in milliseconds.
+              minimum: 0
+              default: 1000
+            priority:
+              type: integer
+              description: |-
+                Priority for ordering multiple outbound webhooks within the same adapter.
+                Lower numbers execute first. Defaults to 1000 if not specified.
+              default: 1000
+              example: 1
+        outboundWebhooks:
+          type: array
+          description: Array of outbound webhooks when multiple notifications are needed.
+          items:
+            type: object
+            description: |-
+              Outbound webhook definition used to notify external systems about SATP activity.
+              Always uses POST method with application/json content-type.
+            required:
+              - url
+            properties:
+              url:
+                type: string
+                format: uri
+                description: Absolute HTTPS endpoint the gateway should call.
+                example: 'https://monitor.example.com/satp/lock-detected'
+              timeoutMs:
+                type: integer
+                description: Maximum time the gateway waits for the remote endpoint before aborting.
+                minimum: 0
+                default: 5000
+              payloadTemplate:
+                type: string
+                description: Optional payload template rendered per invocation.
+              retryAttempts:
+                type: integer
+                description: Maximum number of retry attempts.
+                minimum: 0
+                default: 3
+              retryDelayMs:
+                type: integer
+                description: Backoff delay between attempts in milliseconds.
+                minimum: 0
+                default: 1000
+              priority:
+                type: integer
+                description: |-
+                  Priority for ordering multiple outbound webhooks within the same adapter.
+                  Lower numbers execute first. Defaults to 1000 if not specified.
+                default: 1000
+                example: 1
+        inboundWebhook:
+          type: object
+          description: |-
+            Inbound webhook definition used to pause SATP execution until an external
+            controller posts a decision. The gateway exposes endpoints under its API3
+            adapter base path, using the adapter ID and context ID for routing.
+          properties:
+            timeoutMs:
+              type: integer
+              description: Maximum time the gateway waits for external decision before timing out.
+              minimum: 0
+              default: 300000
+              example: 300000
+            payloadTemplate:
+              type: string
+              description: Optional payload template for context data.
+            retryAttempts:
+              type: integer
+              description: Maximum number of retry attempts.
+              minimum: 0
+              default: 3
+            retryDelayMs:
+              type: integer
+              description: Backoff delay between attempts in milliseconds.
+              minimum: 0
+              default: 1000
+            priority:
+              type: integer
+              description: |-
+                Priority for ordering multiple inbound webhooks within the same adapter.
+                Lower numbers execute first. Defaults to 1000 if not specified.
+              default: 1000
+        inboundWebhooks:
+          type: array
+          description: Array of inbound webhooks when multiple approvals are needed.
+          items:
+            type: object
+            description: |-
+              Inbound webhook definition used to pause SATP execution until an external
+              controller posts a decision. The gateway exposes endpoints under its API3
+              adapter base path, using the adapter ID and context ID for routing.
+            properties:
+              timeoutMs:
+                type: integer
+                description: Maximum time the gateway waits for external decision before timing out.
+                minimum: 0
+                default: 300000
+                example: 300000
+              payloadTemplate:
+                type: string
+                description: Optional payload template for context data.
+              retryAttempts:
+                type: integer
+                description: Maximum number of retry attempts.
+                minimum: 0
+                default: 3
+              retryDelayMs:
+                type: integer
+                description: Backoff delay between attempts in milliseconds.
+                minimum: 0
+                default: 1000
+              priority:
+                type: integer
+                description: |-
+                  Priority for ordering multiple inbound webhooks within the same adapter.
+                  Lower numbers execute first. Defaults to 1000 if not specified.
+                default: 1000
+    AdapterGlobalDefaults:
+      type: object
+      description: |-
+        Global defaults for adapter execution. Applied to every adapter unless
+        overridden at the adapter level.
+      properties:
+        timeoutMs:
+          type: integer
+          description: Default timeout in milliseconds.
+          minimum: 0
+          default: 5000
+        retryAttempts:
+          type: integer
+          description: Default number of retry attempts.
+          minimum: 0
+          default: 3
+        retryDelayMs:
+          type: integer
+          description: Default backoff delay in milliseconds.
+          minimum: 0
+          default: 1000
+        logLevel:
+          type: string
+          description: Logging level for adapter operations.
+          enum:
+            - trace
+            - debug
+            - info
+            - warn
+            - error
+          default: info
+        headers:
+          type: object
+          description: Default HTTP headers to include in webhook requests.
+          additionalProperties:
+            type: string
+    AdapterLayerConfiguration:
+      type: object
+      description: |-
+        Root configuration structure for the adapter layer. Loaded from YAML
+        configuration files (e.g., adapter-config.yml) and used to configure
+        webhook-based integrations with external systems.
+      required:
+        - adapters
+      properties:
+        adapters:
+          type: array
+          description: 'Flat list of adapters, each defining their own execution points.'
+          items:
+            type: object
+            description: |-
+              Adapter definition - a configuration unit that defines webhooks for
+              specific execution points in the SATP protocol flow.
+            required:
+              - id
+              - name
+              - active
+              - executionPoints
+            properties:
+              id:
+                type: string
+                description: Stable identifier used for logging and inbound routing.
+                example: compliance-check
+              name:
+                type: string
+                description: Human-friendly adapter label.
+                example: AML/KYC Compliance Verification
+              description:
+                type: string
+                description: Optional textual description for operators.
+                example: Validates transfer against compliance rules before lock
+              active:
+                type: boolean
+                description: Enables/disables adapter without removing its configuration.
+                example: true
+              priority:
+                type: integer
+                description: |-
+                  Priority ordering when multiple adapters are registered at the same
+                  execution point. Lower numbers run earlier.
+                default: 1000
+                example: 1
+              executionPoints:
+                type: array
+                description: Execution points where this adapter should be invoked.
+                items:
+                  type: object
+                  description: |-
+                    Execution point definition - specifies where an adapter should execute
+                    within the SATP protocol flow.
+                  required:
+                    - stage
+                    - step
+                    - point
+                  properties:
+                    stage:
+                      type: integer
+                      description: SATP stage number (0-3).
+                      minimum: 0
+                      maximum: 3
+                      example: 1
+                    step:
+                      type: string
+                      description: Stage-specific step identifier.
+                      example: checkTransferProposalRequestMessage
+                    point:
+                      type: string
+                      description: Execution order within the step.
+                      enum:
+                        - before
+                        - during
+                        - after
+                        - rollback
+                      example: before
+                minItems: 1
+              outboundWebhook:
+                type: object
+                description: |-
+                  Outbound webhook definition used to notify external systems about SATP activity.
+                  Always uses POST method with application/json content-type.
+                required:
+                  - url
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: Absolute HTTPS endpoint the gateway should call.
+                    example: 'https://monitor.example.com/satp/lock-detected'
+                  timeoutMs:
+                    type: integer
+                    description: Maximum time the gateway waits for the remote endpoint before aborting.
+                    minimum: 0
+                    default: 5000
+                  payloadTemplate:
+                    type: string
+                    description: Optional payload template rendered per invocation.
+                  retryAttempts:
+                    type: integer
+                    description: Maximum number of retry attempts.
+                    minimum: 0
+                    default: 3
+                  retryDelayMs:
+                    type: integer
+                    description: Backoff delay between attempts in milliseconds.
+                    minimum: 0
+                    default: 1000
+                  priority:
+                    type: integer
+                    description: |-
+                      Priority for ordering multiple outbound webhooks within the same adapter.
+                      Lower numbers execute first. Defaults to 1000 if not specified.
+                    default: 1000
+                    example: 1
+              outboundWebhooks:
+                type: array
+                description: Array of outbound webhooks when multiple notifications are needed.
+                items:
+                  type: object
+                  description: |-
+                    Outbound webhook definition used to notify external systems about SATP activity.
+                    Always uses POST method with application/json content-type.
+                  required:
+                    - url
+                  properties:
+                    url:
+                      type: string
+                      format: uri
+                      description: Absolute HTTPS endpoint the gateway should call.
+                      example: 'https://monitor.example.com/satp/lock-detected'
+                    timeoutMs:
+                      type: integer
+                      description: Maximum time the gateway waits for the remote endpoint before aborting.
+                      minimum: 0
+                      default: 5000
+                    payloadTemplate:
+                      type: string
+                      description: Optional payload template rendered per invocation.
+                    retryAttempts:
+                      type: integer
+                      description: Maximum number of retry attempts.
+                      minimum: 0
+                      default: 3
+                    retryDelayMs:
+                      type: integer
+                      description: Backoff delay between attempts in milliseconds.
+                      minimum: 0
+                      default: 1000
+                    priority:
+                      type: integer
+                      description: |-
+                        Priority for ordering multiple outbound webhooks within the same adapter.
+                        Lower numbers execute first. Defaults to 1000 if not specified.
+                      default: 1000
+                      example: 1
+              inboundWebhook:
+                type: object
+                description: |-
+                  Inbound webhook definition used to pause SATP execution until an external
+                  controller posts a decision. The gateway exposes endpoints under its API3
+                  adapter base path, using the adapter ID and context ID for routing.
+                properties:
+                  timeoutMs:
+                    type: integer
+                    description: Maximum time the gateway waits for external decision before timing out.
+                    minimum: 0
+                    default: 300000
+                    example: 300000
+                  payloadTemplate:
+                    type: string
+                    description: Optional payload template for context data.
+                  retryAttempts:
+                    type: integer
+                    description: Maximum number of retry attempts.
+                    minimum: 0
+                    default: 3
+                  retryDelayMs:
+                    type: integer
+                    description: Backoff delay between attempts in milliseconds.
+                    minimum: 0
+                    default: 1000
+                  priority:
+                    type: integer
+                    description: |-
+                      Priority for ordering multiple inbound webhooks within the same adapter.
+                      Lower numbers execute first. Defaults to 1000 if not specified.
+                    default: 1000
+              inboundWebhooks:
+                type: array
+                description: Array of inbound webhooks when multiple approvals are needed.
+                items:
+                  type: object
+                  description: |-
+                    Inbound webhook definition used to pause SATP execution until an external
+                    controller posts a decision. The gateway exposes endpoints under its API3
+                    adapter base path, using the adapter ID and context ID for routing.
+                  properties:
+                    timeoutMs:
+                      type: integer
+                      description: Maximum time the gateway waits for external decision before timing out.
+                      minimum: 0
+                      default: 300000
+                      example: 300000
+                    payloadTemplate:
+                      type: string
+                      description: Optional payload template for context data.
+                    retryAttempts:
+                      type: integer
+                      description: Maximum number of retry attempts.
+                      minimum: 0
+                      default: 3
+                    retryDelayMs:
+                      type: integer
+                      description: Backoff delay between attempts in milliseconds.
+                      minimum: 0
+                      default: 1000
+                    priority:
+                      type: integer
+                      description: |-
+                        Priority for ordering multiple inbound webhooks within the same adapter.
+                        Lower numbers execute first. Defaults to 1000 if not specified.
+                      default: 1000
+          minItems: 0
+        global:
+          type: object
+          description: |-
+            Global defaults for adapter execution. Applied to every adapter unless
+            overridden at the adapter level.
+          properties:
+            timeoutMs:
+              type: integer
+              description: Default timeout in milliseconds.
+              minimum: 0
+              default: 5000
+            retryAttempts:
+              type: integer
+              description: Default number of retry attempts.
+              minimum: 0
+              default: 3
+            retryDelayMs:
+              type: integer
+              description: Default backoff delay in milliseconds.
+              minimum: 0
+              default: 1000
+            logLevel:
+              type: string
+              description: Logging level for adapter operations.
+              enum:
+                - trace
+                - debug
+                - info
+                - warn
+                - error
+              default: info
+            headers:
+              type: object
+              description: Default HTTP headers to include in webhook requests.
+              additionalProperties:
+                type: string
     OutboundWebhookEventType:
       type: string
       description: |-

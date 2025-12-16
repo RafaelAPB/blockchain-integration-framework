@@ -54,7 +54,7 @@ import {
   handleRestEndpointException,
 } from "@hyperledger/cactus-core";
 
-import OAS from "../../../json/openapi-blo-bundled.json";
+import OAS from "../../../json/oapi-api1-bundled.json";
 import type { IRequestOptions } from "../../core/types";
 import type { DecideInboundWebhookRequest } from "../../generated/gateway-client/typescript-axios/api";
 

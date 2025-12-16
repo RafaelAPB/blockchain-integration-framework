@@ -74,7 +74,7 @@ import {
   type ICrashRecoveryManagerOptions,
 } from "./services/gateway/crash-manager";
 
-import * as OAS from "../json/openapi-blo-bundled.json";
+import * as OAS from "../json/oapi-api1-bundled.json";
 import { knexLocalInstance } from "./database/knexfile";
 import schedule, { Job } from "node-schedule";
 import { BLODispatcherErraneousError } from "./core/errors/satp-errors";
