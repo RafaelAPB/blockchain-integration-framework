@@ -29,7 +29,7 @@ adapters:
     name: "New Session Request Validator"
     description: "Validates new session request before processing"
     executionPoints:
-      - stage: 0
+      - stage: "stage0"
         step: newSessionRequest
         point: "before"
     outboundWebhook:
@@ -44,7 +44,7 @@ adapters:
     name: "New Session Request Approval"
     description: "Awaits external approval after session request processing"
     executionPoints:
-      - stage: 0
+      - stage: "stage0"
         step: newSessionRequest
         point: "after"
     inboundWebhook:

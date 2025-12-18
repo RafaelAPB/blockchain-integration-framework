@@ -37,13 +37,13 @@ import type {
   AdapterDefinition,
   AdapterExecutionBinding,
   AdapterExecutionPlan,
-} from "./api3-adapter-types";
+  OutboundWebhookPayload,
+  InboundWebhookDecisionRequest,
+} from "./api1-adapter-types";
 import type {
   AdapterWebhookDisposition,
   AdapterWebhookMetrics,
 } from "./adapter-webhook-contracts";
-import type { OutboundWebhookPayload } from "./outbound-webhooks";
-import type { InboundWebhookDecisionResponse } from "./inbound-webhooks";
 
 export type AdapterHookDirection = "outbound" | "inbound";
 
@@ -79,7 +79,7 @@ export interface AdapterHookStepResult {
   disposition: AdapterWebhookDisposition;
   message?: string;
   metrics?: AdapterWebhookMetrics;
-  blockingDecision?: InboundWebhookDecisionResponse;
+  blockingDecision?: InboundWebhookDecisionRequest;
   outboundResult?: OutboundWebhookInvocationResult;
 }
 

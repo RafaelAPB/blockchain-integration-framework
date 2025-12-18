@@ -116,14 +116,28 @@ import type {
   AdapterExecutionPointDefinition,
   StageExecutionStep,
   GlobalAdapterDefaults,
-  OutboundWebhookConfig,
-  InboundWebhookConfig,
-} from "../../../adapters/api3-adapter-types";
+  AdapterOutboundWebhookConfig,
+  AdapterInboundWebhookConfig,
+} from "../../../adapters/api1-adapter-types";
+import {
+  stageKeyToNumber,
+  SatpStageKey,
+} from "../../../adapters/api1-adapter-types";
 import {
   SATP_PROTOCOL_MAP,
   type SatpStage,
   type SatpStepTag,
 } from "../../../core/satp-protocol-map";
+
+/**
+ * Valid string stage keys that can be converted to numeric stage values.
+ */
+const VALID_STAGE_KEYS: SatpStageKey[] = [
+  SatpStageKey.Stage0,
+  SatpStageKey.Stage1,
+  SatpStageKey.Stage2,
+  SatpStageKey.Stage3,
+];
 
 /**
  * Validation options for adapter configuration.
@@ -168,6 +182,7 @@ function getValidStepTagsForStage(stage: SatpStage): SatpStepTag[] {
 
 /**
  * Validates a single execution point definition.
+ * Accepts both numeric stage values (0-3) and string stage keys ('stage0'-'stage3').
  *
  * @param point - The execution point to validate
  * @param index - Index of the execution point in the array
@@ -181,12 +196,23 @@ function validateExecutionPoint(
 ): void {
   const prefix = `Execution point ${index} in adapter "${adapterId}"`;
 
+  // Convert string stage key to number if necessary
+  let stageNumber: number | undefined;
+  if (typeof point.stage === "number") {
+    stageNumber = point.stage;
+  } else if (
+    typeof point.stage === "string" &&
+    VALID_STAGE_KEYS.includes(point.stage as SatpStageKey)
+  ) {
+    stageNumber = stageKeyToNumber(point.stage as SatpStageKey);
+  }
+
   if (
-    typeof point.stage !== "number" ||
-    !VALID_STAGES.includes(point.stage as SatpStage)
+    stageNumber === undefined ||
+    !VALID_STAGES.includes(stageNumber as SatpStage)
   ) {
     throw new Error(
-      `${prefix} must have a valid 'stage' number (0-3), got: ${point.stage}`,
+      `${prefix} must have a valid 'stage' number (0-3) or string key ('stage0'-'stage3'), got: ${point.stage}`,
     );
   }
 
@@ -195,10 +221,10 @@ function validateExecutionPoint(
     throw new Error(`${prefix} must have a valid 'step' string`);
   }
 
-  const validStepTags = getValidStepTagsForStage(point.stage as SatpStage);
+  const validStepTags = getValidStepTagsForStage(stageNumber as SatpStage);
   if (!validStepTags.includes(point.step as SatpStepTag)) {
     throw new Error(
-      `${prefix} has invalid step "${point.step}" for stage ${point.stage}. Valid steps: ${validStepTags.join(", ")}`,
+      `${prefix} has invalid step "${point.step}" for stage ${stageNumber}. Valid steps: ${validStepTags.join(", ")}`,
     );
   }
 
@@ -224,7 +250,7 @@ function validateWebhooks(adapter: AdapterDefinition): void {
     adapter;
 
   // Collect all outbound webhooks (single + array)
-  const allOutbound: OutboundWebhookConfig[] = [];
+  const allOutbound: AdapterOutboundWebhookConfig[] = [];
   if (outboundWebhook) allOutbound.push(outboundWebhook);
   if (outboundWebhooks && Array.isArray(outboundWebhooks)) {
     allOutbound.push(...outboundWebhooks);
@@ -236,7 +262,7 @@ function validateWebhooks(adapter: AdapterDefinition): void {
   });
 
   // Collect all inbound webhooks (single + array)
-  const allInbound: InboundWebhookConfig[] = [];
+  const allInbound: AdapterInboundWebhookConfig[] = [];
   if (inboundWebhook) allInbound.push(inboundWebhook);
   if (inboundWebhooks && Array.isArray(inboundWebhooks)) {
     allInbound.push(...inboundWebhooks);
@@ -256,7 +282,7 @@ function validateWebhooks(adapter: AdapterDefinition): void {
  * Validates a single outbound webhook configuration.
  */
 function validateOutboundWebhook(
-  webhook: OutboundWebhookConfig,
+  webhook: AdapterOutboundWebhookConfig,
   adapterId: string,
   index: number,
   hasMultiple: boolean,
@@ -301,7 +327,7 @@ function validateOutboundWebhook(
  * Validates a single inbound webhook configuration.
  */
 function validateInboundWebhook(
-  webhook: InboundWebhookConfig,
+  webhook: AdapterInboundWebhookConfig,
   adapterId: string,
   index: number,
   hasMultiple: boolean,

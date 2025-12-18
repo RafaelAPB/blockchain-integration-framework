@@ -31,7 +31,8 @@
 import { describe, expect, it, jest, beforeAll, afterAll } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
 import { Stage } from "../../../../main/typescript/types/satp-protocol";
-import type { AdapterLayerConfiguration } from "../../../../main/typescript/adapters/api3-adapter-types";
+import type { AdapterLayerConfiguration } from "../../../../main/typescript/adapters/api1-adapter-types";
+import { SatpStageKey } from "../../../../main/typescript/adapters/api1-adapter-types";
 import {
   createMonitorStub,
   loadAdapterConfigFromYaml,
@@ -76,7 +77,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
       });
 
       const invocation = {
-        stage: 0,
+        stage: 0, // Stage.STAGE0 - numeric for executeAdapters
         stepTag: "newSessionRequest",
         stepOrder: "before" as const,
         sessionId: TEST_SESSION_ID,
@@ -111,7 +112,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "newSessionRequest",
                 point: "before",
               },
@@ -138,7 +139,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
       });
 
       const result = await manager.executeAdapters({
-        stage: 0,
+        stage: 0, // Stage.STAGE0 - numeric for executeAdapters
         stepTag: "newSessionRequest",
         stepOrder: "before",
         sessionId: TEST_SESSION_ID,
@@ -163,7 +164,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
             active: true,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "transferProposalRequest",
                 point: "before",
               },
@@ -189,7 +190,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
       });
 
       const result = await manager.executeAdapters({
-        stage: 1,
+        stage: 1, // Stage.STAGE1 - numeric for executeAdapters
         stepTag: "transferProposalRequest",
         stepOrder: "before",
         sessionId: TEST_SESSION_ID,
@@ -221,7 +222,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "newSessionRequest",
                 point: "before",
               },
@@ -238,7 +239,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "newSessionRequest",
                 point: "after",
               },
@@ -264,7 +265,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
 
       // Execute "before" adapters - makes REAL HTTP call
       const beforeResult = await manager.executeAdapters({
-        stage: 0,
+        stage: 0, // Stage.STAGE0 - numeric for executeAdapters
         stepTag: "newSessionRequest",
         stepOrder: "before",
         sessionId: TEST_SESSION_ID,
@@ -283,24 +284,19 @@ describe("AdapterManager integration with real outbound endpoints", () => {
       // Verify real endpoint responded
       expect(beforeResult?.steps[0].outboundResult?.status).toBe("OK");
 
-      // Execute "after" adapters - inbound adapter (no outbound call expected)
-      const afterResult = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "after",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { phase: "after-inbound-mock" },
-        payload: {},
-      });
-
-      expect(afterResult).toBeDefined();
-      expect(afterResult?.stage).toBe(Stage.STAGE0);
-      expect(afterResult?.steps).toHaveLength(1);
-      expect(afterResult?.steps[0].binding.adapterId).toBe(
-        "hybrid-inbound-adapter",
-      );
+      // Execute "after" adapters - inbound adapter times out without decision
+      await expect(
+        manager.executeAdapters({
+          stage: 0, // Stage.STAGE0 - numeric for executeAdapters
+          stepTag: "newSessionRequest",
+          stepOrder: "after",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { phase: "after-inbound-mock" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
     });
 
     it("uses integration test config with real jsonplaceholder endpoint", async () => {
@@ -316,7 +312,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
 
       // "before" execution calls real jsonplaceholder.typicode.com endpoint
       const beforeResult = await manager.executeAdapters({
-        stage: 0,
+        stage: 0, // Stage.STAGE0 - numeric for executeAdapters
         stepTag: "newSessionRequest",
         stepOrder: "before",
         sessionId: TEST_SESSION_ID,
@@ -333,23 +329,19 @@ describe("AdapterManager integration with real outbound endpoints", () => {
       );
       expect(beforeResult?.steps[0].disposition).toBe("CONTINUE");
 
-      // "after" execution has inbound adapter (no HTTP call)
-      const afterResult = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "after",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { test: "integration-yaml-after" },
-        payload: {},
-      });
-
-      expect(afterResult).toBeDefined();
-      expect(afterResult?.steps).toHaveLength(1);
-      expect(afterResult?.steps[0].binding.adapterId).toBe(
-        "integration-inbound-test",
-      );
+      // "after" execution has inbound adapter which times out without decision
+      await expect(
+        manager.executeAdapters({
+          stage: 0, // Stage.STAGE0 - numeric for executeAdapters
+          stepTag: "newSessionRequest",
+          stepOrder: "after",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { test: "integration-yaml-after" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
     });
   });
 
@@ -364,7 +356,7 @@ describe("AdapterManager integration with real outbound endpoints", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "newSessionRequest",
                 point: "before",
               },
@@ -391,22 +383,19 @@ describe("AdapterManager integration with real outbound endpoints", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "error-test" },
-        payload: {},
-      });
-
-      // Should handle error gracefully
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      // The adapter should have an error status
-      expect(result?.steps[0].outboundResult?.status).not.toBe("OK");
+      // Non-existent endpoint causes outbound webhook failure which throws
+      await expect(
+        manager.executeAdapters({
+          stage: 0, // Stage.STAGE0 - numeric for executeAdapters
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "error-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
   });
 });

@@ -149,7 +149,7 @@ import {
   PriceManagerOptions,
 } from "../../services/token-price-check/price-manager";
 import type { AdapterManager } from "../../adapters/adapter-manager";
-import type { SatpStageKey } from "../../adapters/api3-adapter-types";
+import type { SatpStageKey } from "../../adapters/api1-adapter-types";
 
 /**
  * SATP Stage 3 Handler for Commit Preparation, Final Assertion, and Transfer Completion.

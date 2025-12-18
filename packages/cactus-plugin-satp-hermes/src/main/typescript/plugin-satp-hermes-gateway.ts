@@ -99,7 +99,7 @@ import { Context, context, Span, SpanStatusCode } from "@opentelemetry/api";
 import { SATPManager } from "./services/gateway/satp-manager";
 import { ExtensionConfig } from "./services/validation/config-validating-functions/validate-extensions";
 import { AdapterManager } from "./adapters/adapter-manager";
-import type { AdapterLayerConfiguration } from "./adapters/api3-adapter-types";
+import type { AdapterLayerConfiguration } from "./adapters/api1-adapter-types";
 
 /**
  * SATP Gateway Configuration Interface - Complete configuration for fault-tolerant gateway.

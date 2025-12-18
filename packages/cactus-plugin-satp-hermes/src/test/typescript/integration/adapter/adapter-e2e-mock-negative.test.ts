@@ -31,7 +31,8 @@ import { AdapterManager } from "../../../../main/typescript/adapters/adapter-man
 import type {
   AdapterDefinition,
   AdapterLayerConfiguration,
-} from "../../../../main/typescript/adapters/api3-adapter-types";
+} from "../../../../main/typescript/adapters/api1-adapter-types";
+import { SatpStageKey } from "../../../../main/typescript/adapters/api1-adapter-types";
 import {
   createFetchResponse,
   createMonitorStub,
@@ -56,7 +57,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -98,22 +99,19 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "timeout-test" },
-        payload: {},
-      });
-
-      // Should handle timeout gracefully
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      // Timeout should result in FAILED status
-      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+      // Outbound webhook failures throw AdapterOutboundWebhookError
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "timeout-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
 
     it("retries on timeout before failing", async () => {
@@ -125,7 +123,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -197,7 +195,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -230,22 +228,19 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "bad-request-test" },
-        payload: {},
-      });
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      // HTTP errors result in FAILED status (httpStatus only set on success)
-      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
-      expect(result?.steps[0].outboundResult?.errorMessage).toContain("400");
+      // HTTP 400 errors throw AdapterOutboundWebhookError
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "bad-request-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow(/HTTP 400/);
     });
 
     it("handles HTTP 401 Unauthorized error", async () => {
@@ -257,7 +252,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -287,22 +282,19 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "unauthorized-test" },
-        payload: {},
-      });
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      // HTTP errors result in FAILED status (httpStatus only set on success)
-      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
-      expect(result?.steps[0].outboundResult?.errorMessage).toContain("401");
+      // HTTP 401 errors throw AdapterOutboundWebhookError
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "unauthorized-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow(/HTTP 401/);
     });
 
     it("handles HTTP 500 Internal Server Error", async () => {
@@ -314,7 +306,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -344,22 +336,19 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "server-error-test" },
-        payload: {},
-      });
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      // HTTP errors result in FAILED status (httpStatus only set on success)
-      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
-      expect(result?.steps[0].outboundResult?.errorMessage).toContain("500");
+      // HTTP 500 errors cause outbound webhook failure which throws
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "server-error-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
 
     it("handles HTTP 503 Service Unavailable with retries", async () => {
@@ -371,7 +360,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -412,20 +401,21 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "service-unavailable-test" },
-        payload: {},
-      });
+      // HTTP 503 errors after retries cause outbound webhook failure which throws
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "service-unavailable-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
 
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      // Should have attempted multiple calls
+      // Should have attempted multiple calls before failing
       expect(fetchMock).toHaveBeenCalled();
     });
   });
@@ -440,7 +430,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -468,20 +458,19 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "network-failure-test" },
-        payload: {},
-      });
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+      // Network connection failures cause outbound webhook failure which throws
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "network-failure-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
 
     it("handles DNS resolution failure", async () => {
@@ -493,7 +482,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -521,20 +510,19 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "dns-failure-test" },
-        payload: {},
-      });
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-      expect(result?.steps[0].outboundResult?.status).toBe("FAILED");
+      // DNS resolution failures cause outbound webhook failure which throws
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "dns-failure-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
   });
 
@@ -548,7 +536,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -618,7 +606,7 @@ describe("AdapterManager negative test cases", () => {
           priority: 1,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -637,7 +625,7 @@ describe("AdapterManager negative test cases", () => {
           priority: 2,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -703,7 +691,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -766,7 +754,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -830,7 +818,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -917,7 +905,7 @@ describe("AdapterManager negative test cases", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "after",
             },
@@ -941,27 +929,22 @@ describe("AdapterManager negative test cases", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "after",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "strict-inbound-timeout" },
-        payload: {},
-      });
+      // Inbound webhook timeout throws AdapterInboundWebhookTimeoutError
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "after",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "strict-inbound-timeout" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
 
-      // Inbound without decision should timeout and result in non-CONTINUE
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
       // No fetch call - inbound webhooks receive POSTs, they don't call out
       expect(fetchMock).not.toHaveBeenCalled();
-      // Disposition should indicate the inbound wasn't completed
-      // (SKIP indicates inbound controller wasn't available/configured)
-      expect(["ABORT", "CONTINUE", "SKIP"]).toContain(
-        result?.steps[0].disposition,
-      );
     });
   });
 });

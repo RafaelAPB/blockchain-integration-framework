@@ -3,7 +3,7 @@
  *
  * This server runs on localhost with a dynamically allocated port and provides endpoints to:
  * - Mirror POST requests (echo back the body)
- * - Simulate inbound webhook responses (InboundWebhookDecisionResponse)
+ * - Simulate inbound webhook responses (InboundWebhookDecisionRequest)
  * - Simulate outbound webhook targets (receive OutboundWebhookPayload)
  * - Trigger webhooks to other URLs
  *
@@ -17,8 +17,10 @@
 import express, { Request, Response, Express } from "express";
 import http from "http";
 import net from "net";
-import type { InboundWebhookDecisionResponse } from "../../main/typescript/adapters/inbound-webhooks";
-import type { OutboundWebhookPayload } from "../../main/typescript/adapters/outbound-webhooks";
+import type {
+  InboundWebhookDecisionRequest,
+  OutboundWebhookPayload,
+} from "../../main/typescript/adapters/api1-adapter-types";
 
 const HOST = "127.0.0.1";
 
@@ -98,10 +100,10 @@ export function createTestApp(): Express {
   });
 
   // POST /webhook/inbound - Simulate receiving an inbound webhook decision
-  // Body should be InboundWebhookDecisionResponse
+  // Body should be InboundWebhookDecisionRequest
   // Returns the decision back with confirmation
   app.post("/webhook/inbound", (req: Request, res: Response) => {
-    const decision = req.body as InboundWebhookDecisionResponse;
+    const decision = req.body as InboundWebhookDecisionRequest;
 
     // Validate required fields
     if (typeof decision.continue !== "boolean") {

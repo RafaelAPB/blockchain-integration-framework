@@ -16,7 +16,7 @@ adapters:
     name: "Integration Test Outbound Adapter"
     description: "Outbound adapter that calls real jsonplaceholder.typicode.com endpoint"
     executionPoints:
-      - stage: 0
+      - stage: "stage0"
         step: newSessionRequest
         point: "before"
     outboundWebhook:
@@ -31,7 +31,7 @@ adapters:
     name: "Integration Test Inbound Adapter"
     description: "Inbound adapter with mocked response for after execution"
     executionPoints:
-      - stage: 0
+      - stage: "stage0"
         step: newSessionRequest
         point: "after"
     inboundWebhook:

@@ -19,18 +19,13 @@ import {
   loadAdapterConfigFromYaml,
   loadAndValidateAdapterConfig,
 } from "../../../main/typescript/services/validation/config-validating-functions/validate-adapter-config";
-import type { AdapterLayerConfiguration } from "../../../main/typescript/adapters/api3-adapter-types";
+import type { AdapterLayerConfiguration } from "../../../main/typescript/adapters/api1-adapter-types";
+import { SatpStageKey } from "../../../main/typescript/adapters/api1-adapter-types";
 
 /**
  * Path to test fixture files
  */
-const FIXTURES_DIR = path.join(
-  __dirname,
-  "..",
-  "integration",
-  "adapter",
-  "fixtures",
-);
+const FIXTURES_DIR = path.join(__dirname, "..", "..", "yaml", "fixtures");
 
 describe("SATP CLI Adapter Configuration - Unit Tests", () => {
   describe("validateAdapterConfig - valid configurations", () => {
@@ -48,7 +43,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -78,7 +73,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             priority: 1,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -95,7 +90,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             priority: 2,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "checkTransferProposalRequestMessage",
                 point: "after",
               },
@@ -124,17 +119,17 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "newSessionResponse",
                 point: "after",
               },
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkPreSATPTransferRequest",
                 point: "before",
               },
@@ -161,7 +156,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
               },
@@ -174,7 +169,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "transferProposalRequest",
                 point: "during",
               },
@@ -187,7 +182,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "transferProposalResponse",
                 point: "after",
               },
@@ -200,7 +195,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 2,
+                stage: SatpStageKey.Stage2,
                 step: "lockAssertionRequest",
                 point: "rollback",
               },
@@ -225,7 +220,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -259,7 +254,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
               },
@@ -295,7 +290,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -308,7 +303,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
               },
@@ -321,7 +316,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 2,
+                stage: SatpStageKey.Stage2,
                 step: "checkLockAssertionRequest",
                 point: "before",
               },
@@ -334,7 +329,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 3,
+                stage: SatpStageKey.Stage3,
                 step: "checkCommitPreparationRequest",
                 point: "before",
               },
@@ -374,7 +369,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -397,7 +392,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -410,7 +405,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 1,
+                stage: SatpStageKey.Stage1,
                 step: "checkTransferProposalRequestMessage",
                 point: "before",
               },
@@ -446,7 +441,8 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
     });
 
     it("should throw when execution point has invalid stage", () => {
-      const config: AdapterLayerConfiguration = {
+      // Use type assertion to test runtime validation with invalid stage value
+      const config = {
         adapters: [
           {
             id: "invalid-stage-adapter",
@@ -454,7 +450,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 5,
+                stage: "stage5" as unknown, // Invalid stage value for testing runtime validation
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -462,7 +458,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             outboundWebhook: { url: "https://example.com/webhook" },
           },
         ],
-      };
+      } as AdapterLayerConfiguration;
 
       expect(() => {
         validateAdapterConfig({ configValue: config });
@@ -478,7 +474,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "lockAssertion",
                 point: "before",
               }, // lockAssertion is stage 2
@@ -502,7 +498,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "middle" as "before",
               },
@@ -526,7 +522,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -550,7 +546,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
             active: true,
             executionPoints: [
               {
-                stage: 0,
+                stage: SatpStageKey.Stage0,
                 step: "checkNewSessionRequest",
                 point: "before",
               },
@@ -628,7 +624,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
       expect(outboundAdapter.name).toBe("New Session Request Validator");
       expect(outboundAdapter.active).toBe(true);
       expect(outboundAdapter.executionPoints).toHaveLength(1);
-      expect(outboundAdapter.executionPoints[0].stage).toBe(0);
+      expect(outboundAdapter.executionPoints[0].stage).toBe("stage0");
       expect(outboundAdapter.executionPoints[0].step).toBe("newSessionRequest");
       expect(outboundAdapter.executionPoints[0].point).toBe("before");
       expect(outboundAdapter.outboundWebhook).toBeDefined();
@@ -642,7 +638,7 @@ describe("SATP CLI Adapter Configuration - Unit Tests", () => {
       expect(inboundAdapter.name).toBe("New Session Request Approval");
       expect(inboundAdapter.active).toBe(true);
       expect(inboundAdapter.executionPoints).toHaveLength(1);
-      expect(inboundAdapter.executionPoints[0].stage).toBe(0);
+      expect(inboundAdapter.executionPoints[0].stage).toBe("stage0");
       expect(inboundAdapter.executionPoints[0].step).toBe("newSessionRequest");
       expect(inboundAdapter.executionPoints[0].point).toBe("after");
       expect(inboundAdapter.inboundWebhook).toBeDefined();

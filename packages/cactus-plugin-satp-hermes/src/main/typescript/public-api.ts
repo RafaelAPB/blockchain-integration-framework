@@ -427,23 +427,31 @@ export { CrashManager } from "./services/gateway/crash-manager";
 export { OracleManager } from "./cross-chain-mechanisms/oracle/oracle-manager";
 
 /**
- * Adapter Hook Contracts - Configuration structures and execution results for API3 adapters.
+ * Adapter Hook Contracts - Configuration structures and execution results for adapters.
  */
 export {
-  RetryPolicy,
-  BaseWebhookConfig,
-  OutboundWebhookConfig,
-  InboundWebhookConfig,
-  AdapterWebhookConfig,
+  // OpenAPI spec re-exports
+  AdapterOutboundWebhookConfig,
+  AdapterInboundWebhookConfig,
   AdapterDefinition,
+  AdapterLayerConfiguration,
+  InboundWebhookDecisionRequest,
+  InboundWebhookDecisionResponse,
+  OutboundWebhookEventType,
+  OutboundWebhookPayload,
+  // Local types
+  AdapterWebhookConfig,
   SatpStageAdapterSet,
   SatpStageKey,
   StageExecutionStep,
-  AdapterLayerConfiguration,
   GlobalAdapterDefaults,
   AdapterExecutionBinding,
   AdapterExecutionPlan,
-} from "./adapters/api3-adapter-types";
+  // Stage key conversion utilities
+  stageKeyToNumber,
+  numberToStageKey,
+  isValidStageKey,
+} from "./adapters/api1-adapter-types";
 export {
   AdapterWebhookDisposition,
   AdapterWebhookMetrics,
@@ -472,11 +480,6 @@ export {
   AdapterHookResult,
   AdapterHookExecutionParams,
 } from "./adapters/adapter-types";
-export { InboundWebhookDecisionResponse } from "./adapters/inbound-webhooks";
-export {
-  OutboundWebhookEventType,
-  OutboundWebhookPayload,
-} from "./adapters/outbound-webhooks";
 
 /**
  * Business Logic Operations Dispatcher - Central dispatcher for SATP business logic operations.

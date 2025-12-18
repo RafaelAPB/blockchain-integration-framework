@@ -31,7 +31,6 @@
 
 import { describe, expect, it, jest, beforeAll, afterAll } from "@jest/globals";
 import { AdapterManager } from "../../../../main/typescript/adapters/adapter-manager";
-import { Stage } from "../../../../main/typescript/types/satp-protocol";
 import {
   createMonitorStub,
   loadAndPatchTestServerConfig,
@@ -76,7 +75,7 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       expect(inboundAdapter?.inboundWebhook?.timeoutMs).toBe(3000);
     });
 
-    it("positive: adapter with inbound webhook returns SKIP disposition (awaiting callback)", async () => {
+    it("positive: adapter with inbound webhook times out without external callback", async () => {
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server.yml",
       );
@@ -88,33 +87,22 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       });
 
       // Execute adapter for the "after" point which has inbound webhook
-      const invocation = {
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "after" as const,
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "inbound-skip-test" },
-        payload: { testData: "inbound-approval" },
-      };
-
-      const result = await manager.executeAdapters(invocation);
-
-      expect(result).toBeDefined();
-      expect(result?.stage).toBe(Stage.STAGE0);
-      expect(result?.steps).toHaveLength(1);
-
-      const step = result?.steps[0];
-      expect(step?.binding.adapterId).toBe(
-        "newSessionRequest-inbound-approval",
-      );
-      // Inbound adapters return SKIP because they require external callback
-      expect(step?.disposition).toBe("SKIP");
-      expect(step?.message).toContain("external controller callbacks");
+      // Inbound webhooks require external decision - without one they timeout
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "after" as const,
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "inbound-skip-test" },
+          payload: { testData: "inbound-approval" },
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
     });
 
-    it("negative: inbound webhook adapter without external callback has no blocking decision", async () => {
+    it("negative: inbound webhook adapter without external callback times out", async () => {
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server.yml",
       );
@@ -125,25 +113,19 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const invocation = {
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "after" as const,
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "inbound-negative-test" },
-        payload: {},
-      };
-
-      const result = await manager.executeAdapters(invocation);
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-
-      const step = result?.steps[0];
-      // Without external callback, blockingDecision is undefined
-      expect(step?.blockingDecision).toBeUndefined();
+      // Inbound webhooks require external decision - without one they timeout
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "after" as const,
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "inbound-negative-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
     });
   });
 
@@ -171,7 +153,7 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       expect(complianceAdapter?.inboundWebhook).toBeDefined();
     });
 
-    it("positive: adapter with both outbound and inbound executes outbound first", async () => {
+    it("positive: adapter with both outbound and inbound times out on inbound (after outbound succeeds)", async () => {
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server-simple.yml",
       );
@@ -183,35 +165,22 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       });
 
       // phase0-adapter-1 is configured for checkNewSessionRequest at "before"
-      // It has both outbound AND inbound webhook
-      const invocation = {
-        stage: 0,
-        stepTag: "checkNewSessionRequest",
-        stepOrder: "before" as const,
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "outbound-then-inbound" },
-        payload: { testData: "check-session-request" },
-      };
-
-      const result = await manager.executeAdapters(invocation);
-
-      expect(result).toBeDefined();
-      expect(result?.stage).toBe(Stage.STAGE0);
-
-      // Should have step(s) for this adapter
-      expect(result?.steps.length).toBeGreaterThanOrEqual(1);
-
-      // Find the outbound step
-      const outboundStep = result?.steps.find(
-        (s) => s.outboundResult !== undefined,
-      );
-      expect(outboundStep).toBeDefined();
-      expect(outboundStep?.outboundResult?.status).toBe("OK");
+      // It has both outbound AND inbound webhook - outbound succeeds, then inbound times out
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "checkNewSessionRequest",
+          stepOrder: "before" as const,
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "outbound-then-inbound" },
+          payload: { testData: "check-session-request" },
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
     });
 
-    it("negative: compliance adapter inbound returns SKIP without external trigger", async () => {
+    it("negative: compliance adapter inbound times out without external trigger", async () => {
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server-simple.yml",
       );
@@ -223,28 +192,19 @@ describe("AdapterManager E2E inbound webhook tests with test server", () => {
       });
 
       // stage1-compliance-adapter is configured for checkTransferProposalRequestMessage
-      const invocation = {
-        stage: 1,
-        stepTag: "checkTransferProposalRequestMessage",
-        stepOrder: "before" as const,
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "compliance-inbound-skip" },
-        payload: { testData: "compliance-check" },
-      };
-
-      const result = await manager.executeAdapters(invocation);
-
-      expect(result).toBeDefined();
-      expect(result?.stage).toBe(Stage.STAGE1);
-      expect(result?.steps.length).toBeGreaterThanOrEqual(1);
-
-      // The adapter should have executed outbound first
-      const step = result?.steps[0];
-      expect(step?.binding.adapterId).toBe("stage1-compliance-adapter");
-      // Outbound should be OK
-      expect(step?.outboundResult?.status).toBe("OK");
+      // It has both outbound and inbound - outbound succeeds, inbound times out
+      await expect(
+        manager.executeAdapters({
+          stage: 1,
+          stepTag: "checkTransferProposalRequestMessage",
+          stepOrder: "before" as const,
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "compliance-inbound-skip" },
+          payload: { testData: "compliance-check" },
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
     });
   });
 

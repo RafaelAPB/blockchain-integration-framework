@@ -28,7 +28,8 @@ import { Stage } from "../../../../main/typescript/types/satp-protocol";
 import type {
   AdapterDefinition,
   AdapterLayerConfiguration,
-} from "../../../../main/typescript/adapters/api3-adapter-types";
+} from "../../../../main/typescript/adapters/api1-adapter-types";
+import { SatpStageKey } from "../../../../main/typescript/adapters/api1-adapter-types";
 import {
   createFetchResponse,
   createMonitorStub,
@@ -55,7 +56,7 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
           active: true,
           executionPoints: [
             {
-              stage: 1,
+              stage: SatpStageKey.Stage1,
               step: "transferProposalRequest",
               point: "before",
             },
@@ -71,7 +72,7 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
           active: true,
           executionPoints: [
             {
-              stage: 1,
+              stage: SatpStageKey.Stage1,
               step: "transferProposalRequest",
               point: "before",
             },
@@ -111,7 +112,7 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
       });
 
       const invocation = {
-        stage: 1,
+        stage: 1, // Stage.STAGE1 - numeric for executeAdapters
         stepTag: "transferProposalRequest",
         stepOrder: "before" as const,
         sessionId: TEST_SESSION_ID,
@@ -154,7 +155,7 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
       });
 
       const invocation = {
-        stage: 0,
+        stage: 0, // Stage.STAGE0 - numeric for executeAdapters
         stepTag: "newSessionRequest",
         stepOrder: "before" as const,
         sessionId: TEST_SESSION_ID,
@@ -217,23 +218,20 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
 
       // Execute "after" adapters (inbound webhook adapter)
-      const afterResult = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "after",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { phase: "after" },
-        payload: {},
-      });
+      // Inbound webhooks require an external decision, so without one they will timeout
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "after",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { phase: "after" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
 
-      // After adapter has inbound webhook, so no additional outbound calls
-      expect(afterResult?.stage).toBe(Stage.STAGE0);
-      expect(afterResult?.steps).toHaveLength(1);
-      expect(afterResult?.steps[0].binding.adapterId).toBe(
-        "newSessionRequest-inbound-approval",
-      );
       // Fetch should still be called once (only from before execution)
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
@@ -249,7 +247,7 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
           active: true,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "newSessionRequest",
               point: "before",
             },
@@ -282,27 +280,23 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "combined-webhook" },
-        payload: { combined: true },
-      });
+      // Combined adapter has both outbound and inbound, but inbound will timeout
+      // without external decision, causing the entire execution to throw
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "combined-webhook" },
+          payload: { combined: true },
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
 
-      // Verify outbound was called (mocked)
+      // Verify outbound was called (mocked) before inbound timeout
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      // Adapter with both outbound and inbound creates 2 steps: one for outbound, one for inbound
-      expect(result?.steps).toHaveLength(2);
-      expect(result?.steps[0].binding.adapterId).toBe(
-        "combined-webhook-adapter",
-      );
-      expect(result?.steps[0].disposition).toBe("CONTINUE");
-      // Second step is for inbound webhook (SKIP disposition since it requires external callback)
-      expect(result?.steps[1].disposition).toBe("SKIP");
     });
 
     it("verifies mock captures request details for outbound webhook", async () => {
@@ -336,7 +330,7 @@ describe("AdapterManager E2E with fully mocked webhooks", () => {
       // Verify the fetch mock captured the request
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, options] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://webhook.phase0.omnumi.com/validate");
+      expect(url).toBe("http://localhost:9223/webhook/outbound/validate");
       expect(options?.method).toBe("POST");
       expect(options?.headers).toBeDefined();
     });

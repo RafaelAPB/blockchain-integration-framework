@@ -131,7 +131,7 @@ import {
   loadAdapterConfigFromYaml,
   validateAdapterConfig,
 } from "./services/validation/config-validating-functions/validate-adapter-config";
-import type { AdapterLayerConfiguration } from "./adapters/api3-adapter-types";
+import type { AdapterLayerConfiguration } from "./adapters/api1-adapter-types";
 
 /**
  * Launch SATP Gateway - Main CLI function for gateway deployment and startup.

@@ -109,7 +109,7 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
       }
     });
 
-    it("negative: outbound webhook handles server error gracefully", async () => {
+    it("negative: outbound webhook throws error on server 500 response", async () => {
       // Modify config to point to error endpoint
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server.yml",
@@ -130,30 +130,19 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const invocation = {
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before" as const,
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "outbound-error-test" },
-        payload: { testData: "error-test" },
-      };
-
-      const result = await manager.executeAdapters(invocation);
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-
-      const step = result?.steps[0];
-      expect(step?.binding.adapterId).toBe(
-        "newSessionRequest-outbound-validator",
-      );
-      expect(step?.outboundResult).toBeDefined();
-      // Outbound errors are logged but don't block - status depends on implementation
-      // Could be FAILED after retries exhausted
-      expect(step?.outboundResult?.status).toBe("FAILED");
+      // HTTP 500 errors throw AdapterOutboundWebhookError
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before" as const,
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "outbound-error-test" },
+          payload: { testData: "error-test" },
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
   });
 
@@ -258,7 +247,7 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
   });
 
   describe("outbound webhook timeout and retry scenarios", () => {
-    it("outbound webhook times out when server is slow", async () => {
+    it("outbound webhook throws error when server is slow and times out", async () => {
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server.yml",
       );
@@ -280,27 +269,19 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const invocation = {
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before" as const,
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "timeout-test" },
-        payload: {},
-      };
-
-      const result = await manager.executeAdapters(invocation);
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-
-      const step = result?.steps[0];
-      expect(step?.outboundResult).toBeDefined();
-      expect(step?.outboundResult?.status).toBe("FAILED");
-      // Error message should indicate timeout
-      expect(step?.outboundResult?.errorMessage).toBeDefined();
+      // Timeout causes outbound webhook failure which throws
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before" as const,
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "timeout-test" },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
 
     it("outbound webhook succeeds on retry after initial timeout", async () => {
@@ -358,7 +339,7 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
   });
 
   describe("multiple adapters for same execution point", () => {
-    it("executes multiple outbound adapters in priority order", async () => {
+    it("executes outbound adapter then throws on inbound timeout", async () => {
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server-simple.yml",
       );
@@ -370,28 +351,19 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
       });
 
       // checkPreSATPTransferRequest has phase0-adapter-1 configured
-      const invocation = {
-        stage: 0,
-        stepTag: "checkPreSATPTransferRequest",
-        stepOrder: "before" as const,
-        sessionId: TEST_SESSION_ID,
-        contextId: TEST_CONTEXT_ID,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: "pre-satp-transfer-test" },
-        payload: { assetId: "asset-123" },
-      };
-
-      // Execute adapters - outbound will complete, inbound will be skipped
-      const result = await manager.executeAdapters(invocation);
-
-      expect(result).toBeDefined();
-      expect(result?.stage).toBe(Stage.STAGE0);
-      expect(result?.steps.length).toBeGreaterThanOrEqual(1);
-
-      // First adapter should be phase0-adapter-1 (priority 1)
-      const step = result?.steps[0];
-      expect(step?.binding.adapterId).toBe("phase0-adapter-1");
-      expect(step?.outboundResult?.status).toBe("OK");
+      // which has both outbound and inbound - outbound succeeds, inbound times out
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "checkPreSATPTransferRequest",
+          stepOrder: "before" as const,
+          sessionId: TEST_SESSION_ID,
+          contextId: TEST_CONTEXT_ID,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: "pre-satp-transfer-test" },
+          payload: { assetId: "asset-123" },
+        }),
+      ).rejects.toThrow("Inbound webhook timed out");
     });
   });
 
@@ -404,7 +376,7 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
       [500, "Internal Server Error"],
       [502, "Bad Gateway"],
       [503, "Service Unavailable"],
-    ])("handles HTTP %i error gracefully", async (errorCode) => {
+    ])("throws error on HTTP %i response", async (errorCode) => {
       const config = loadAndPatchTestServerConfig(
         "adapter-configuration-test-server.yml",
       );
@@ -424,23 +396,19 @@ describe("AdapterManager E2E outbound webhook tests with test server", () => {
         logLevel: TEST_LOG_LEVEL,
       });
 
-      const result = await manager.executeAdapters({
-        stage: 0,
-        stepTag: "newSessionRequest",
-        stepOrder: "before",
-        sessionId: TEST_SESSION_ID,
-        contextId: `ctx-error-${errorCode}`,
-        gatewayId: TEST_GATEWAY_ID,
-        metadata: { scenario: `error-${errorCode}` },
-        payload: {},
-      });
-
-      expect(result).toBeDefined();
-      expect(result?.steps).toHaveLength(1);
-
-      const step = result?.steps[0];
-      expect(step?.outboundResult).toBeDefined();
-      expect(step?.outboundResult?.status).toBe("FAILED");
+      // HTTP error codes cause outbound webhook failure which throws
+      await expect(
+        manager.executeAdapters({
+          stage: 0,
+          stepTag: "newSessionRequest",
+          stepOrder: "before",
+          sessionId: TEST_SESSION_ID,
+          contextId: `ctx-error-${errorCode}`,
+          gatewayId: TEST_GATEWAY_ID,
+          metadata: { scenario: `error-${errorCode}` },
+          payload: {},
+        }),
+      ).rejects.toThrow("Outbound webhook failed");
     });
   });
 });

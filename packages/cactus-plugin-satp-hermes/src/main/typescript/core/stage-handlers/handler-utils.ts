@@ -45,7 +45,7 @@
 
 import { SessionIdNotFoundError } from "../errors/satp-handler-errors";
 import type { ExecutionPointAdapterPayload } from "../../adapters/adapter-manager";
-import type { StageExecutionStep } from "../../adapters/api3-adapter-types";
+import type { StageExecutionStep } from "../../adapters/api1-adapter-types";
 import { Stage } from "../../types/satp-protocol";
 import { SATPSession } from "../satp-session";
 

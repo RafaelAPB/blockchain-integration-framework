@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { AdapterManager } from "../../../main/typescript/adapters/adapter-manager";
 import { Stage } from "../../../main/typescript/types/satp-protocol";
+import { SatpStageKey } from "../../../main/typescript/adapters/api1-adapter-types";
 import {
   createAdapterHarness,
   createFetchResponse,
@@ -111,7 +112,7 @@ describe("AdapterManager basic behaviors", () => {
     });
 
     const invocation = {
-      stage: 0,
+      stage: 0, // Stage.STAGE0 - numeric for executeAdapters
       stepTag: "newSessionRequest",
       stepOrder: "before" as const,
       sessionId: TEST_SESSION_ID,
@@ -162,7 +163,8 @@ describe("AdapterManager configuration examples", () => {
     expect(manager).toBeDefined();
 
     // Test execution for validation-adapter-1 (checkNewSessionRequest - before)
-    const result = await manager.executeAdapters({
+    // The adapter has both outbound and inbound webhooks, so we need to trigger the decision
+    const executionPromise = manager.executeAdapters({
       stage: 0,
       stepTag: "checkNewSessionRequest",
       stepOrder: "before",
@@ -173,12 +175,22 @@ describe("AdapterManager configuration examples", () => {
       payload: {},
     });
 
+    // Give time for the inbound webhook to register, then trigger decision
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await manager.decideInboundWebhook({
+      adapterId: "validation-adapter-1",
+      sessionId: TEST_SESSION_ID,
+      continue: true,
+      reason: "Test approval",
+    });
+
+    const result = await executionPromise;
+
     expect(result?.stage).toBe(Stage.STAGE0);
-    // Adapter with both outbound and inbound webhooks creates 2 steps
     expect(result?.steps).toHaveLength(2);
     expect(result?.steps[0].binding.adapterId).toBe("validation-adapter-1");
     expect(result?.steps[0].disposition).toBe("CONTINUE"); // outbound step
-    expect(result?.steps[1].disposition).toBe("SKIP"); // inbound step (no-op)
+    expect(result?.steps[1].disposition).toBe("CONTINUE"); // inbound step approved
   });
 
   it("loads adapter-configuration.example.yml (comprehensive) correctly", async () => {
@@ -218,7 +230,8 @@ describe("AdapterManager configuration examples", () => {
     expect(manager).toBeDefined();
 
     // Test execution for phase0-adapter-1 (checkNewSessionRequest - before)
-    const stage0Result = await manager.executeAdapters({
+    // The adapter has both outbound and inbound webhooks, so we need to trigger the decision
+    const executionPromise = manager.executeAdapters({
       stage: 0,
       stepTag: "checkNewSessionRequest",
       stepOrder: "before",
@@ -229,12 +242,22 @@ describe("AdapterManager configuration examples", () => {
       payload: {},
     });
 
+    // Give time for the inbound webhook to register, then trigger decision
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await manager.decideInboundWebhook({
+      adapterId: "phase0-adapter-1",
+      sessionId: TEST_SESSION_ID,
+      continue: true,
+      reason: "Test approval",
+    });
+
+    const stage0Result = await executionPromise;
+
     expect(stage0Result?.stage).toBe(Stage.STAGE0);
-    // Adapter with both outbound and inbound webhooks creates 2 steps
     expect(stage0Result?.steps).toHaveLength(2);
     expect(stage0Result?.steps[0].binding.adapterId).toBe("phase0-adapter-1");
     expect(stage0Result?.steps[0].disposition).toBe("CONTINUE"); // outbound step
-    expect(stage0Result?.steps[1].disposition).toBe("SKIP"); // inbound step (no-op)
+    expect(stage0Result?.steps[1].disposition).toBe("CONTINUE"); // inbound step approved
     expect(fetchMock).toHaveBeenCalled();
   });
 
@@ -254,7 +277,8 @@ describe("AdapterManager configuration examples", () => {
     });
 
     // Test execution for stage1-compliance-adapter
-    const result = await manager.executeAdapters({
+    // The adapter has both outbound and inbound webhooks, so we need to trigger the decision
+    const executionPromise = manager.executeAdapters({
       stage: 1,
       stepTag: "checkTransferProposalRequestMessage",
       stepOrder: "before",
@@ -265,14 +289,24 @@ describe("AdapterManager configuration examples", () => {
       payload: {},
     });
 
+    // Give time for the inbound webhook to register, then trigger decision
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await manager.decideInboundWebhook({
+      adapterId: "stage1-compliance-adapter",
+      sessionId: TEST_SESSION_ID,
+      continue: true,
+      reason: "Compliance approved",
+    });
+
+    const result = await executionPromise;
+
     expect(result?.stage).toBe(Stage.STAGE1);
-    // Adapter with both outbound and inbound webhooks creates 2 steps
     expect(result?.steps).toHaveLength(2);
     expect(result?.steps[0].binding.adapterId).toBe(
       "stage1-compliance-adapter",
     );
     expect(result?.steps[0].disposition).toBe("CONTINUE"); // outbound step
-    expect(result?.steps[1].disposition).toBe("SKIP"); // inbound step (no-op)
+    expect(result?.steps[1].disposition).toBe("CONTINUE"); // inbound step approved
   });
 
   it("executes stage2-lock-monitor adapter from comprehensive config", async () => {
@@ -292,7 +326,7 @@ describe("AdapterManager configuration examples", () => {
 
     // Test execution for stage2-lock-monitor (checkLockAssertionRequest - after)
     const result = await manager.executeAdapters({
-      stage: 2,
+      stage: 2, // Stage.STAGE2 - numeric for executeAdapters
       stepTag: "checkLockAssertionRequest",
       stepOrder: "after",
       sessionId: TEST_SESSION_ID,
@@ -324,7 +358,7 @@ describe("AdapterManager configuration examples", () => {
 
     // Test execution for stage3-finalization-adapter (commitReadyResponse - after)
     const result = await manager.executeAdapters({
-      stage: 3,
+      stage: 3, // Stage.STAGE3 - numeric for executeAdapters
       stepTag: "commitReadyResponse",
       stepOrder: "after",
       sessionId: TEST_SESSION_ID,
@@ -370,7 +404,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 3, // Should execute last
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/priority-3" },
         },
@@ -380,7 +418,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 1, // Should execute first
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/priority-1" },
         },
@@ -390,7 +432,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 2, // Should execute second
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/priority-2" },
         },
@@ -446,7 +492,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           // No priority - should default to 1000
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/no-priority" },
         },
@@ -456,7 +506,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 500, // Should execute before default 1000
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/low-priority" },
         },
@@ -502,7 +556,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 100, // High priority number but different execution point
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/before" },
         },
@@ -512,7 +570,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 1, // Low priority number but different execution point
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "after" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "after" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/after" },
         },
@@ -590,7 +652,7 @@ describe("AdapterManager priority ordering", () => {
           priority: 1,
           executionPoints: [
             {
-              stage: 0,
+              stage: SatpStageKey.Stage0,
               step: "checkNewSessionRequest",
               point: "before" as const,
             },
@@ -603,7 +665,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 1,
           executionPoints: [
-            { stage: 0, step: "newSessionResponse", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionResponse",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/session-response" },
         },
@@ -613,7 +679,11 @@ describe("AdapterManager priority ordering", () => {
           active: true,
           priority: 1,
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/session-request" },
         },
@@ -668,7 +738,11 @@ describe("AdapterManager decideInboundWebhook", () => {
           active: true,
           priority: 1,
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "after" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "after" as const,
+            },
           ],
           inboundWebhook: { timeoutMs: 5000 },
         },
@@ -682,12 +756,31 @@ describe("AdapterManager decideInboundWebhook", () => {
       logLevel: TEST_LOG_LEVEL,
     });
 
+    // Start execution to create a pending inbound decision
+    const executionPromise = manager.executeAdapters({
+      stage: 0,
+      stepTag: "newSessionRequest",
+      stepOrder: "after",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      gatewayId: TEST_GATEWAY_ID,
+      metadata: {},
+      payload: {},
+    });
+
+    // Give time for the inbound webhook to register
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Then trigger the decision
     const result = await manager.decideInboundWebhook({
       adapterId: "approval-adapter",
       sessionId: TEST_SESSION_ID,
       continue: true,
       reason: "Manual approval granted",
     });
+
+    // Wait for execution to complete
+    await executionPromise;
 
     expect(result.accepted).toBe(true);
     expect(result.sessionId).toBe(TEST_SESSION_ID);
@@ -704,7 +797,11 @@ describe("AdapterManager decideInboundWebhook", () => {
           active: true,
           priority: 1,
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "after" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "after" as const,
+            },
           ],
           inboundWebhook: { timeoutMs: 5000 },
         },
@@ -740,7 +837,11 @@ describe("AdapterManager decideInboundWebhook", () => {
           active: true,
           priority: 1,
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "before" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "before" as const,
+            },
           ],
           outboundWebhook: { url: "http://localhost:9999/outbound" },
         },
@@ -777,7 +878,7 @@ describe("AdapterManager decideInboundWebhook", () => {
           priority: 1,
           executionPoints: [
             {
-              stage: 1,
+              stage: SatpStageKey.Stage1,
               step: "checkTransferProposalRequestMessage",
               point: "after" as const,
             },
@@ -794,12 +895,32 @@ describe("AdapterManager decideInboundWebhook", () => {
       logLevel: TEST_LOG_LEVEL,
     });
 
+    // Start execution to create a pending inbound decision
+    const executionPromise = manager.executeAdapters({
+      stage: 1,
+      stepTag: "checkTransferProposalRequestMessage",
+      stepOrder: "after",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      gatewayId: TEST_GATEWAY_ID,
+      metadata: {},
+      payload: {},
+    });
+
+    // Give time for the inbound webhook to register
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     const result = await manager.decideInboundWebhook({
       adapterId: "compliance-adapter",
       sessionId: TEST_SESSION_ID,
       continue: false,
       reason: "Compliance check failed - sanctions match",
     });
+
+    // When continue=false, the execution will throw AdapterInboundWebhookRejectedError
+    await expect(executionPromise).rejects.toThrow(
+      "Inbound webhook rejected by external controller",
+    );
 
     expect(result.accepted).toBe(true);
     expect(result.sessionId).toBe(TEST_SESSION_ID);
@@ -816,7 +937,11 @@ describe("AdapterManager decideInboundWebhook", () => {
           active: true,
           priority: 1,
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "after" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "after" as const,
+            },
           ],
           inboundWebhook: { timeoutMs: 5000 },
         },
@@ -830,6 +955,21 @@ describe("AdapterManager decideInboundWebhook", () => {
       logLevel: TEST_LOG_LEVEL,
     });
 
+    // Start execution to create a pending inbound decision
+    const executionPromise = manager.executeAdapters({
+      stage: 0,
+      stepTag: "newSessionRequest",
+      stepOrder: "after",
+      sessionId: TEST_SESSION_ID,
+      contextId: TEST_CONTEXT_ID,
+      gatewayId: TEST_GATEWAY_ID,
+      metadata: {},
+      payload: {},
+    });
+
+    // Give time for the inbound webhook to register
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     const result = await manager.decideInboundWebhook({
       adapterId: "data-adapter",
       sessionId: TEST_SESSION_ID,
@@ -838,6 +978,9 @@ describe("AdapterManager decideInboundWebhook", () => {
       reason: "Decision with additional data",
       data: { customField: "value", score: 95 },
     });
+
+    // Wait for execution to complete
+    await executionPromise;
 
     expect(result.accepted).toBe(true);
     expect(result.sessionId).toBe(TEST_SESSION_ID);
@@ -853,7 +996,11 @@ describe("AdapterManager decideInboundWebhook", () => {
           active: true,
           priority: 1,
           executionPoints: [
-            { stage: 0, step: "newSessionRequest", point: "after" as const },
+            {
+              stage: SatpStageKey.Stage0,
+              step: "newSessionRequest",
+              point: "after" as const,
+            },
           ],
           inboundWebhook: { timeoutMs: 5000 },
         },

@@ -31,10 +31,10 @@ adapters:
     name: "Transfer Validation Webhook"
     description: "Validates transfer initiation request"
     executionPoints:
-      - stage: 0
+      - stage: "stage0"
         step: checkNewSessionRequest
         point: "before"
-      - stage: 0
+      - stage: "stage0"
         step: checkPreSATPTransferRequest
         point: "before"
     outboundWebhook:
@@ -51,10 +51,10 @@ adapters:
     name: "Business dashboard Webhook"
     description: "Updates legacy business dashboard with transfer data"
     executionPoints:
-      - stage: 0
+      - stage: "stage0"
         step: newSessionResponse
         point: "after"
-      - stage: 0
+      - stage: "stage0"
         step: preSATPTransferResponse
         point: "after"
     outboundWebhook:
@@ -68,10 +68,10 @@ adapters:
     name: "Compliance Check Webhook"
     description: "Performs compliance checks during transfer proposal"
     executionPoints:
-      - stage: 1
+      - stage: "stage1"
         step: checkTransferProposalRequestMessage
         point: "before"
-      - stage: 1
+      - stage: "stage1"
         step: checkTransferCommenceRequestMessage
         point: "before"
     outboundWebhook:
@@ -88,10 +88,10 @@ adapters:
     name: "Asset Lock Monitor"
     description: "Monitors asset locking operations"
     executionPoints:
-      - stage: 2
+      - stage: "stage2"
         step: checkLockAssertionRequest
         point: "after"
-      - stage: 2
+      - stage: "stage2"
         step: checkLockAssertionResponse
         point: "after"
     outboundWebhook:
@@ -105,13 +105,13 @@ adapters:
     name: "Transfer Finalization Webhook"
     description: "Handles final transfer completion notifications"
     executionPoints:
-      - stage: 3
+      - stage: "stage3"
         step: commitReadyResponse
         point: "after"
-      - stage: 3
+      - stage: "stage3"
         step: transferCompleteResponse
         point: "after"
-      - stage: 3
+      - stage: "stage3"
         step: checkTransferCompleteResponse
         point: "after"
     outboundWebhook:

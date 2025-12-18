@@ -72,7 +72,7 @@ import type {
   AdapterDefinition,
   SatpStageKey,
   StageExecutionStep,
-} from "./api3-adapter-types";
+} from "./api1-adapter-types";
 
 /**
  * Enumerates the possible outcomes returned by an adapter webhook execution.

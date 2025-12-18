@@ -5,7 +5,11 @@ import type {
   AdapterLayerConfiguration,
   GlobalAdapterDefaults,
   StageExecutionStep,
-} from "../../main/typescript/adapters/api3-adapter-types";
+} from "../../main/typescript/adapters/api1-adapter-types";
+import {
+  SatpStageKey,
+  numberToStageKey,
+} from "../../main/typescript/adapters/api1-adapter-types";
 import type { SATPLogger as Logger } from "../../main/typescript/core/satp-logger";
 import type { MonitorService } from "../../main/typescript/services/monitoring/monitor";
 import { loadAdapterConfigFromYaml as loadYaml } from "../../main/typescript/services/validation/config-validating-functions/validate-adapter-config";
@@ -67,7 +71,7 @@ export const STAGE0_NEW_SESSION_REQUEST_CONFIG: AdapterLayerConfiguration = {
       priority: 1,
       executionPoints: [
         {
-          stage: 0,
+          stage: SatpStageKey.Stage0,
           step: "newSessionRequest",
           point: "before",
         },
@@ -87,7 +91,7 @@ export const STAGE0_NEW_SESSION_REQUEST_CONFIG: AdapterLayerConfiguration = {
       priority: 2,
       executionPoints: [
         {
-          stage: 0,
+          stage: SatpStageKey.Stage0,
           step: "newSessionRequest",
           point: "after",
         },
@@ -138,6 +142,7 @@ export function createAdapterHarness(
   overrides: AdapterHarnessOptions = {},
 ): AdapterHarness {
   const stage = overrides.stage ?? 1;
+  const stageKey = numberToStageKey(stage);
   const stepTag = overrides.stepTag ?? "transferProposalRequest";
   const stepOrder = overrides.stepOrder ?? "before";
 
@@ -149,7 +154,7 @@ export function createAdapterHarness(
     active: overrides.adapterOverrides?.active ?? true,
     executionPoints: [
       {
-        stage,
+        stage: stageKey,
         step: stepTag,
         point: stepOrder,
       },

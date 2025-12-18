@@ -133,7 +133,7 @@ import { BridgeManagerClientInterface } from "../../cross-chain-mechanisms/bridg
 import { MonitorService } from "../../services/monitoring/monitor";
 import { context, SpanStatusCode } from "@opentelemetry/api";
 import type { AdapterManager } from "../../adapters/adapter-manager";
-import type { SatpStageKey } from "../../adapters/api3-adapter-types";
+import type { SatpStageKey } from "../../adapters/api1-adapter-types";
 
 /**
  * SATP Stage 1 Handler for Transfer Proposal and Commencement Operations.

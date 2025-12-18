@@ -58,7 +58,10 @@ import {
   AdapterExecutionBinding,
   AdapterExecutionPlan,
   StageExecutionStep,
-} from "./api3-adapter-types";
+  stageKeyToNumber,
+  isValidStageKey,
+  SatpStageKey,
+} from "./api1-adapter-types";
 import {
   isValidStage,
   isValidStepForStage,
@@ -612,16 +615,27 @@ export class AdapterManager {
       for (const executionPoint of adapter.executionPoints) {
         const pointLabel = `stage:${executionPoint.stage}/step:${executionPoint.step}/point:${executionPoint.point}`;
 
-        if (!isValidStage(executionPoint.stage)) {
+        // Convert string stage key to numeric stage value
+        const stageKey = executionPoint.stage as SatpStageKey;
+        if (!isValidStageKey(stageKey)) {
           errors.push(
             `Adapter id="${adapter.id}", execution point "${pointLabel}": ` +
-              `invalid stage ${executionPoint.stage}. Valid stages are 0, 1, 2, 3.`,
+              `invalid or unsupported stage "${executionPoint.stage}". Valid stages are stage0, stage1, stage2, stage3.`,
+          );
+          continue;
+        }
+
+        const numericStage = stageKeyToNumber(stageKey);
+        if (numericStage === undefined || !isValidStage(numericStage)) {
+          errors.push(
+            `Adapter id="${adapter.id}", execution point "${pointLabel}": ` +
+              `invalid stage ${executionPoint.stage}. Valid stages are stage0, stage1, stage2, stage3.`,
           );
           continue;
         }
 
         const validation = validateStepTagForStage(
-          executionPoint.stage,
+          numericStage,
           executionPoint.step,
         );
         if (!validation.valid) {
@@ -635,7 +649,7 @@ export class AdapterManager {
         bindings.push({
           adapterId: adapter.id,
           adapter,
-          stage: executionPoint.stage,
+          stage: numericStage,
           stepTag: executionPoint.step,
           stepOrder: executionPoint.point,
           priority: adapter.priority ?? 1000,

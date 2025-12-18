@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * SATP Gateway Client (API-Type 1)
- * SATP is a protocol operating between two gateways that conducts the transfer of a digital asset from one gateway to another. The protocol establishes a secure channel between the endpoints and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency, isolation and durability.  This API defines the gateway client facing API (API-Type 1 in the SATP-Core specification).  **Additional Resources**: - [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/) - [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core) - [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/) - [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/) - [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/) - [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing) - [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)
+ * SATP is a protocol operating between two gateways that conducts the transfer of a digital asset  from one gateway to another. The protocol establishes a secure channel between the endpoints  and implements a 2-phase commit to ensure the properties of transfer atomicity, consistency,  isolation and durability.  This API defines the gateway client facing API (API-Type 1 in the SATP-Core specification).  ## Adapter Layer  The SATP Hermes plugin includes an Adapter Layer that enables external systems to integrate  with and control SATP transfers through webhook-based communication. This enables compliance  systems, business logic, and human-in-the-loop workflows to participate in cross-chain asset  transfers.  ### Webhook Types  | Type | Direction | Purpose | |------|-----------|---------| | **Outbound Webhooks** | Gateway → External System | Notify external systems about SATP events | | **Inbound Webhooks** | External System → Gateway | Allow external systems to approve/reject transfers |  ### Key Concepts  - **Execution Points**: Adapters are triggered at specific points in the SATP protocol (stage + step + order) - **Adapters**: Configuration units that define which webhooks to call and when - **Session Control**: Inbound webhooks can pause transfers pending external approval  ### Inbound Webhook Approval Flow  1. Gateway reaches configured execution point with inbound adapter 2. Gateway pauses SATP execution and waits for external decision 3. External controller evaluates transfer (compliance, business rules, manual review) 4. Controller POSTs decision to `/webhook/inbound/decide` endpoint 5. Gateway validates decision and resumes or aborts transfer  **Additional Resources**: - [Proposed SATP Charter](https://datatracker.ietf.org/doc/charter-ietf-satp/) - [SATP Core draft](https://datatracker.ietf.org/doc/draft-ietf-satp-core) - [SATP Crash Recovery draft](https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/) - [SATP Architecture draft](https://datatracker.ietf.org/doc/draft-ietf-satp-architecture/) - [SATP Use-Cases draft](https://datatracker.ietf.org/doc/draft-ramakrishna-sat-use-cases/) - [SATP Data sharing draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-data-sharing) - [SATP View Addresses draft](https://datatracker.ietf.org/doc/draft-ramakrishna-satp-views-addresses)
  *
  * The version of the OpenAPI document: 0.0.2
  * 
@@ -208,11 +208,11 @@ export interface AdapterDefinition {
  */
 export interface AdapterDefinitionExecutionPointsInner {
     /**
-     * SATP stage number (0-3).
-     * @type {number}
+     * Supported SATP stage identifiers that can host adapters. Stage 0-3 represent the four phases of the SATP protocol, while \'crash\' is used for crash recovery scenarios.
+     * @type {string}
      * @memberof AdapterDefinitionExecutionPointsInner
      */
-    'stage': number;
+    'stage': AdapterDefinitionExecutionPointsInnerStageEnum;
     /**
      * Stage-specific step identifier.
      * @type {string}
@@ -220,13 +220,22 @@ export interface AdapterDefinitionExecutionPointsInner {
      */
     'step': string;
     /**
-     * Execution order within the step.
+     * Execution steps inside a stage where adapters can hook into.
      * @type {string}
      * @memberof AdapterDefinitionExecutionPointsInner
      */
     'point': AdapterDefinitionExecutionPointsInnerPointEnum;
 }
 
+export const AdapterDefinitionExecutionPointsInnerStageEnum = {
+    Stage0: 'stage0',
+    Stage1: 'stage1',
+    Stage2: 'stage2',
+    Stage3: 'stage3',
+    Crash: 'crash'
+} as const;
+
+export type AdapterDefinitionExecutionPointsInnerStageEnum = typeof AdapterDefinitionExecutionPointsInnerStageEnum[keyof typeof AdapterDefinitionExecutionPointsInnerStageEnum];
 export const AdapterDefinitionExecutionPointsInnerPointEnum = {
     Before: 'before',
     During: 'during',
@@ -237,7 +246,7 @@ export const AdapterDefinitionExecutionPointsInnerPointEnum = {
 export type AdapterDefinitionExecutionPointsInnerPointEnum = typeof AdapterDefinitionExecutionPointsInnerPointEnum[keyof typeof AdapterDefinitionExecutionPointsInnerPointEnum];
 
 /**
- * Inbound webhook definition used to pause SATP execution until an external controller posts a decision. The gateway exposes endpoints under its API3 adapter base path, using the adapter ID and context ID for routing.
+ * Inbound webhook configuration for blocking approval workflows during SATP execution.  **Purpose:** Inbound webhooks enable external approval controllers, compliance systems, and human operators to participate in SATP cross-chain transfers. When configured, the gateway pauses protocol execution and waits for an external decision before proceeding.  **Execution Model:** - Blocking: SATP transfer waits for external controller response or timeout - Gateway exposes decision endpoint under API3 adapter base path - Multiple inbound webhooks at the same point serialize for clear approval semantics - Timeout triggers automatic rejection with configurable behavior  **Decision Flow:** 1. Gateway reaches configured execution point and pauses 2. External controller receives notification (via paired outbound webhook or polling) 3. Controller posts decision to `/api/v1/.../webhook/inbound/decide` 4. Gateway validates adapterId/sessionId and resumes or aborts based on `continue` field
  * @export
  * @interface AdapterDefinitionInboundWebhook
  */
@@ -274,7 +283,7 @@ export interface AdapterDefinitionInboundWebhook {
     'priority'?: number;
 }
 /**
- * Outbound webhook definition used to notify external systems about SATP activity. Always uses POST method with application/json content-type.
+ * Outbound webhook configuration for notifying external systems about SATP protocol events.  **Purpose:** Outbound webhooks enable fire-and-forget notifications to external monitoring, logging, metrics collection, and audit systems. When SATP lifecycle events occur, the gateway POSTs a standardized JSON payload to the configured URL.  **Execution Model:** - Non-blocking: SATP execution continues regardless of webhook response - Supports retry logic with exponential backoff for reliability - Multiple outbound webhooks at the same execution point run concurrently - Always uses POST method with application/json content-type
  * @export
  * @interface AdapterDefinitionOutboundWebhook
  */
@@ -323,11 +332,11 @@ export interface AdapterDefinitionOutboundWebhook {
  */
 export interface AdapterExecutionPointDefinition {
     /**
-     * SATP stage number (0-3).
-     * @type {number}
+     * Supported SATP stage identifiers that can host adapters. Stage 0-3 represent the four phases of the SATP protocol, while \'crash\' is used for crash recovery scenarios.
+     * @type {string}
      * @memberof AdapterExecutionPointDefinition
      */
-    'stage': number;
+    'stage': AdapterExecutionPointDefinitionStageEnum;
     /**
      * Stage-specific step identifier.
      * @type {string}
@@ -335,13 +344,22 @@ export interface AdapterExecutionPointDefinition {
      */
     'step': string;
     /**
-     * Execution order within the step.
+     * Execution steps inside a stage where adapters can hook into.
      * @type {string}
      * @memberof AdapterExecutionPointDefinition
      */
     'point': AdapterExecutionPointDefinitionPointEnum;
 }
 
+export const AdapterExecutionPointDefinitionStageEnum = {
+    Stage0: 'stage0',
+    Stage1: 'stage1',
+    Stage2: 'stage2',
+    Stage3: 'stage3',
+    Crash: 'crash'
+} as const;
+
+export type AdapterExecutionPointDefinitionStageEnum = typeof AdapterExecutionPointDefinitionStageEnum[keyof typeof AdapterExecutionPointDefinitionStageEnum];
 export const AdapterExecutionPointDefinitionPointEnum = {
     Before: 'before',
     During: 'during',
@@ -400,7 +418,7 @@ export const AdapterGlobalDefaultsLogLevelEnum = {
 export type AdapterGlobalDefaultsLogLevelEnum = typeof AdapterGlobalDefaultsLogLevelEnum[keyof typeof AdapterGlobalDefaultsLogLevelEnum];
 
 /**
- * Inbound webhook definition used to pause SATP execution until an external controller posts a decision. The gateway exposes endpoints under its API3 adapter base path, using the adapter ID and context ID for routing.
+ * Inbound webhook configuration for blocking approval workflows during SATP execution.  **Purpose:** Inbound webhooks enable external approval controllers, compliance systems, and human operators to participate in SATP cross-chain transfers. When configured, the gateway pauses protocol execution and waits for an external decision before proceeding.  **Execution Model:** - Blocking: SATP transfer waits for external controller response or timeout - Gateway exposes decision endpoint under API3 adapter base path - Multiple inbound webhooks at the same point serialize for clear approval semantics - Timeout triggers automatic rejection with configurable behavior  **Decision Flow:** 1. Gateway reaches configured execution point and pauses 2. External controller receives notification (via paired outbound webhook or polling) 3. Controller posts decision to `/api/v1/.../webhook/inbound/decide` 4. Gateway validates adapterId/sessionId and resumes or aborts based on `continue` field
  * @export
  * @interface AdapterInboundWebhookConfig
  */
@@ -571,7 +589,7 @@ export const AdapterLayerConfigurationGlobalLogLevelEnum = {
 export type AdapterLayerConfigurationGlobalLogLevelEnum = typeof AdapterLayerConfigurationGlobalLogLevelEnum[keyof typeof AdapterLayerConfigurationGlobalLogLevelEnum];
 
 /**
- * Outbound webhook definition used to notify external systems about SATP activity. Always uses POST method with application/json content-type.
+ * Outbound webhook configuration for notifying external systems about SATP protocol events.  **Purpose:** Outbound webhooks enable fire-and-forget notifications to external monitoring, logging, metrics collection, and audit systems. When SATP lifecycle events occur, the gateway POSTs a standardized JSON payload to the configured URL.  **Execution Model:** - Non-blocking: SATP execution continues regardless of webhook response - Supports retry logic with exponential backoff for reliability - Multiple outbound webhooks at the same execution point run concurrently - Always uses POST method with application/json content-type
  * @export
  * @interface AdapterOutboundWebhookConfig
  */
@@ -1180,7 +1198,7 @@ export interface DecideInboundWebhook200Response {
     'timestamp'?: string;
 }
 /**
- * Request payload posted by external approval controllers to approve or reject  a paused SATP transfer. The gateway validates the adapterId matches the waiting  adapter, then uses the continue field to determine whether to proceed or abort.
+ * Request payload posted by external approval controllers to approve or reject  a paused SATP transfer. The gateway validates the adapterId matches the waiting  adapter, then uses the continue field to determine whether to proceed or abort.  Inbound Webhook Workflow: 1. SATP gateway reaches a stage/step with configured inbound adapter 2. Gateway pauses execution and waits for external decision POST 3. External controller evaluates business rules, compliance checks, or manual review 4. Controller POSTs decision payload to gateway\'s inbound endpoint 5. Gateway validates decision, logs justification, and resumes or aborts transfer  Decision Semantics: - continue=true: Approve transfer continuation; gateway proceeds to next stage - continue=false: Reject transfer; gateway aborts and may trigger rollback - reason: Human-readable justification stored in audit logs  Security Considerations: - Inbound endpoints should use authentication (API keys, mTLS, JWT validation) - Decision payloads must include adapter ID to match the paused session state - All decisions are logged with timestamps for non-repudiation
  * @export
  * @interface DecideInboundWebhookRequest
  */
@@ -2722,7 +2740,7 @@ export const HealthCheckResponseStatusEnum = {
 export type HealthCheckResponseStatusEnum = typeof HealthCheckResponseStatusEnum[keyof typeof HealthCheckResponseStatusEnum];
 
 /**
- * Request payload posted by external approval controllers to approve or reject  a paused SATP transfer. The gateway validates the adapterId matches the waiting  adapter, then uses the continue field to determine whether to proceed or abort.
+ * Request payload posted by external approval controllers to approve or reject  a paused SATP transfer. The gateway validates the adapterId matches the waiting  adapter, then uses the continue field to determine whether to proceed or abort.  Inbound Webhook Workflow: 1. SATP gateway reaches a stage/step with configured inbound adapter 2. Gateway pauses execution and waits for external decision POST 3. External controller evaluates business rules, compliance checks, or manual review 4. Controller POSTs decision payload to gateway\'s inbound endpoint 5. Gateway validates decision, logs justification, and resumes or aborts transfer  Decision Semantics: - continue=true: Approve transfer continuation; gateway proceeds to next stage - continue=false: Reject transfer; gateway aborts and may trigger rollback - reason: Human-readable justification stored in audit logs  Security Considerations: - Inbound endpoints should use authentication (API keys, mTLS, JWT validation) - Decision payloads must include adapter ID to match the paused session state - All decisions are logged with timestamps for non-repudiation
  * @export
  * @interface InboundWebhookDecisionRequest
  */
@@ -3562,7 +3580,7 @@ export const OracleUnregisterResponseStatusEnum = {
 export type OracleUnregisterResponseStatusEnum = typeof OracleUnregisterResponseStatusEnum[keyof typeof OracleUnregisterResponseStatusEnum];
 
 /**
- * Event type representing a distinct lifecycle moment in SATP protocol execution. External systems can filter and route events based on type.
+ * Event type representing a distinct lifecycle moment in SATP protocol execution. External systems can filter and route events based on type.  Event Types: - stage.started: SATP stage has begun execution (outbound hooks at \'before\' step) - stage.completed: SATP stage finished successfully (outbound hooks at \'after\' step) - stage.failed: SATP stage encountered an error and may trigger rollback - adapter.retry: Adapter webhook is retrying after transient failure - adapter.skipped: Adapter was bypassed (inactive or condition not met)
  * @export
  * @enum {string}
  */
@@ -3620,13 +3638,13 @@ export const OutboundWebhookExecutionPointPointEnum = {
 export type OutboundWebhookExecutionPointPointEnum = typeof OutboundWebhookExecutionPointPointEnum[keyof typeof OutboundWebhookExecutionPointPointEnum];
 
 /**
- * Outbound webhook payload delivering SATP transfer telemetry to external monitoring or automation systems. All outbound payloads follow a consistent  envelope containing event type, session identifiers, gateway identity, and stage-specific payload data.
+ * Outbound webhook payload delivering SATP transfer telemetry to external monitoring or automation systems. All outbound payloads follow a consistent  envelope containing event type, session identifiers, gateway identity, and stage-specific payload data.  Payload Structure: - Event type and schema version for client-side parsing logic - SATP session/context identifiers for correlation across stages - Gateway identity for multi-gateway deployment visibility - ISO 8601 timestamp for precise event ordering - Stage-specific payload with DLT proofs, transaction hashes, or error details  Integration Patterns: - Monitoring Dashboards: Visualize transfer progress and latency metrics - Audit Systems: Record immutable event logs for compliance and forensics - Alerting Platforms: Trigger notifications on transfer failures or anomalies - Analytics Pipelines: Aggregate events for performance analysis and reporting
  * @export
  * @interface OutboundWebhookPayload
  */
 export interface OutboundWebhookPayload {
     /**
-     * Event type representing a distinct lifecycle moment in SATP protocol execution. External systems can filter and route events based on type.
+     * Event type representing a distinct lifecycle moment in SATP protocol execution. External systems can filter and route events based on type.  Event Types: - stage.started: SATP stage has begun execution (outbound hooks at \'before\' step) - stage.completed: SATP stage finished successfully (outbound hooks at \'after\' step) - stage.failed: SATP stage encountered an error and may trigger rollback - adapter.retry: Adapter webhook is retrying after transient failure - adapter.skipped: Adapter was bypassed (inactive or condition not met)
      * @type {string}
      * @memberof OutboundWebhookPayload
      */
@@ -4180,6 +4198,23 @@ export interface RoutesResponse {
      */
     'routes': Array<GetRoutes200ResponseRoutesInner>;
 }
+/**
+ * Supported SATP stage identifiers that can host adapters. Stage 0-3 represent the four phases of the SATP protocol, while \'crash\' is used for crash recovery scenarios.
+ * @export
+ * @enum {string}
+ */
+
+export const SatpStageKey = {
+    Stage0: 'stage0',
+    Stage1: 'stage1',
+    Stage2: 'stage2',
+    Stage3: 'stage3',
+    Crash: 'crash'
+} as const;
+
+export type SatpStageKey = typeof SatpStageKey[keyof typeof SatpStageKey];
+
+
 /**
  * Request for retrieving the current status of a session, identified by the session ID.
  * @export
@@ -6187,7 +6222,7 @@ export class TransactionApi extends BaseAPI {
 export const WebhookApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. When an adapter with an inbound webhook executes, the  gateway pauses and waits for an external decision via this endpoint.  **Inbound Webhook Workflow:** 1. SATP gateway reaches a stage/step with configured inbound adapter 2. Gateway pauses execution and waits for external decision POST 3. External controller evaluates business rules, compliance checks, or manual review 4. Controller POSTs decision payload to this endpoint 5. Gateway validates decision, logs justification, and resumes or aborts transfer  **Decision Semantics:** - `continue: true` - Approve transfer continuation; gateway proceeds to next stage - `continue: false` - Reject transfer; gateway aborts and may trigger rollback - `reason` - Human-readable justification stored in audit logs  **Timeout Handling:** Each inbound webhook declares a `timeoutMs` timeout. If no decision arrives within this window, the gateway treats it as a rejection and aborts the transfer.  **Security Considerations:** - Inbound endpoints should use authentication (API keys, mTLS, JWT validation) - Decision payloads must include adapter ID to match the paused session state - All decisions are logged with timestamps for non-repudiation
          * @summary Submit inbound webhook decision
          * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
          * @param {*} [options] Override http request option.
@@ -6233,7 +6268,7 @@ export const WebhookApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = WebhookApiAxiosParamCreator(configuration)
     return {
         /**
-         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. When an adapter with an inbound webhook executes, the  gateway pauses and waits for an external decision via this endpoint.  **Inbound Webhook Workflow:** 1. SATP gateway reaches a stage/step with configured inbound adapter 2. Gateway pauses execution and waits for external decision POST 3. External controller evaluates business rules, compliance checks, or manual review 4. Controller POSTs decision payload to this endpoint 5. Gateway validates decision, logs justification, and resumes or aborts transfer  **Decision Semantics:** - `continue: true` - Approve transfer continuation; gateway proceeds to next stage - `continue: false` - Reject transfer; gateway aborts and may trigger rollback - `reason` - Human-readable justification stored in audit logs  **Timeout Handling:** Each inbound webhook declares a `timeoutMs` timeout. If no decision arrives within this window, the gateway treats it as a rejection and aborts the transfer.  **Security Considerations:** - Inbound endpoints should use authentication (API keys, mTLS, JWT validation) - Decision payloads must include adapter ID to match the paused session state - All decisions are logged with timestamps for non-repudiation
          * @summary Submit inbound webhook decision
          * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
          * @param {*} [options] Override http request option.
@@ -6254,7 +6289,7 @@ export const WebhookApiFactory = function (configuration?: Configuration, basePa
     const localVarFp = WebhookApiFp(configuration)
     return {
         /**
-         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+         * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. When an adapter with an inbound webhook executes, the  gateway pauses and waits for an external decision via this endpoint.  **Inbound Webhook Workflow:** 1. SATP gateway reaches a stage/step with configured inbound adapter 2. Gateway pauses execution and waits for external decision POST 3. External controller evaluates business rules, compliance checks, or manual review 4. Controller POSTs decision payload to this endpoint 5. Gateway validates decision, logs justification, and resumes or aborts transfer  **Decision Semantics:** - `continue: true` - Approve transfer continuation; gateway proceeds to next stage - `continue: false` - Reject transfer; gateway aborts and may trigger rollback - `reason` - Human-readable justification stored in audit logs  **Timeout Handling:** Each inbound webhook declares a `timeoutMs` timeout. If no decision arrives within this window, the gateway treats it as a rejection and aborts the transfer.  **Security Considerations:** - Inbound endpoints should use authentication (API keys, mTLS, JWT validation) - Decision payloads must include adapter ID to match the paused session state - All decisions are logged with timestamps for non-repudiation
          * @summary Submit inbound webhook decision
          * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
          * @param {*} [options] Override http request option.
@@ -6274,7 +6309,7 @@ export const WebhookApiFactory = function (configuration?: Configuration, basePa
  */
 export class WebhookApi extends BaseAPI {
     /**
-     * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. The gateway validates the adapterId matches the waiting adapter, then uses the continue field to determine whether to proceed or abort.  **Decision Semantics:** - `continue: true`: Approve transfer continuation; gateway proceeds to next stage - `continue: false`: Reject transfer; gateway aborts and may trigger rollback  **Security Considerations:** - The adapterId and sessionId must match an active inbound webhook wait state - All decisions are logged with timestamps for non-repudiation
+     * External approval controllers use this endpoint to submit decisions (approve/reject) for paused SATP transfers. When an adapter with an inbound webhook executes, the  gateway pauses and waits for an external decision via this endpoint.  **Inbound Webhook Workflow:** 1. SATP gateway reaches a stage/step with configured inbound adapter 2. Gateway pauses execution and waits for external decision POST 3. External controller evaluates business rules, compliance checks, or manual review 4. Controller POSTs decision payload to this endpoint 5. Gateway validates decision, logs justification, and resumes or aborts transfer  **Decision Semantics:** - `continue: true` - Approve transfer continuation; gateway proceeds to next stage - `continue: false` - Reject transfer; gateway aborts and may trigger rollback - `reason` - Human-readable justification stored in audit logs  **Timeout Handling:** Each inbound webhook declares a `timeoutMs` timeout. If no decision arrives within this window, the gateway treats it as a rejection and aborts the transfer.  **Security Considerations:** - Inbound endpoints should use authentication (API keys, mTLS, JWT validation) - Decision payloads must include adapter ID to match the paused session state - All decisions are logged with timestamps for non-repudiation
      * @summary Submit inbound webhook decision
      * @param {DecideInboundWebhookRequest} decideInboundWebhookRequest 
      * @param {*} [options] Override http request option.
