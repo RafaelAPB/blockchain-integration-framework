@@ -55,15 +55,85 @@ async function findAvailablePort(): Promise<number> {
 
 /**
  * Creates and configures the Express app with all test endpoints.
+ * Includes shutdown endpoint for graceful termination.
  * No logging - keeps test output clean.
  */
-export function createTestApp(): Express {
+export function createTestApp(): {
+  app: Express;
+  setServer: (server: http.Server) => void;
+} {
   const app = express();
   app.use(express.json());
+  let serverRef: http.Server | null = null;
+
+  const setServer = (server: http.Server) => {
+    serverRef = server;
+  };
 
   // GET / - Simple health check, returns 200 "ok"
   app.get("/", (_req: Request, res: Response) => {
     res.status(200).send("ok");
+  });
+
+  // GET /help - List all available endpoints
+  app.get("/help", (_req: Request, res: Response) => {
+    res.status(200).json({
+      endpoints: [
+        { method: "GET", path: "/", description: "Health check" },
+        { method: "GET", path: "/help", description: "List all endpoints" },
+        { method: "POST", path: "/mirror", description: "Echo request body" },
+        {
+          method: "POST",
+          path: "/webhook/trigger",
+          description: "Trigger webhook to another URL",
+        },
+        {
+          method: "POST",
+          path: "/webhook/inbound",
+          description: "Receive inbound webhook decision",
+        },
+        {
+          method: "GET",
+          path: "/webhook/outbound",
+          description: "Outbound webhook target (GET)",
+        },
+        {
+          method: "POST",
+          path: "/webhook/outbound",
+          description: "Receive outbound webhook payload",
+        },
+        {
+          method: "POST",
+          path: "/webhook/outbound/approve",
+          description: "Always approve (continue: true)",
+        },
+        {
+          method: "POST",
+          path: "/webhook/outbound/reject",
+          description: "Always reject (continue: false)",
+        },
+        {
+          method: "POST",
+          path: "/webhook/outbound/delay/:ms",
+          description: "Delayed response",
+        },
+        {
+          method: "POST",
+          path: "/webhook/outbound/error/:code",
+          description: "Return specific HTTP error",
+        },
+        {
+          method: "POST",
+          path: "/shutdown",
+          description: "Gracefully shutdown server",
+        },
+        {
+          method: "GET",
+          path: "/shutdown",
+          description: "Gracefully shutdown server (GET)",
+        },
+      ],
+    });
   });
 
   // POST /mirror - Echo back whatever was sent in the body
@@ -201,7 +271,51 @@ export function createTestApp(): Express {
     });
   });
 
-  return app;
+  // POST /shutdown - Gracefully shutdown the server
+  // Useful for make targets and automated cleanup
+  app.post("/shutdown", (_req: Request, res: Response) => {
+    res.status(200).json({
+      message: "Server shutting down...",
+      timestamp: new Date().toISOString(),
+    });
+
+    // Give time for response to be sent
+    setTimeout(() => {
+      console.log("Shutdown requested via /shutdown endpoint");
+      if (serverRef) {
+        serverRef.closeAllConnections?.();
+        serverRef.close(() => {
+          console.log("Server closed gracefully");
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    }, 100);
+  });
+
+  // GET /shutdown - Also allow GET for easy curl testing
+  app.get("/shutdown", (_req: Request, res: Response) => {
+    res.status(200).json({
+      message: "Server shutting down...",
+      timestamp: new Date().toISOString(),
+    });
+
+    setTimeout(() => {
+      console.log("Shutdown requested via /shutdown endpoint (GET)");
+      if (serverRef) {
+        serverRef.closeAllConnections?.();
+        serverRef.close(() => {
+          console.log("Server closed gracefully");
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    }, 100);
+  });
+
+  return { app, setServer };
 }
 
 /**
@@ -209,11 +323,12 @@ export function createTestApp(): Express {
  * Returns TestServerInfo with the server instance and connection details.
  */
 export async function startTestServer(): Promise<TestServerInfo> {
-  const app = createTestApp();
+  const { app, setServer } = createTestApp();
   const port = await findAvailablePort();
 
   return new Promise((resolve, reject) => {
     const server = app.listen(port, HOST, () => {
+      setServer(server);
       const baseUrl = `http://${HOST}:${port}`;
       resolve({ server, port, host: HOST, baseUrl });
     });
@@ -245,12 +360,41 @@ export async function stopTestServer(info: TestServerInfo): Promise<void> {
 // Export constants for backward compatibility
 export const TEST_SERVER_HOST = HOST;
 
-// If run directly, start the server on default port 9223
+// If run directly, start the server on default port 9223 with shutdown support
 if (require.main === module) {
-  const DEFAULT_PORT = 9223;
-  const app = createTestApp();
-  app.listen(DEFAULT_PORT, HOST, () => {
+  const DEFAULT_PORT = parseInt(process.env.WEBHOOK_SERVER_PORT || "9223", 10);
+  const { app, setServer } = createTestApp();
+
+  const server = app.listen(DEFAULT_PORT, HOST, () => {
+    setServer(server);
     console.log(`Test server running at http://${HOST}:${DEFAULT_PORT}`);
-    console.log("Press Ctrl+C to stop.");
+    console.log("Endpoints:");
+    console.log(`  GET  /                           - Health check`);
+    console.log(`  GET  /help                       - List all endpoints`);
+    console.log(`  POST /mirror                     - Echo request body`);
+    console.log(
+      `  POST /webhook/outbound           - Receive outbound webhook`,
+    );
+    console.log(`  POST /webhook/outbound/approve   - Always approve`);
+    console.log(`  POST /webhook/outbound/reject    - Always reject`);
+    console.log(`  POST /webhook/outbound/delay/:ms - Delayed response`);
+    console.log(`  POST /webhook/outbound/error/:code - Return error code`);
+    console.log(`  POST /shutdown                   - Shutdown server`);
+    console.log(`  GET  /shutdown                   - Shutdown server (GET)`);
+    console.log("");
+    console.log("Press Ctrl+C to stop, or POST/GET to /shutdown");
   });
+
+  // Handle SIGTERM/SIGINT for graceful shutdown
+  const gracefulShutdown = (signal: string) => {
+    console.log(`\n${signal} received, shutting down gracefully...`);
+    server.closeAllConnections?.();
+    server.close(() => {
+      console.log("Server closed");
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 }

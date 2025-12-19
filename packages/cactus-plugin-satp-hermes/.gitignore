@@ -21,4 +21,6 @@ assets/diagrams/pdf/
 src/test/solidity/generated/build-info
 typedoc/** */
 docs/assets/diagrams
+tmp/
+out/**/*
 

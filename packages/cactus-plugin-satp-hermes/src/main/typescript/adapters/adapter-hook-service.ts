@@ -271,8 +271,8 @@ export class AdapterHookService {
 
     this.logger.info(
       `${fnTag} Processing inbound decision: adapter="${input.adapterId}" ` +
-      `session="${input.sessionId}" continue=${input.shouldContinue} ` +
-      `reason="${input.reason || "N/A"}"`,
+        `session="${input.sessionId}" continue=${input.shouldContinue} ` +
+        `reason="${input.reason || "N/A"}"`,
     );
 
     // Build the lookup key
@@ -282,7 +282,7 @@ export class AdapterHookService {
     if (!pending) {
       this.logger.warn(
         `${fnTag} No pending inbound decision found for key="${pendingKey}". ` +
-        `Either the session timed out, was already processed, or never existed.`,
+          `Either the session timed out, was already processed, or never existed.`,
       );
       return false;
     }
@@ -292,7 +292,7 @@ export class AdapterHookService {
     const elapsedMs = Date.now() - pending.startedAt;
     this.logger.info(
       `${fnTag} Inbound webhook decision ${decisionType} for session="${input.sessionId}" ` +
-      `by adapter="${input.adapterId}" after ${elapsedMs}ms: ${input.reason || "No reason provided"}`,
+        `by adapter="${input.adapterId}" after ${elapsedMs}ms: ${input.reason || "No reason provided"}`,
     );
 
     this.pendingInboundDecisions.delete(pendingKey);
@@ -403,9 +403,9 @@ export class AdapterHookService {
         invocationResult.errorMessage || "Adapter webhook failed";
       this.logger.error(
         `AdapterHookService: Outbound webhook FAILED for adapter "${context.adapter.id}" ` +
-        `at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
-        `URL: ${webhookConfig.url}, Retries: ${invocationResult.retriesAttempted}, ` +
-        `Error: ${errorMessage}. Aborting SATP process.`,
+          `at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
+          `URL: ${webhookConfig.url}, Retries: ${invocationResult.retriesAttempted}, ` +
+          `Error: ${errorMessage}. Aborting SATP process.`,
       );
       // Abort the SATP process - outbound webhook failure is fatal
       throw new AdapterOutboundWebhookError(
@@ -419,13 +419,13 @@ export class AdapterHookService {
     // Log successful response
     this.logger.info(
       `AdapterHookService: Outbound webhook SUCCESS for adapter "${context.adapter.id}" ` +
-      `at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
-      `URL: ${webhookConfig.url}, HTTP ${invocationResult.httpStatus}, ` +
-      `Latency: ${invocationResult.latencyMs}ms, Retries: ${invocationResult.retriesAttempted}`,
+        `at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
+        `URL: ${webhookConfig.url}, HTTP ${invocationResult.httpStatus}, ` +
+        `Latency: ${invocationResult.latencyMs}ms, Retries: ${invocationResult.retriesAttempted}`,
     );
     this.logger.debug(
       `AdapterHookService: Outbound webhook response body for adapter "${context.adapter.id}": ` +
-      `${JSON.stringify(invocationResult.responseBody)}`,
+        `${JSON.stringify(invocationResult.responseBody)}`,
     );
 
     const metrics: AdapterWebhookMetrics = {
@@ -467,8 +467,8 @@ export class AdapterHookService {
 
     this.logger.info(
       `${fnTag} PAUSING execution for inbound webhook: adapter="${adapterId}" ` +
-      `session="${sessionId}" at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
-      `Waiting up to ${timeoutMs}ms for external decision at POST /api/v1/adapters/inbound/${sessionId}/${adapterId}`,
+        `session="${sessionId}" at ${context.binding.stepTag}/${context.binding.stepOrder}. ` +
+        `Waiting up to ${timeoutMs}ms for external decision at POST /api/v1/adapters/inbound/${sessionId}/${adapterId}`,
     );
 
     const startedAt = Date.now();
@@ -517,8 +517,8 @@ export class AdapterHookService {
       if (!decision.continue) {
         this.logger.warn(
           `${fnTag} Inbound webhook REJECTED for adapter="${adapterId}" ` +
-          `session="${sessionId}" after ${elapsedMs}ms. Reason: ${decision.reason || "No reason provided"}. ` +
-          `Aborting SATP process.`,
+            `session="${sessionId}" after ${elapsedMs}ms. Reason: ${decision.reason || "No reason provided"}. ` +
+            `Aborting SATP process.`,
         );
         throw new AdapterInboundWebhookRejectedError(
           `Inbound webhook rejected by external controller for adapter "${adapterId}": ${decision.reason || "No reason provided"}`,
@@ -531,8 +531,8 @@ export class AdapterHookService {
       // External controller approved: unblock and resume SATP stage execution
       this.logger.info(
         `${fnTag} Inbound webhook APPROVED for adapter="${adapterId}" ` +
-        `session="${sessionId}" after ${elapsedMs}ms. Reason: ${decision.reason || "No reason provided"}. ` +
-        `Resuming SATP execution.`,
+          `session="${sessionId}" after ${elapsedMs}ms. Reason: ${decision.reason || "No reason provided"}. ` +
+          `Resuming SATP execution.`,
       );
 
       const metrics: AdapterWebhookMetrics = {
@@ -560,7 +560,7 @@ export class AdapterHookService {
 
       this.logger.error(
         `${fnTag} Unexpected error in inbound webhook for adapter="${adapterId}" ` +
-        `session="${sessionId}": ${error}`,
+          `session="${sessionId}": ${error}`,
       );
       throw error;
     }
@@ -639,9 +639,9 @@ export class AdapterHookService {
       outboundResult,
       metrics: outboundResult
         ? {
-          latencyMs: outboundResult.latencyMs,
-          retriesAttempted: outboundResult.retriesAttempted,
-        }
+            latencyMs: outboundResult.latencyMs,
+            retriesAttempted: outboundResult.retriesAttempted,
+          }
         : undefined,
     };
   }
