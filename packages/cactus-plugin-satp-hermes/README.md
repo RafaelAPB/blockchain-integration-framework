@@ -152,7 +152,7 @@ The SATP protocol operates in four distinct stages:
 3. **Stage 2 (Lock Evidence)**: Asset locking and proof generation/verification
 4. **Stage 3 (Commitment)**: Final asset transfer completion and confirmation
 
-The SATP protocol follows a standardized sequence of cross-chain asset transfer operations as defined in the IETF SATP v2 specification.
+The SATP protocol follows a standardized sequence of cross-chain asset transfer operations as defined in the [IETF SATP v13 specification](https://datatracker.ietf.org/doc/html/draft-ietf-satp-core-13).
 
 ### Asset Identifier Fields: `token_id` vs `unique_descriptor`
 
