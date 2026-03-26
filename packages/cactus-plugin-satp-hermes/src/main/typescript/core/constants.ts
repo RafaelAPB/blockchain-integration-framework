@@ -40,10 +40,15 @@ export const DEFAULT_PORT_GATEWAY_UI = DEFAULT_PORT_GATEWAY_SERVER + 2;
 /** Default port for SATP gateway OpenAPI documentation */
 export const DEFAULT_PORT_GATEWAY_OAPI = 4010;
 /** Current SATP protocol version identifier */
-export const SATP_VERSION = "v02";
+export const SATP_VERSION = "v13";
 /** SATP Core specification version */
-export const SATP_CORE_VERSION = "v02";
+export const SATP_CORE_VERSION = "v13";
 /** SATP Architecture specification version */
-export const SATP_ARCHITECTURE_VERSION = "v02";
+export const SATP_ARCHITECTURE_VERSION = "v13";
 /** SATP Crash Recovery specification version */
-export const SATP_CRASH_VERSION = "v02";
+export const SATP_CRASH_VERSION = "v13";
+/**
+ * SATP protocol wire version string per v13 Section 5.3.1.
+ * Carried in the `version` field of CommonSatp.
+ */
+export const SATP_PROTOCOL_VERSION = "1.0";

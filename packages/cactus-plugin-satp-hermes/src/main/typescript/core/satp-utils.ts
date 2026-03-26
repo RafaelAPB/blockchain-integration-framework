@@ -27,7 +27,7 @@ import { Asset } from "../cross-chain-mechanisms/bridge/ontology/assets/asset";
  * @see {@link getEnumKeyByValue} for enum utility functions
  */
 
-import { MessageType } from "../generated/proto/cacti/satp/v02/common/message_pb";
+import { MessageType } from "../generated/proto/cacti/satp/v13/common/message_pb";
 import { getEnumKeyByValue } from "../services/utils";
 import {
   TokenIdMissingError,
@@ -39,8 +39,8 @@ import { SATPLogger } from "./satp-logger";
 import { protoToAsset } from "./stage-services/service-utils";
 import { LedgerType } from "@hyperledger/cactus-core-api";
 import { NetworkId } from "../public-api";
-import { TokenType } from "../generated/proto/cacti/satp/v02/common/message_pb";
-import { SessionData } from "../generated/proto/cacti/satp/v02/session/session_pb";
+import { TokenType } from "../generated/proto/cacti/satp/v13/common/message_pb";
+import { SessionData } from "../generated/proto/cacti/satp/v13/session/session_pb";
 
 /**
  * Aggregated asset and network information built from session data.

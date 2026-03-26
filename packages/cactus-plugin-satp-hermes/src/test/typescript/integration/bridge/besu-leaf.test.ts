@@ -7,8 +7,8 @@ import path from "path";
 import {
   TokenType,
   ERCTokenStandard,
-} from "../../../../main/typescript/generated/proto/cacti/satp/v02/common/message_pb";
-import { ClaimFormat } from "../../../../main/typescript/generated/proto/cacti/satp/v02/common/message_pb";
+} from "../../../../main/typescript/generated/proto/cacti/satp/v13/common/message_pb";
+import { ClaimFormat } from "../../../../main/typescript/generated/proto/cacti/satp/v13/common/message_pb";
 import { LedgerType } from "@hyperledger/cactus-core-api";
 import { BesuTestEnvironment } from "../../test-utils";
 import {

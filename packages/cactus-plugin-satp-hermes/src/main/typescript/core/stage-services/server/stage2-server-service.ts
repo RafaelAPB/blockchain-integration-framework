@@ -2,11 +2,11 @@ import {
   LockAssertionResponse,
   LockAssertionResponseSchema,
   LockAssertionRequest,
-} from "../../../generated/proto/cacti/satp/v02/service/stage_2_pb";
+} from "../../../generated/proto/cacti/satp/v13/service/stage_2_pb";
 import {
   CommonSatpSchema,
   MessageType,
-} from "../../../generated/proto/cacti/satp/v02/common/message_pb";
+} from "../../../generated/proto/cacti/satp/v13/common/message_pb";
 import { bufArray2HexStr, getHash, sign } from "../../../utils/gateway-utils";
 import {
   getMessageHash,
@@ -92,42 +92,29 @@ export class Stage2ServerService extends SATPService {
           const commonBody = create(CommonSatpSchema, {
             version: sessionData.version,
             messageType: MessageType.ASSERTION_RECEIPT,
-            sequenceNumber: request.common!.sequenceNumber + BigInt(1),
-            hashPreviousMessage: getMessageHash(
-              sessionData,
-              MessageType.LOCK_ASSERT,
-            ),
             sessionId: request.common!.sessionId,
-            clientGatewayPubkey: sessionData.clientGatewayPubkey,
-            serverGatewayPubkey: sessionData.serverGatewayPubkey,
-            resourceUrl: sessionData.resourceUrl,
+            transferContextId: sessionData.transferContextId ?? "",
           });
 
-          sessionData.lastSequenceNumber = commonBody.sequenceNumber;
+          sessionData.lastSequenceNumber =
+            sessionData.lastSequenceNumber + BigInt(1);
 
           const lockAssertionReceiptMessage = create(
             LockAssertionResponseSchema,
             {
               common: commonBody,
+              hashPrevMessage: getMessageHash(
+                sessionData,
+                MessageType.LOCK_ASSERT,
+              ),
             },
           );
-
-          if (sessionData.transferContextId != undefined) {
-            lockAssertionReceiptMessage.common!.transferContextId =
-              sessionData.transferContextId;
-          }
-
-          if (sessionData.serverTransferNumber != undefined) {
-            lockAssertionReceiptMessage.serverTransferNumber =
-              sessionData.serverTransferNumber;
-          }
 
           const messageSignature = bufArray2HexStr(
             sign(this.Signer, safeStableStringify(lockAssertionReceiptMessage)),
           );
 
-          lockAssertionReceiptMessage.serverSignature = messageSignature;
-
+          // v13: per-message signatures removed; JWS wrapping used instead
           saveSignature(
             sessionData,
             MessageType.ASSERTION_RECEIPT,
@@ -188,20 +175,12 @@ export class Stage2ServerService extends SATPService {
         const errorResponse = create(LockAssertionResponseSchema, {});
         const commonBody = create(CommonSatpSchema, {
           messageType: MessageType.ASSERTION_RECEIPT,
-          error: true,
-          errorCode: error.getSATPErrorType(),
         });
 
         if (!(error instanceof SessionNotFoundError) && session != undefined) {
           commonBody.sessionId = session.getServerSessionData().id;
         }
         errorResponse.common = commonBody;
-
-        const messageSignature = bufArray2HexStr(
-          sign(this.Signer, safeStableStringify(errorResponse)),
-        );
-
-        errorResponse.serverSignature = messageSignature;
 
         return errorResponse;
       } catch (err) {
@@ -259,16 +238,6 @@ export class Stage2ServerService extends SATPService {
         }
 
         sessionData.lockAssertionExpiration = request.lockAssertionExpiration; //todo check if expired
-
-        if (
-          sessionData.clientTransferNumber != "" &&
-          request.clientTransferNumber != sessionData.clientTransferNumber
-        ) {
-          // This does not throw an error because the clientTransferNumber is only meaningful to the client.
-          this.Log.info(
-            `${fnTag}, LockAssertionRequest clientTransferNumber does not match the one that was sent`,
-          );
-        }
 
         saveHash(sessionData, MessageType.LOCK_ASSERT, getHash(request));
 

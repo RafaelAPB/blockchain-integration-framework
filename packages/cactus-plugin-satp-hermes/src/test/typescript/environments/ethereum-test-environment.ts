@@ -24,7 +24,7 @@ import {
   GethTestLedger,
   WHALE_ACCOUNT_ADDRESS,
 } from "@hyperledger/cactus-test-geth-ledger";
-import { ClaimFormat } from "../../../main/typescript/generated/proto/cacti/satp/v02/common/message_pb";
+import { ClaimFormat } from "../../../main/typescript/generated/proto/cacti/satp/v13/common/message_pb";
 import {
   Asset,
   AssetErcTokenStandardEnum,
@@ -40,7 +40,7 @@ import {
   IEthereumNetworkConfig,
   INetworkOptions,
 } from "../../../main/typescript/cross-chain-mechanisms/bridge/bridge-types";
-import { TokenType } from "../../../main/typescript/generated/proto/cacti/satp/v02/common/message_pb";
+import { TokenType } from "../../../main/typescript/generated/proto/cacti/satp/v13/common/message_pb";
 export interface IEthereumTestEnvironment {
   logLevel: LogLevelDesc;
   network?: string;

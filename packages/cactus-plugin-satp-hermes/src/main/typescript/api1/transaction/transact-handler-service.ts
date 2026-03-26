@@ -1,11 +1,7 @@
 import { TransactRequest, TransactResponse } from "../../public-api";
 import { SATPManager } from "../../services/gateway/satp-manager";
 import { populateClientSessionData } from "../../core/session-utils";
-import {
-  CredentialProfile,
-  LockType,
-  SignatureAlgorithm,
-} from "../../generated/proto/cacti/satp/v02/common/message_pb";
+import { LockType } from "../../generated/proto/cacti/satp/v13/common/message_pb";
 import { LoggerProvider, LogLevelDesc } from "@hyperledger/cactus-common";
 import { GatewayOrchestrator } from "../../services/gateway/gateway-orchestrator";
 import { GatewayIdentity } from "../../core/types";
@@ -35,14 +31,13 @@ export async function executeTransact(
   const receiverGatewayOwnerId: string = "";
 
   //Default, make it configurable by injecting sign function
-  const signatureAlgorithm: SignatureAlgorithm = SignatureAlgorithm.ECDSA;
+  const signatureAlgorithm = "ES256";
 
   //Default, TODO
-  const lockType: LockType = LockType.DESTROYBURN;
+  const lockType: LockType = LockType.TIME_LOCK;
   //In milliseconds (5min)
   const lockExpirationTime: bigint = BigInt(1000 * 60 * 5);
 
-  const credentialProfile: CredentialProfile = CredentialProfile.UNSPECIFIED;
   const loggingProfile: string = "MOCK_LOGGING_PROFILE";
   const accessControlProfile: string = "MOCK_ACCESS_CONTROL_PROFILE";
 
@@ -61,7 +56,6 @@ export async function executeTransact(
     signatureAlgorithm,
     lockType,
     lockExpirationTime,
-    credentialProfile,
     loggingProfile ? loggingProfile : "",
     accessControlProfile,
     req.sourceAsset.amount,

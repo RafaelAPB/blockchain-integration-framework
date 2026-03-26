@@ -58,7 +58,7 @@
  * ```
  *
  * @since 0.0.3-beta
- * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-02.txt} SATP Core Specification
+ * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-13.txt} SATP Core Specification
  * @see {@link SATPInternalError} for base error class
  * @see {@link RuntimeError} for underlying error infrastructure
  *
@@ -69,7 +69,8 @@
 
 import { asError } from "@hyperledger/cactus-common";
 import { RuntimeError } from "run-time-error-cjs";
-import { Error as SATPErrorType } from "../../generated/proto/cacti/satp/v02/common/message_pb";
+import { SATPErrorType } from "./satp-error-type";
+import { type V13ErrorCode, satpErrorTypeToV13Code } from "./iana-error-codes";
 
 /**
  * Base error class for all SATP protocol internal errors and exceptions.
@@ -77,7 +78,7 @@ import { Error as SATPErrorType } from "../../generated/proto/cacti/satp/v02/com
  * @description
  * Serves as the foundational error class for the entire SATP Hermes error hierarchy,
  * providing standardized error reporting, tracing, and debugging capabilities aligned
- * with the IETF SATP Core v2 specification. This class extends RuntimeError to provide
+ * with the IETF SATP Core v13 specification. This class extends RuntimeError to provide
  * enhanced error handling with protocol-specific metadata, distributed tracing support,
  * and HTTP-compatible status codes.
  *
@@ -216,7 +217,7 @@ export class SATPInternalError extends RuntimeError {
    *
    * @description
    * Returns the protocol-specific error type classification as defined in the
-   * IETF SATP Core v2 specification. This enables standardized error handling,
+   * IETF SATP Core v13 specification. This enables standardized error handling,
    * automated error classification, and protocol-compliant error reporting
    * across different SATP implementations.
    *
@@ -256,6 +257,16 @@ export class SATPInternalError extends RuntimeError {
    */
   public getSATPErrorType(): SATPErrorType {
     return this.errorType;
+  }
+
+  /**
+   * Returns the v13 IANA error code corresponding to this error's internal
+   * SATPErrorType classification.
+   *
+   * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-13.txt} Section 14
+   */
+  public getV13ErrorCode(): V13ErrorCode {
+    return satpErrorTypeToV13Code(this.errorType);
   }
 }
 
@@ -631,7 +642,7 @@ export class TransactError extends SATPInternalError {
  *
  * @description
  * Indicates a failure in constructing or serializing SATP protocol request messages
- * according to the IETF SATP Core v2 specification. This error occurs during
+ * according to the IETF SATP Core v13 specification. This error occurs during
  * message preparation, validation, or encoding phases of cross-chain operations.
  *
  * **Common Creation Failures:**

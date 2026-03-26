@@ -1,0 +1,6 @@
+syntax = "proto3";
+package cacti.satp.v13.view;
+
+message BungeeView {
+    string message = 1;
+}
