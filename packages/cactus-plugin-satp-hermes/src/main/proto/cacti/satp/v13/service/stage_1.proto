@@ -1,0 +1,59 @@
+syntax = "proto3";
+package cacti.satp.v13.service;
+
+import "cacti/satp/v13/common/message.proto";
+
+// ── Transfer Proposal Request (v13 Section 8.3) ────────
+// Removed: multiple_claims_allowed, multiple_cancels_allowed,
+// client_signature (signing via JWS envelope).
+
+message TransferProposalRequest {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  cacti.satp.v13.common.TransferClaims transfer_init_claims = 2;
+  cacti.satp.v13.common.TransferClaimsFormat transfer_init_claims_format = 3;
+  cacti.satp.v13.common.NetworkCapabilities network_capabilities = 4;
+  // v02 fields removed: multiple_claims_allowed (5),
+  // multiple_cancels_allowed (6), client_signature (7)
+}
+
+// ── Transfer Proposal Response / Proposal Receipt (v13 Section 8.4) ──
+// Removed: transfer_counter_claims (counter-proposals eliminated),
+// server_signature (signing via JWS envelope).
+// hashPrevMessage moves to per-message level.
+
+message TransferProposalResponse {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  string hash_transfer_init_claims = 2;     // hashTransferInitClaim
+  string timestamp = 3;
+  string hash_prev_message = 4;             // NEW — SHA-256 hash of transfer-proposal-msg
+  // v02 fields removed: transfer_counter_claims (3→removed),
+  // server_signature (6→removed)
+}
+
+// ── Transfer Commence Request (v13 Section 8.6) ────────
+// Removed: client_transfer_number, client_signature.
+// Added: hashPrevMessage.
+
+message TransferCommenceRequest {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  string hash_transfer_init_claims = 2;     // hashTransferInitClaim
+  string hash_prev_message = 3;             // NEW — SHA-256 hash of proposal-receipt-msg
+  // v02 fields removed: client_transfer_number (3→removed),
+  // client_signature (4→removed)
+}
+
+// ── Transfer Commence Response / ACK Commence (v13 Section 8.7) ──
+// Removed: server_transfer_number, server_signature.
+// Added: hashPrevMessage.
+
+message TransferCommenceResponse {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  string hash_prev_message = 2;             // NEW — SHA-256 hash of transfer-commence-msg
+  // v02 fields removed: server_transfer_number (2→removed),
+  // server_signature (3→removed)
+}
+
+service SatpStage1Service {
+  rpc TransferProposal(TransferProposalRequest) returns (TransferProposalResponse) {}
+  rpc TransferCommence(TransferCommenceRequest) returns (TransferCommenceResponse) {}
+}

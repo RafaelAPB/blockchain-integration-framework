@@ -27,13 +27,13 @@
  * console.log('Audit period:', auditResponse.auditPeriod);
  * ```
  *
- * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-02.txt} IETF SATP Core v2 Specification
+ * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-13.txt} IETF SATP Core v13 Specification
  * @author Hyperledger Cacti Contributors
  * @since 0.0.3-beta
  */
 
 import { GetStatusError } from "../../core/errors/satp-errors";
-import { SessionData } from "../../generated/proto/cacti/satp/v02/session/session_pb";
+import { SessionData } from "../../generated/proto/cacti/satp/v13/session/session_pb";
 import {
   AuditRequest,
   AuditResponse,

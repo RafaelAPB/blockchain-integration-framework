@@ -1,0 +1,33 @@
+syntax = "proto3";
+package cacti.satp.v13.service;
+
+import "cacti/satp/v13/common/message.proto";
+
+// ── Lock Assertion Request (v13 Section 9.1) ───────────
+// Removed: client_transfer_number, client_signature.
+// Added: hashPrevMessage.
+
+message LockAssertionRequest {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  cacti.satp.v13.common.LockAssertionClaim lock_assertion_claim = 2;
+  cacti.satp.v13.common.LockAssertionClaimFormat lock_assertion_claim_format = 3;
+  uint64 lock_assertion_expiration = 4;
+  string hash_prev_message = 5;             // NEW — SHA-256 hash of ack-commence-msg
+  // v02 fields removed: client_transfer_number (5→removed),
+  // client_signature (6→removed)
+}
+
+// ── Lock Assertion Response / Assertion Receipt (v13 Section 9.2) ──
+// Removed: server_transfer_number, server_signature.
+// Added: hashPrevMessage.
+
+message LockAssertionResponse {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  string hash_prev_message = 2;             // NEW — SHA-256 hash of lock-assert-msg
+  // v02 fields removed: server_transfer_number (2→removed),
+  // server_signature (3→removed)
+}
+
+service SatpStage2Service {
+  rpc LockAssertion(LockAssertionRequest) returns (LockAssertionResponse) {}
+}

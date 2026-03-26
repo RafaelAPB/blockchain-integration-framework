@@ -1,0 +1,81 @@
+syntax = "proto3";
+package cacti.satp.v13.service;
+
+import "cacti/satp/v13/common/message.proto";
+
+// ── Commit Preparation Request (v13 Section 10.1) ──────
+// Removed: client_transfer_number, client_signature.
+// Added: hashPrevMessage.
+
+message CommitPreparationRequest {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  string hash_prev_message = 2;             // NEW — SHA-256 hash of assertion-receipt-msg
+  // v02 fields removed: client_transfer_number (2→removed),
+  // client_signature (3→removed)
+}
+
+// ── Commit Ready Response (v13 Section 10.2) ───────────
+// Removed: server_transfer_number, server_signature.
+// Added: hashPrevMessage.
+
+message CommitPreparationResponse {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  cacti.satp.v13.common.MintAssertionClaim mint_assertion_claim = 2;
+  cacti.satp.v13.common.MintAssertionClaimFormat mint_assertion_claim_format = 3;
+  string hash_prev_message = 4;             // NEW — SHA-256 hash of commit-prepare-msg
+  // v02 fields removed: server_transfer_number (4→removed),
+  // server_signature (5→removed)
+}
+
+// ── Commit Final Assertion Request (v13 Section 10.3) ──
+// Removed: client_transfer_number, client_signature.
+// Added: hashPrevMessage.
+
+message CommitFinalAssertionRequest {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  cacti.satp.v13.common.BurnAssertionClaim burn_assertion_claim = 2;
+  cacti.satp.v13.common.BurnAssertionClaimFormat burn_assertion_claim_format = 3;
+  string hash_prev_message = 4;             // NEW — SHA-256 hash of commit-ready-msg
+  // v02 fields removed: client_transfer_number (4→removed),
+  // client_signature (5→removed)
+}
+
+// ── Commit Final Acknowledgement Receipt (v13 Section 10.4) ──
+// Removed: server_transfer_number, server_signature.
+// Added: hashPrevMessage.
+
+message CommitFinalAssertionResponse {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  cacti.satp.v13.common.AssignmentAssertionClaim assignment_assertion_claim = 2;
+  cacti.satp.v13.common.AssignmentAssertionClaimFormat assignment_assertion_claim_format = 3;
+  string hash_prev_message = 4;             // NEW — SHA-256 hash of commit-final-msg
+  // v02 fields removed: server_transfer_number (4→removed),
+  // server_signature (5→removed)
+}
+
+// ── Transfer Complete Request (v13 Section 10.5) ────────
+// Removed: client_transfer_number, client_signature.
+// Added: hashPrevMessage.
+
+message TransferCompleteRequest {
+  cacti.satp.v13.common.CommonSatp common = 1;
+  string hash_transfer_commence = 2;        // hashTransferCommence — REQUIRED
+  string hash_prev_message = 3;             // NEW — SHA-256 hash of ack-commit-final-msg
+  // v02 fields removed: client_transfer_number (3→removed),
+  // client_signature (4→removed)
+}
+
+// ── Transfer Complete Response ──────────────────────────
+// v13 does not define a response to commit-transfer-complete-msg.
+// Session closes after client sends it. Retained as minimal
+// message for gRPC response requirement.
+
+message TransferCompleteResponse {
+  cacti.satp.v13.common.CommonSatp common = 1;
+}
+
+service SatpStage3Service {
+  rpc CommitPreparation(CommitPreparationRequest) returns (CommitPreparationResponse) {}
+  rpc CommitFinalAssertion(CommitFinalAssertionRequest) returns (CommitFinalAssertionResponse) {}
+  rpc TransferComplete(TransferCompleteRequest) returns (TransferCompleteResponse) {}
+}

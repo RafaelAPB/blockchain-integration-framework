@@ -7,7 +7,7 @@ The Hyperledger Cacti SATP (Secure Asset Transfer Protocol) Hermes plugin provid
 - **Atomic Asset Transfers**: Secure, atomic asset transfers between heterogeneous blockchain networks
 - **Multi-Ledger Support**: Native support for Hyperledger Fabric, Ethereum/Besu, and extensible architecture for additional ledgers
 - **Crash Recovery**: Comprehensive crash recovery mechanisms ensuring transaction consistency and fault tolerance
-- **IETF SATP Compliance**: Full implementation of the IETF SATP protocol specification
+- **IETF SATP Compliance**: Full implementation of the [IETF SATP Core v13](https://datatracker.ietf.org/doc/html/draft-ietf-satp-core-13) protocol specification
 - **Gateway Architecture**: Implements the gateway paradigm as defined in [Hermes research paper](https://www.sciencedirect.com/science/article/abs/pii/S0167739X21004337)
 - **Session Management**: Advanced session lifecycle management with persistent logging and state recovery
 - **Security**: Cryptographic security with digital signatures, proof verification, and secure messaging
@@ -105,7 +105,7 @@ The SATP protocol operates in four distinct stages:
 3. **Stage 2 (Lock Evidence)**: Asset locking and proof generation/verification
 4. **Stage 3 (Commitment)**: Final asset transfer completion and confirmation
 
-The SATP protocol follows a standardized sequence of cross-chain asset transfer operations as defined in the IETF SATP v2 specification.
+The SATP protocol follows a standardized sequence of cross-chain asset transfer operations as defined in the [IETF SATP v13 specification](https://datatracker.ietf.org/doc/html/draft-ietf-satp-core-13).
 
 ### Crash Recovery Integration
 The crash recovery protocol ensures session consistency across all stages of SATP. Each session's state, logs, hashes, timestamps, and signatures are stored and recovered using the following mechanisms:
@@ -680,7 +680,7 @@ const gatewayConfig = {
       signingAlgorithm: "SECP256K1",
       pubKey: "0x03a34e1d66b78e47fa1bba3445a6019acb5b9c87d0c6ad81c09e7d496682ae81fc",
     },
-    version: [{ Core: "v02", Architecture: "v02", Crash: "v02" }],
+    version: [{ Core: "v13", Architecture: "v02", Crash: "v02" }],
     proofID: "mockProofID10",
     address: "http://gateway1.satp-hermes",
   },
@@ -984,6 +984,10 @@ docker-compose -f docker-compose-satp.yml build
 # List running containers
 docker-compose -f docker-compose-satp.yml ps
 ```
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for breaking changes, migration guides, and release history.
 
 ## Contributing
 We welcome contributions to Hyperledger Cacti in many forms, and there’s always interesting challenges!

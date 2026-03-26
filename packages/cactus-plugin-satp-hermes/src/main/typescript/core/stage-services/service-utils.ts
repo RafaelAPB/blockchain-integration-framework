@@ -49,7 +49,7 @@ import {
   AssetSchema as ProtoAssetSchema,
   type Asset as ProtoAsset,
   TokenType,
-} from "../../generated/proto/cacti/satp/v02/common/message_pb";
+} from "../../generated/proto/cacti/satp/v13/common/message_pb";
 import { LedgerType } from "@hyperledger/cactus-core-api";
 import {
   EvmFungibleAsset,

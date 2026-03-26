@@ -34,11 +34,11 @@ import { stringify as safeStableStringify } from "safe-stable-stringify";
 
 import { expressConnectMiddleware } from "@connectrpc/connect-express";
 
-import { SatpStage0Service } from "../../generated/proto/cacti/satp/v02/service/stage_0_pb";
-import { SatpStage1Service } from "../../generated/proto/cacti/satp/v02/service/stage_1_pb";
-import { SatpStage2Service } from "../../generated/proto/cacti/satp/v02/service/stage_2_pb";
-import { SatpStage3Service } from "../../generated/proto/cacti/satp/v02/service/stage_3_pb";
-import { CrashRecoveryService } from "../../generated/proto/cacti/satp/v02/service/crash_recovery_pb";
+import { SatpStage0Service } from "../../generated/proto/cacti/satp/v13/service/stage_0_pb";
+import { SatpStage1Service } from "../../generated/proto/cacti/satp/v13/service/stage_1_pb";
+import { SatpStage2Service } from "../../generated/proto/cacti/satp/v13/service/stage_2_pb";
+import { SatpStage3Service } from "../../generated/proto/cacti/satp/v13/service/stage_3_pb";
+import { CrashRecoveryService } from "../../generated/proto/cacti/satp/v13/service/crash_recovery_pb";
 import { SatpStageKey } from "../../generated/gateway-client/typescript-axios";
 
 export interface IGatewayOrchestratorOptions {
