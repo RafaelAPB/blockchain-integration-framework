@@ -383,3 +383,12 @@ exposes REST/gRPC APIs, and manages configuration.
 - Node version: 20.20.0
 
 ---
+
+## 15. AI & LLM Tooling
+
+Contributors using AI or LLM tools must follow the project's
+[AI Guidelines](./AI_GUIDELINES.md). Key points: the committer is solely
+responsible for AI-generated code, AI-assisted work must be disclosed,
+and all AI output must be reviewed by a human before submission.
+
+---
