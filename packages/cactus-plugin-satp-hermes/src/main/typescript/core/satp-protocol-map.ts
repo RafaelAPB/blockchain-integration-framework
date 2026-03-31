@@ -132,11 +132,6 @@ export type SatpStepTag =
   | Stage3StepTag;
 
 /**
- * Step execution order within a stage (before/during/after/rollback)
- */
-export type StepOrder = "before" | "during" | "after" | "rollback";
-
-/**
  * Protocol step definition with metadata
  */
 export interface SatpProtocolStep {

@@ -1,0 +1,34 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'14px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'actorBkg':'#22c55e','actorTextColor':'#ffffff','actorBorder':'#16a34a','activationBkgColor':'#d1fae5','activationBorderColor':'#22c55e','signalColor':'#065f46','labelBoxBkgColor':'#f0fdf4','labelBoxBorderColor':'#22c55e','noteBkgColor':'#d1fae5','noteTextColor':'#065f46'}}}%%
+sequenceDiagram
+  participant G1_WF as G1:SatpTransferWorkflow<br/>(Temporal Workflow replay)
+  participant G1_ACT as G1:Activities
+  participant LOG_API as Log Storage API
+  participant G2_WF as G2:SatpTransferWorkflow
+
+  Note over G1_WF: Worker crashes mid-Activity
+
+  rect rgb(240, 240, 255)
+    Note over G1_WF: TEMPORAL REPLAY<br/>(Worker restarts — Event History replayed to crash point)
+    G1_WF ->> G1_WF: Replay events[0..N-1]<br/>(WriteLogEntry, LockAsset schedules in history)
+    Note over G1_WF: Reaches last incomplete Activity<br/>detects divergence via heartbeat details
+  end
+
+  G1_WF ->> G2_WF: Signal: RECOVER<br/>{ sessionId, seqNum=N, isBackup=false }
+
+  G2_WF ->> G2_WF: Signal handler wakes RecoveryWorkflow
+  G2_WF ->> G1_ACT: Activity: GetLogDiffActivity<br/>(getLogDiff(G1.log, G2.log))
+  G1_ACT ->> LOG_API: GET /getLogDiff
+  LOG_API -->> G1_ACT: entries[N..M]
+  G1_ACT -->> G2_WF: diff result
+
+  G2_WF ->> G1_WF: Update: RECOVER-UPDATE<br/>{ recoveredLogs: entries[N..M] }
+
+  G1_WF ->> G1_ACT: Activity: WriteLogEntryActivity<br/>(for each missing entry)
+  G1_ACT ->> LOG_API: POST /writeLogEntry (×M-N)
+  LOG_API -->> G1_ACT: success
+
+  G1_WF -->> G2_WF: Update resolves: RECOVER-SUCCESS<br/>{ success: true, entriesChanged: [...hashes] }
+
+  Note over G1_WF,G2_WF: Logs now consistent
+
+  G1_WF ->> G1_WF: Resume Phase 2 from seqNum=M<br/>(executeChild(Phase2Workflow, {continueFrom: M}))

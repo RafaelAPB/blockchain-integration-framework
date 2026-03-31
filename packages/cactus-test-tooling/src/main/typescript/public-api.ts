@@ -2,6 +2,11 @@ export { ITestLedger } from "./i-test-ledger";
 export { IKeyPair, isIKeyPair } from "./i-key-pair";
 
 export {
+  TemporalTestServer,
+  type ITemporalTestServerOptions,
+} from "./temporal/temporal-test-server";
+
+export {
   BesuTestLedger,
   IBesuTestLedgerConstructorOptions,
   BESU_TEST_LEDGER_DEFAULT_OPTIONS,

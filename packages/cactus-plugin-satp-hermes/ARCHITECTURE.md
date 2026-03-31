@@ -285,6 +285,63 @@ The recovery message types (`RecoverV1Message`, `RecoverUpdateV1Message`, etc.)
 remain unchanged but are documented as an extension rather than a core protocol
 requirement, per the v13 specification structure.
 
+## 🔒 Security Configuration
+
+SATP Hermes implements several v13 security mechanisms, but **all enforcement
+is optional and disabled by default**.  This allows the gateway to run in
+development, testing, and CI environments without TLS certificates or
+cryptographic key infrastructure.
+
+Security features are controlled through the `security` field of
+[`SATPGatewayConfig`](src/main/typescript/plugin-satp-hermes-gateway.ts) and
+the corresponding [`ISATPSecurityOptions`](src/main/typescript/plugin-satp-hermes-gateway.ts)
+interface.  When `security` is `undefined` (the default), all flags are
+treated as `false`.
+
+### Security Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `requireTLS` | `false` | TLS 1.3 enforcement on the GOL HTTP server and outbound ConnectRPC transports (SEC-001-gw). |
+| `requireJWS` | `false` | ECDSA P-256 JWS signing/verification on every gateway-to-gateway message (SEC-002). |
+| `requireClassifiedKeys` | `false` | Enforce the v13 four-key classification model (`GatewayKeyPurpose`). |
+| `requireOAuth2` | `false` | JWT/OAuth 2.0 Bearer token validation for Client Application API calls (SEC-004). |
+
+### Development vs. Production
+
+```
+// Development / test — default, no security infrastructure needed
+const config: SATPGatewayConfig = { gid, counterPartyGateways, ... };
+
+// Production — opt in to whichever mechanisms are available
+const config: SATPGatewayConfig = {
+  gid,
+  counterPartyGateways,
+  ...,
+  security: {
+    requireTLS: true,
+    requireJWS: true,
+    requireClassifiedKeys: true,
+    requireOAuth2: true,
+  },
+};
+```
+
+> **Note**: Enabling `requireJWS` or `requireClassifiedKeys` requires that the
+> gateway's `GatewayIdentity.keys` map contains a `GatewayKeyPurpose.SIGNATURE`
+> P-256 key pair.  Enabling `requireTLS` requires TLS certificate files
+> resolvable from the environment variables `GATEWAY_TLS_CERT_PATH`,
+> `GATEWAY_TLS_KEY_PATH`, and `GATEWAY_TLS_CA_CERT_PATH`.
+
+### Rationale
+
+The opt-in model follows the principle that security features should not block
+the happy path for development workflows.  Interoperability with external gateways
+is the primary goal; hardening is layered on top once the network topology and
+key infrastructure are in place.  Each flag corresponds to a distinct
+implementation task (SEC-001-gw through SEC-004) that can be enabled
+independently.
+
 ---
 
 **Version**: 0.0.3-beta  

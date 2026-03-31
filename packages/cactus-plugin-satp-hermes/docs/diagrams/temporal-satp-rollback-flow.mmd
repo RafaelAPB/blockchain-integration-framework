@@ -1,0 +1,43 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'14px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'actorBkg':'#22c55e','actorTextColor':'#ffffff','actorBorder':'#16a34a','activationBkgColor':'#d1fae5','activationBorderColor':'#22c55e','signalColor':'#065f46','labelBoxBkgColor':'#f0fdf4','labelBoxBorderColor':'#22c55e','noteBkgColor':'#d1fae5','noteTextColor':'#065f46'}}}%%
+sequenceDiagram
+  participant G1_WF as G1:SatpTransferWorkflow
+  participant G1_SAGA as G1:SagaCompensations
+  participant G2_WF as G2:SatpTransferWorkflow
+  participant G2_SAGA as G2:SagaCompensations
+  participant FABRIC as Fabric Ledger
+  participant ETH as Ethereum Ledger
+
+  G1_WF ->> G2_WF: COMMIT-PREPARE (Phase 3)
+  Note over G1_WF: CRASH
+
+  Note over G2_WF: Timeout detecting G1 crash
+
+  rect rgb(255, 240, 240)
+    Note over G2_SAGA: G2 Saga compensations (CancellationScope.nonCancellable)
+    G2_SAGA ->> ETH: Activity: BurnAssetActivity<br/>(if asset was minted)
+    ETH -->> G2_SAGA: burn receipt
+    G2_SAGA ->> G2_SAGA: writeLogEntry(exec-rollback)<br/>writeLogEntry(done-rollback)
+  end
+
+  G2_WF ->> G2_WF: Wait for G1 RECOVER signal<br/>(condition: recoverSignalReceived)
+
+  Note over G1_WF: G1 RECOVERS (Temporal Worker restarts)
+  G1_WF ->> G1_WF: Replay Event History to crash point
+
+  G1_WF ->> G2_WF: Signal: RECOVER<br/>{ seqNum=N, isBackup=false }
+
+  G2_WF ->> G1_WF: Update: RECOVER-UPDATE<br/>{ recoveredLogs: rollback entries }
+  G1_WF ->> G1_WF: applyLogDiff — discovers G2 rolled back
+
+  G1_WF -->> G2_WF: Update resolves: RECOVER-SUCCESS
+
+  rect rgb(255, 240, 240)
+    Note over G1_SAGA: G1 Saga compensations (CancellationScope.nonCancellable)
+    G1_SAGA ->> FABRIC: Activity: UnlockAssetActivity
+    FABRIC -->> G1_SAGA: unlock receipt
+    G1_SAGA ->> G1_SAGA: writeLogEntry(exec-rollback)<br/>writeLogEntry(done-rollback)
+  end
+
+  G1_WF ->> G2_WF: Signal: ROLLBACK-ACK<br/>{ success: true, actionsPerformed: [UNLOCK], proofs: [...] }
+
+  Note over G1_WF,G2_WF: Both gateways rolled back — Assets restored

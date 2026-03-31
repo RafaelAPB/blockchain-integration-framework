@@ -100,7 +100,7 @@ export class Stage1RollbackStrategy implements RollbackStrategy {
           this.log.error(`${fnTag} Error in client-side rollback: ${error}`);
           rollbackState.rollbackLogEntries.push(
             create(RollbackLogEntrySchema, {
-              sessionId: clientSessionData.id,
+              sessionId: rollbackState.sessionId,
               stage: SATPStage[2],
               timestamp: new Date().toISOString(),
               action: "NO_ACTION_REQUIRED_CLIENT",
@@ -142,7 +142,7 @@ export class Stage1RollbackStrategy implements RollbackStrategy {
           this.log.error(`${fnTag} Error in server-side rollback: ${error}`);
           rollbackState.rollbackLogEntries.push(
             create(RollbackLogEntrySchema, {
-              sessionId: serverSessionData.id,
+              sessionId: rollbackState.sessionId,
               stage: SATPStage[2],
               timestamp: new Date().toISOString(),
               action: "NO_ACTION_REQUIRED_SERVER",

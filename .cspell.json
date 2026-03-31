@@ -262,6 +262,14 @@
   ,"adress"
   ,"NFToken"
   ,"NFT"
+  ,"temporalio"
+  ,"IJWS"
+  ,"behaviour"
+  ,"acked"
+  ,"belchior"
+  ,"synchronisation"
+  ,"PONR"
+  ,"ponr"
   ],
   "dictionaries": [
     "typescript,node,npm,go,rust"

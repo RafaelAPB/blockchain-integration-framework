@@ -408,9 +408,6 @@ export class Stage1ServerService extends SATPService {
 
         if (this.checkTransferClaims(request.transferInitClaims, fnTag)) {
           this.Log.info(`${fnTag}, TransferProposalRequest was accepted...`);
-        } else if (false) {
-          sessionData.state = State.CONDITIONAL_REJECTED;
-          //TODO Implement
         } else {
           this.Log.info(`${fnTag}, TransferProposalRequest was rejected...`);
           sessionData.state = State.REJECTED;
@@ -568,11 +565,9 @@ export class Stage1ServerService extends SATPService {
         }
         if (transferClaims.assetProfileId == "") {
           this.Log.error(`${tag}, assetProfileId is missing`);
-          //return false;
         }
         if (transferClaims.verifiedOriginatorEntityId == "") {
           this.Log.error(`${tag}, verifiedOriginatorEntityId is missing`);
-          //return false;
         }
         if (transferClaims.verifiedBeneficiaryEntityId == "") {
           this.Log.error(`${tag}, verifiedBeneficiaryEntityId is missing`);

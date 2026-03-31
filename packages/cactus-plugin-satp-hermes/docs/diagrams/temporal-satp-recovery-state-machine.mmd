@@ -1,0 +1,22 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'14px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46'}}}%%
+stateDiagram-v2
+  [*] --> RUNNING : Transfer started
+
+  RUNNING --> CRASHED : Process crash / silent failure
+
+  CRASHED --> RECOVERING_SELF_HEAL : Self-healing mode (gateway restarts)
+  CRASHED --> BACKUP_TAKES_OVER : Primary-backup mode (heartbeat timeout exceeded)
+
+  RECOVERING_SELF_HEAL --> STATE_SYNC : Send RECOVER to counterparty
+  BACKUP_TAKES_OVER --> SESSION_RESUMPTION : Backup validates X.509 chain
+  SESSION_RESUMPTION --> STATE_SYNC : Backup sends RECOVER
+
+  STATE_SYNC --> LOG_UPDATED : Receive RECOVER-UPDATE (log diff applied)
+  LOG_UPDATED --> RECOVERY_CONFIRMED : Send RECOVER-UPDATE-ACK / Receive RECOVER-SUCCESS
+
+  RECOVERY_CONFIRMED --> RUNNING : Resume SATP execution
+
+  RUNNING --> ROLLBACK_INITIATED : Counterparty crash detected (timeout expired)
+  ROLLBACK_INITIATED --> ROLLING_BACK : Execute rollback actions
+  ROLLING_BACK --> ROLLBACK_COMPLETE : Send ROLLBACK / Receive ROLLBACK-ACK
+  ROLLBACK_COMPLETE --> [*] : Transfer aborted

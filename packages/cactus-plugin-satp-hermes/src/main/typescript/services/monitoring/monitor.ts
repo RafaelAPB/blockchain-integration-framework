@@ -242,6 +242,43 @@ export class MonitorService {
         "updown",
       );
       this.createCounter("operation_gas_used", "Operation gas used", "updown");
+      // Crash-recovery metrics (draft-belchior-satp-gateway-recovery-04 §6)
+      this.createCounter(
+        "crash_recovery_attempts",
+        "Total crash-recovery attempts initiated",
+      );
+      this.createCounter(
+        "crash_recovery_successes",
+        "Total crash-recovery flows completed successfully",
+      );
+      this.createCounter(
+        "crash_recovery_failures",
+        "Total crash-recovery flows that failed or timed out",
+      );
+      this.createCounter("rollback_count", "Total rollback requests sent");
+      this.createCounter(
+        "rollback_ack_count",
+        "Total rollback acknowledgements received",
+      );
+      this.createCounter(
+        "backup_gateway_promotions",
+        "Total backup-gateway promotion events",
+      );
+      this.createHistogram(
+        "crash_recovery_duration_ms",
+        "End-to-end crash-recovery duration in milliseconds",
+        "ms",
+      );
+      this.createHistogram(
+        "log_diff_entry_count",
+        "Number of log entries in a recovery diff",
+        "entries",
+      );
+      this.createHistogram(
+        "rollback_duration_ms",
+        "Duration of a single rollback strategy execution in milliseconds",
+        "ms",
+      );
       this.createLog(
         "info",
         `${fnTag} - MonitorService initialization complete`,

@@ -68,23 +68,6 @@ export class BridgeInternalError extends RuntimeError {
   }
 }
 
-export class OntologyError extends BridgeInternalError {
-  constructor(
-    tag: string,
-    cause?: string | Error | null,
-    traceID?: string,
-    trace?: string,
-  ) {
-    super(
-      `${tag}, undefined Ontology, ontology is required to interact with tokens`,
-      cause ?? null,
-      500,
-      traceID,
-      trace,
-    );
-  }
-}
-
 export class TransactionError extends BridgeInternalError {
   constructor(
     tag: string,

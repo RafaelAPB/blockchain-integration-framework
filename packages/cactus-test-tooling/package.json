@@ -105,6 +105,7 @@
     "@aries-framework/node": "0.5.0-alpha.97",
     "@hyperledger/aries-askar-nodejs": "0.2.3",
     "@hyperledger/indy-vdr-nodejs": "0.2.3",
+    "@temporalio/testing": "1.15.0",
     "@types/dockerode": "3.2.7",
     "@types/esm": "3.2.0",
     "@types/fs-extra": "11.0.4",

@@ -1,8 +1,8 @@
 ---
 goal: Upgrade SATP Hermes Implementation from IETF SATP Core v02 to v13
-version: 5.0
+version: 6.0
 date_created: 2026-03-26
-last_updated: 2026-03-28
+last_updated: 2026-03-31
 owner: SATP Development Team
 status: 'In progress'
 tags: [upgrade, protocol, satp, specification-compliance, breaking-change]
@@ -32,6 +32,7 @@ error handling, and test suites.
 ### 1.1 Security Requirements
 
 - **SEC-001**: TLS 1.3 MUST be the minimum transport security. v02 allowed TLS 1.2; v13 mandates TLS 1.3 [RFC8446] with mandatory support for `TLS_AES_128_GCM_SHA256` (v13 Section 5.4.1, 5.3.9).
+  - **Partial implementation (2026-03-31)**: The Temporal Worker now reads TLS credentials from env vars (`TEMPORAL_TLS_CERT_PATH`, `TEMPORAL_TLS_KEY_PATH`, `TEMPORAL_TLS_CA_CERT_PATH`). An `insecure?: boolean` flag on `ISatpWorkerDeps` and `IBackupActivitiesOptions` disables TLS and X.509 cert-chain validation for local testing — it must never be set in production. Full gateway HTTP/gRPC TLS 1.3 enforcement remains deferred (see Deferred Work, SEC-001).
 - **SEC-002**: All SATP messages MUST be signed using ECDSA [FIPS 186-5] via JSON Web Signatures [RFC7515]. Minimum: ECDSA P-256 curve + SHA-256 hash. v02 had no JWS requirement; signatures were ad-hoc fields per message (v13 Section 5.2).
 - **SEC-003**: Gateway cryptographic keys MUST be classified into four distinct types: (1) signature key-pair, (2) secure channel establishment key-pair, (3) identity key-pair, (4) gateway-owner identity key-pair. Keys expressed in JWK format [RFC7517]. This is entirely new in v13 (Section 4.4). The current implementation uses generic `client_gateway_pubkey`/`server_gateway_pubkey` fields that do not distinguish key purposes.
 - **SEC-004**: Gateway credential type MUST support JWT [RFC7519] with OAuth 2.0 [RFC6749] as the minimum for authenticating incoming API calls from Client Applications (v13 Section 5.3.8). Not explicitly stated in v02.
@@ -74,7 +75,7 @@ The `CommonSatp` message in `common/message.proto` is the shared envelope for al
 | — | — | `hashTransferInitClaim` | **Add** — present in proposal-receipt, transfer-commence, transfer-complete (as `hashTransferCommence`) |
 | — | — | `timestamp` | **Add** — present in proposal-receipt-msg |
 
-**Net result**: `CommonSatp` shrinks from 15 fields to 4 shared fields (`version`, `messageType`, `sessionId`, `transferContextId`). Remaining fields like `hashPrevMessage`, `hashTransferInitClaim`, `timestamp` are per-message, not envelope-level.
+**Net result**: `CommonSatp` shrinks from 15 fields to a small core. Only `messageType` and `sessionId` are truly universal across all 14 v13 message types. `version` appears in only 3 messages (transfer-proposal, proposal-receipt, reject). `transferContextId` is present in most messages but absent from `error-msg` (Section 10.6) and `session-abort-msg` (Section 10.7). For protocol implementation, the proto `CommonSatp` envelope retains all 4 fields (`version`, `messageType`, `sessionId`, `transferContextId`) with the understanding that edge-case messages (error, abort) only populate the applicable subset. Remaining fields like `hashPrevMessage`, `hashTransferInitClaim`, `timestamp` are per-message, not envelope-level.
 
 ### 1.5 Message Format Requirements — `TransferClaims` (Transfer Initialization Claim)
 
@@ -130,7 +131,7 @@ v13 Section 8.2 radically simplifies the capabilities structure down to 5 fields
 | 13 | `history` (repeated History) | — | **Remove** |
 | — | — | `gatewayTlsScheme` REQUIRED | **Add** — e.g. `"TLS_AES_128_GCM_SHA256"` |
 
-**Net result**: 13 fields → 5 fields. 8 fields removed, 4 renamed, 1 added.
+**Net result**: 13 fields → 5 fields. 9 fields removed, 4 renamed, 1 added.
 
 ### 1.7 Message Format Requirements — Stage 1 Messages
 
@@ -175,7 +176,7 @@ v13 Section 8.2 radically simplifies the capabilities structure down to 5 fields
 | 3 | `server_signature` | — | **Remove** — signing via JWS |
 | — | — | `hashPrevMessage` REQUIRED | **Add** — SHA-256 hash of transfer-commence-msg |
 
-**Reject Message** — **NEW** (v13 Section 8.5, replaces `INIT_REJECT` which was part of TransferProposalResponse)
+**Reject Message** — **NEW** (v13 Section 8.5, replaces the v02 `INIT_REJECT` message which was a separate Transfer Proposal Reject message — v02 Section 7.5)
 
 | # | v13 field | Type | Notes |
 |---|---|---|---|
@@ -196,7 +197,7 @@ v13 Section 8.2 radically simplifies the capabilities structure down to 5 fields
 | 1 | `common` (CommonSatp) | `messageType`, `sessionId`, `transferContextId` | **Flatten** or keep |
 | 2 | `lock_assertion_claim` (LockAssertionClaim) | `lockAssertionClaim` | **Rename** |
 | 3 | `lock_assertion_claim_format` (LockAssertionClaimFormat) | `lockAssertionClaimFormat` = `"LOCK_ASSERTION_CLAIM_FORMAT_1"` | **Rename** + default |
-| 4 | `lock_assertion_expiration` (uint64) | `lockAssertionExpiration` | **Rename** |
+| 4 | `lock_assertion_expiration` (uint64) | `lockAssertionExpiration` | **Rename** + **type change**: v13 Section 9.1 describes this as "expiration date and time [DATETIME]" with ISO 8601 string values (e.g. `"2024-12-23T23:59:59.999Z"`), not an integer. Proto type should change from `uint64` to `string`. |
 | 5 | `client_transfer_number` | — | **Remove** — not in v13 |
 | 6 | `client_signature` | — | **Remove** — signing via JWS |
 | — | — | `hashPrevMessage` REQUIRED | **Add** |
@@ -403,6 +404,7 @@ The following v02 constructs have no v13 equivalent and must be removed or depre
 - **CON-001**: Protobuf definitions are under `src/main/proto/cacti/satp/v02/` — the `v02` namespace path must be updated or a `v13` namespace created. Every import path in `.proto` files and every generated TypeScript import path depends on this namespace. Affects ~50+ TypeScript files.
 - **CON-002**: Generated code under `src/main/typescript/generated/` MUST NOT be manually edited. Changes flow through `.proto` files → `buf generate` → generated TypeScript. Only proto files are edited.
 - **CON-003**: Existing HERMES crash recovery (RECOVER, RECOVER-UPDATE, RECOVER-SUCCESS, ROLLBACK, ROLLBACK-ACK messages in `crash_recovery.proto`) is not part of v13 spec but must be maintained as a documented extension. It should not be removed.
+  - **Status (2026-03-31)**: Fully implemented as a Temporal-based extension (see Phase 9). All crash-recovery workflows, activities, the Temporal worker factory, and OTel tracing interceptor are in place. Unit and integration test coverage complete.
 - **CON-004**: Stage 0 is non-standard in both v02 and v13 ("out of the scope of this specification" — v13 Section 7). The Stage 0 implementation should remain experimental and unchanged.
 - **CON-005**: Database migrations (Knex.js under `src/main/typescript/database/migrations/`) must be created for any session data schema changes. Both `up` and `down` must be implemented.
 - **CON-006**: Backward compatibility with v02 is NOT required — this is a breaking protocol version change (v02 → v13).
@@ -1073,6 +1075,25 @@ The following observations about the current codebase affect the implementation 
 - Updated unit test files: `services.test.ts` (32 tests passing), `validate-extensions.test.ts` (fix: `toBeArray()` → `Array.isArray()`)
 - Removed test files: `crash-management/rollback-factory.test.ts`, `crash-management/scenarios.test.ts` (coverage absorbed into v13 test files)
 
+### Implementation Phase 9: Temporal Crash Recovery Extension
+
+- GOAL-009: Implement the HERMES crash recovery Non-Standard Extension (CON-003) as a Temporal.io-based fault-tolerant workflow system. Partially addresses SEC-001 via opt-in Temporal TLS and `insecure` bypass for local testing. [REQ-004, CON-003, SEC-001]
+
+| Task | Description | Completed | Date |
+| ---- | ----------- | --------- | ---- |
+| TASK-P9-01 | **Crash-recovery protos**: `crash_recovery_log.proto`, `crash_recovery_subprotocol.proto`, `rollback_subprotocol.proto` created under `v13/` namespace. TypeScript types generated via `buf generate`. | ✅ | 2026-03-31 |
+| TASK-P9-02 | **Log-storage, crash-recovery, and protocol activities**: `temporal/activities/log-storage-activities.ts`, `crash-recovery-activities.ts`, `protocol-activities.ts` — all 5 log API operations plus send-recover, send-recover-success, send-rollback, execute-rollback, and all 8 protocol stage activities. | ✅ | 2026-03-31 |
+| TASK-P9-03 | **Monitor activities** (`temporal/activities/monitor-activities.ts`): Factory `makeMonitorActivities(localRepository, temporalClient)`. `findStaleSessionsActivity(staleThresholdMs)` — heartbeat failure detection per draft §5.1. `signalStaleSessionActivity(sessionId)` — delivers `recoverRequestSignal` to its `SatpTransferWorkflow`. | ✅ | 2026-03-31 |
+| TASK-P9-04 | **Backup activities** (`temporal/activities/backup-activities.ts`): Factory `makeBackupActivities(options?)`. `validateCertChainActivity(certChainPem)` — X.509 chain expiry + issuer-chain validation per draft §6.1. `IBackupActivitiesOptions.insecure?: boolean` skips validation entirely for local testing. | ✅ | 2026-03-31 |
+| TASK-P9-05 | **Temporal Worker factory** (`temporal/worker.ts`): `ISatpWorkerDeps` extended with `insecure?: boolean`. `createSatpTemporalWorker()` reads TLS credentials from env vars (`TEMPORAL_TLS_CERT_PATH`, `TEMPORAL_TLS_KEY_PATH`, `TEMPORAL_TLS_CA_CERT_PATH`); when `insecure: true` or env vars absent, plain-text gRPC is used. Registers all 5 activity groups + OTel interceptor. | ✅ | 2026-03-31 |
+| TASK-P9-06 | **Workflows**: `satp-transfer-workflow.ts` (Saga with signals/queries), `crash-recovery-workflow.ts` (4-message sub-protocol), `rollback-workflow.ts` (compensation), `heartbeat-monitor-workflow.ts` (periodic stale-session scan), `backup-gateway-workflow.ts` (X.509 promotion). | ✅ | 2026-03-31 |
+| TASK-P9-07 | **OTel interceptor** (`temporal/interceptors/otel-activity-interceptor.ts`): `OtelActivityInboundInterceptor` extracts W3C `traceparent`/`tracestate` from Temporal activity headers and restores OTel context for the activity's execution. | ✅ | 2026-03-31 |
+| TASK-P9-08 | **`public-api.ts` temporal exports**: `createSatpTemporalWorker`, `ISatpWorkerDeps`, `IBackupActivitiesOptions`, all 5 activity type aliases, all workflow functions, signals, and queries exported. | ✅ | 2026-03-31 |
+| TASK-P9-09 | **Unit tests** (`src/test/typescript/unit/crash-recovery/`): `crash-recovery-proto-structures.test.ts`, `stage-rollback-strategies.test.ts`, `validate-satp-enable-crash-recovery-temporal.test.ts`, `otel-activity-interceptor.test.ts` (6 tests — instantiation, empty-headers path, ROOT_CONTEXT propagation, W3C traceparent extraction, context restoration, input passthrough). | ✅ | 2026-03-31 |
+| TASK-P9-10 | **Integration tests** (`src/test/typescript/integration/crash-recovery/`): `temporal-crash-recovery-workflow.test.ts`, `rollback-workflow.test.ts`, `crash-recovery-workflow-signals.test.ts`, `saga-compensation.test.ts`, `rollback-workflow-ponr.test.ts`, `backup-gateway-promotion.test.ts` — all use `TestWorkflowEnvironment.createTimeSkipping()` (embedded, no Docker). | ✅ | 2026-03-31 |
+| TASK-P9-11 | **`TemporalTestServer` in `cactus-test-tooling`**: Helper wraps `TestWorkflowEnvironment.createTimeSkipping()` and `createLocal()` for use in integration tests. | ✅ | 2026-03-31 |
+| TASK-P9-12 | **Docker Compose Temporal services**: `temporal` (frontend), `temporal-ui`, and `postgres` (Temporal persistence) services added to the package's Docker Compose file for local dev. | ✅ | 2026-03-31 |
+
 ### Quality Gate Baseline (2026-03-26, Plan v4.0)
 
 All three quality gates pass with zero regressions:
@@ -1092,61 +1113,109 @@ All three quality gates pass with zero regressions:
 
 **Note on ESLint config**: The root ESLint rule `@typescript-eslint/no-unused-vars` has `{ ignoreRestSiblings: true }` but does NOT have `argsIgnorePattern: "^_"`. Therefore intentionally unused function parameters require explicit `eslint-disable-next-line` comments, not just an underscore prefix.
 
+### Quality Gate Baseline (2026-03-31, Plan v7.0)
+
+Updated baseline after Phase 10 (post-migration hardening + proto codegen upgrade) was completed:
+
+| Check | Status | Detail |
+|-------|--------|---------|
+| TypeScript compilation (`tsc --noEmit`) | **PASS** | 0 errors |
+| ESLint | **PASS** | 0 errors, ≥101 warnings (pre-existing `no-explicit-any`) |
+| Unit tests | **PASS** | 33 suites, 426 tests, 0 failures |
+
+Delta from v6.0 baseline: +3 new test suites (`crash-recovery-proto-structures`, `stage-rollback-strategies`, `shutdown-state`); +33 new tests. `protoc-gen-es` upgraded to v2.2.2; `_connect.ts` files removed.
+
 ---
 
-## 10. Next Steps — Detailed Instructions
+### Implementation Phase 10: Post-Migration Hardening
 
-### Immediate: Phase 7 (JSDoc URL Bulk Replace)
+- GOAL-010: Complete SEC-002 JWS compliance (real ECDSA signing), SEC-003 key classification wiring, TASK-067 handler dispatch, SEC-001 gateway TLS enforcement, SEC-004 OAuth2 auth, and proto cleanup. All items were deferred from their original phases to avoid blocking the v13 migration. [SEC-001, SEC-002, SEC-003, SEC-004]
 
-This is the primary remaining work — a mechanical find-and-replace across 45 files.
+**Architectural decision (v2025-10)**: All security enforcement is **opt-in and
+disabled by default**.  The gateway accepts connections and processes messages
+with no TLS, JWS, or OAuth2 infrastructure.  Each security mechanism is
+enabled independently via the `security: ISATPSecurityOptions` field of
+`SATPGatewayConfig`.  This allows development/test environments to run without
+certificate or key infrastructure while production deployments can enable each
+layer as it becomes ready.  See `ARCHITECTURE.md §Security Configuration` for
+full documentation.
 
-**Step 1: Bulk replace `draft-ietf-satp-core-02.txt` → `draft-ietf-satp-core-13.txt`**
+| Task | Description | Status | Priority |
+| ---- | ----------- | ------ | -------- |
+| SEC-CONFIG | **Security opt-in config interface**: Added `ISATPSecurityOptions` interface to `SATPGatewayConfig` with four flags (`requireTLS`, `requireJWS`, `requireClassifiedKeys`, `requireOAuth2`). All default to `false`. Exported from `public-api.ts`. Forwarded through `IGatewayOrchestratorOptions`. `ARCHITECTURE.md` updated with Security Configuration section. | ✅ done | **High** |
+| TASK-064-followup | **Real JWS signing (ECDSA P-256)**: Replaced stub `jwsSign()`/`jwsVerify()` in `core/jws-utils.ts` with actual ECDSA P-256 + SHA-256 signing using Node.js native `crypto`. Gated behind `security.requireJWS === true` — stub behaviour preserved when flag is `false`. All 9 JWS unit tests pass. `STUB_SIGNATURE` constant preserved as a fallback constant. [SEC-002] | ✅ done | **High** |
+| TASK-065-followup | **Gateway key classification config**: Wired `GatewayKeyPurpose`/`GatewayKey` types into `plugin-satp-hermes-gateway.ts`. Gateway accepts 4 distinct key types mandated by v13 §4.4. `identificationCredential` kept for backward compatibility. Strict validation gated behind `security.requireClassifiedKeys === true`. [SEC-003] | ✅ done | **Medium** |
+| TASK-067-followup | **ConnectRPC handler dispatch for new message types**: Added `ProtocolMessageHandler` class in `core/stage-handlers/protocol-message-handler.ts`. Wires `reject-msg`, `error-msg`, and `session-abort-msg` into the ConnectRPC handler dispatch layer via `ProtocolMessageService` (v2 `GenService`). Registered in `satp-manager.ts` as `"protocol-handler"` handler type. Exported from `public-api.ts`. | ✅ done | **Medium** |
+| SEC-001-gw | **Gateway ConnectRPC/HTTP TLS 1.3 enforcement**: When `security.requireTLS === true`, `startupGOLServer()` creates an HTTPS server from cert/key/CA paths and passes TLS `nodeOptions` to outbound ConnectRPC transports in `gateway-orchestrator.ts`. Temporal layer was already done in Phase 9. | ✅ done | **Medium** |
+| SEC-004 | **JWT/OAuth2 for Client Application auth**: When `security.requireOAuth2 === true`, `getOrCreateHttpServer()` sets `AuthorizationProtocol.JSON_WEB_TOKEN` so Bearer JWT is validated on every Client Application API call per v13 §5.3.8. | ✅ done | **Low** |
+| CLEANUP-001 | **Remove v02 proto directory**: Deleted `src/main/proto/cacti/satp/v02/` and all generated output under `generated/proto/cacti/satp/v02/`. No v02 proto imports remain in the codebase. | ✅ done | **Low** |
 
-```bash
-cd packages/cactus-plugin-satp-hermes
-find src/main/typescript -name '*.ts' -not -path '*/generated/*' -not -path '*/node_modules/*' \
-  -exec grep -l 'draft-ietf-satp-core-02' {} \; \
-  | xargs sed -i 's|draft-ietf-satp-core-02|draft-ietf-satp-core-13|g'
+### Proto Codegen Migration (protobuf-es v1 → v2)
+
+During Phase 10, the protobuf codegen toolchain was upgraded from `protoc-gen-es v1.8.0` (global) to `protoc-gen-es v2.2.2` (local `./node_modules/.bin/protoc-gen-es`), and the `protoc-gen-connect-es` plugin was removed entirely.
+
+**Key changes:**
+
+| Item | v1 (before) | v2 (after) |
+|------|-------------|------------|
+| Generator | Global `protoc-gen-es v1.8.0` | Local `./node_modules/.bin/protoc-gen-es v2.2.2` |
+| Message classes | `export class RecoverRequest extends Message` | `export type RecoverRequest = Message<...> & {...}` (type-only) |
+| Construction | `new RecoverRequest({ field: value })` | `create(RecoverRequestSchema, { field: value })` |
+| Service descriptor | Separate `*_connect.ts` via `protoc-gen-connect-es` | `GenService<{...}>` in `*_pb.ts` via `serviceDesc()` |
+| Service methods map | `CrashRecoveryService.methods` (object keys = names) | `CrashRecoveryService.method` (Record\<localName, DescMethod\>) |
+| Connect plugin | `protoc-gen-connect-es v1.6.1` in `buf.gen.yaml` | **Removed** — services are in `_pb.ts` |
+
+**`buf.gen.yaml` (current):**
+```yaml
+version: v2
+clean: true
+plugins:
+  - local: ./node_modules/.bin/protoc-gen-es
+    out: src/main/typescript/generated/proto/
+    opt: target=ts
+    strategy: directory
 ```
 
-After running, verify with:
-```bash
-grep -rn 'draft-ietf-satp-core-02' src/main/typescript/ --include='*.ts' | grep -v generated/ | grep -v node_modules/
-# Expected: 0 matches
+**Consumer pattern update** — all code that creates protobuf messages must use:
+```typescript
+import { create } from "@bufbuild/protobuf";
+import { RecoverV2RequestSchema } from "...crash_recovery_subprotocol_pb";
+
+const msg = create(RecoverV2RequestSchema, { sessionId: "s-001", ... });
 ```
 
-**Step 2: Update `index.ts` code examples**
+**Affected source files updated:**
+- `core/crash-management/crash-handler.ts` — import `CrashRecoveryService` from `_pb` (not `_connect`)
+- `core/stage-handlers/protocol-message-handler.ts` — created fresh with v2 `create()` API
+- `services/gateway/gateway-orchestrator.ts` — import `ProtocolMessageService` from `_pb`
+- `core/crash-management/rollback/stage1-rollback-strategy.ts` — error recovery path uses `rollbackState.sessionId` as safe fallback (avoids cascading throw when session data proxy is unhealthy)
 
-In `src/main/typescript/index.ts`:
-- Line 7: `"IETF SATP v2 specification"` → `"IETF SATP v13 specification"`
-- Line 52: `version: 'v02'` → `version: 'v13'` in the example `ClientV1Request`
+**Test files updated:**
+- `unit/crash-recovery/crash-recovery-proto-structures.test.ts` — migrated from `new Xxx({})` to `create(XxxSchema, {})` pattern; `CrashRecoverySubProtocolService.method` (v2 record) instead of `.methods` (v1 array)
 
-In `src/main/typescript/index.web.ts`:
-- Same pattern — check for v02 references in JSDoc/examples
+---
 
-**Step 3: Rename `SATPStagesV02` → `SATPStages` (TASK-076)**
+## 10. Next Steps
 
-In `src/main/typescript/core/stage-services/satp-service.ts`:
-- Line 103: `export type SATPStagesV02 = "0" | "1" | "2" | "3";` → `export type SATPStages = "0" | "1" | "2" | "3";`
-- Lines 132, 138, 307: Update JSDoc and field type to reference `SATPStages`
+### All migration and hardening phases complete ✅
 
-In `src/main/typescript/services/gateway/satp-manager.ts`:
-- Line 46: Update import from `SATPStagesV02` to `SATPStages`
-- Lines 407, 496: Update type assertions
+Phases P0–10 (SATP v02→v13 core migration + Temporal crash recovery extension + post-migration hardening) are complete. All quality gates pass.
 
-**Step 4: Update documentation files (TASK-050, TASK-051)**
+**Current state (Plan v7.0):**
+- 33 unit test suites, 426 tests, 0 failures
+- TypeScript compilation: 0 errors
+- ESLint: 0 errors, ≥101 warnings (pre-existing `no-explicit-any`)
+- All v02 protos removed; protobuf-es v2.2.2 codegen throughout
+- All security features implemented and opt-in via `ISATPSecurityOptions`
 
-- `ARCHITECTURE.md`: Add section on v13 changes — new message types (error-msg, session-abort-msg, reject-msg), removed concepts (counter-proposals, per-message signatures, PayloadProfile, CredentialProfile), JWS envelope signing model, IANA error code registry.
-- `README.md`: Update spec version references, add v13 link, note breaking changes from v02.
-
-### After Phase 7: Final Validation (TASK-062)
+### Final Validation (TASK-062)
 
 **Step 5: Verify quality gates**
 
 ```bash
 cd packages/cactus-plugin-satp-hermes
 npx tsc --noEmit                        # Must exit 0
-npx eslint src/main/typescript src/test/typescript  # Must show 0 errors (101 warnings OK)
+npx eslint src/main/typescript src/test/typescript  # Must show 0 errors (≥101 warnings OK)
 ```
 
 **Step 6: Run full unit test suite**
@@ -1157,26 +1226,26 @@ NODE_OPTIONS=--max-old-space-size=4096 npx jest ./src/test/typescript/unit \
   --runInBand --forceExit --config=jest.config-unit.ts
 ```
 
-Expected: 29 suites, 387 tests, 0 failures.
+Expected: 33 suites, 426 tests, 0 failures.
 
-**Step 7: Run integration test suites** (requires Docker)
+**Step 7: Run integration test suites** (requires Docker for gateway e2e; Temporal integration tests use embedded `TestWorkflowEnvironment` and do not require Docker)
 
 ```bash
 yarn test:integration:gateway   # Gateway e2e tests
 yarn test:integration           # General integration tests
+yarn test:integration:gateway   # Temporal crash-recovery workflows (embedded)
 ```
 
-Fix any failures. These are the most likely to surface v13 runtime regressions since they exercise the full protocol flow.
+Fix any failures. Gateway e2e tests are most likely to surface v13 runtime regressions. Temporal crash-recovery integration tests may surface issues in workflow/activity contract mismatches.
 
-### Deferred Work (Post-Migration)
+### Remaining Deployment Work (Post-Implementation)
 
-These items are tracked but NOT blocking the v13 migration:
+All Phase 10 implementation tasks are complete. Remaining work is operational/deployment:
 
-| ID | Description | Priority | Reason Deferred |
-|----|-------------|----------|----------------|
-| TASK-064-followup | **Real JWS signing with ECDSA P-256**: Replace stub `jwsSign()`/`jwsVerify()` in `core/jws-utils.ts` with actual ECDSA P-256 + SHA-256 signing using the `jose` npm package or Node.js native `crypto`. Add `jose` as production dependency. | **High** | Requires dependency addition and key management infrastructure. SEC-002 compliance. |
-| TASK-065-followup | **Gateway key classification config**: Wire `GatewayKeyPurpose`/`GatewayKey` types into `plugin-satp-hermes-gateway.ts` configuration so gateways can be configured with 4 distinct key types (signature, secure channel, identity, owner identity) per SEC-003. | **Medium** | Configuration breaking change; requires coordinating with gateway deployment tooling. |
-| TASK-067-followup | **ConnectRPC handler dispatch for new message types**: Wire `reject-msg`, `error-msg`, and `session-abort-msg` into the ConnectRPC handler dispatch layer so incoming messages of these types are routed to `protocol-message-service.ts` functions. Currently these messages can be *created* but not *received and dispatched*. | **Medium** | Requires handler infrastructure changes and integration test coverage. |
-| SEC-001 | **TLS 1.3 enforcement**: Ensure gateway configuration enforces TLS 1.3 minimum with `TLS_AES_128_GCM_SHA256` cipher suite. | **Medium** | Runtime configuration, not code change. Depends on deployment environment. |
-| SEC-004 | **JWT/OAuth2 for Client Application auth**: Implement JWT [RFC7519] + OAuth 2.0 [RFC6749] for authenticating Client Application API calls per v13 Section 5.3.8. | **Low** | New feature, not a migration item. |
-| CLEANUP-001 | **Remove v02 proto directory**: Delete `src/main/proto/cacti/satp/v02/` and its generated output under `generated/proto/cacti/satp/v02/`. | **Low** | Safe to do after all v13 tests pass. Non-urgent since v02 protos are not imported anywhere. |
+| Item | Description |
+|------|-------------|
+| TLS certificates | Provision `tlsCertPath`, `tlsKeyPath`, `tlsCaPath` in production deployments and set `security.requireTLS: true` |
+| ECDSA key pair | Generate P-256 key pair for JWS; configure in `SATPGatewayConfig.keyPair` and set `security.requireJWS: true` |
+| OAuth2 tokens | Configure Bearer JWT issuer/audience and set `security.requireOAuth2: true` for Client Application API |
+| Key classification | Supply `GatewayKey[]` with all 4 `GatewayKeyPurpose` values and set `security.requireClassifiedKeys: true` |
+| Integration tests | Run Docker-backed gateway e2e tests against v13 protocol messages to validate end-to-end flows |

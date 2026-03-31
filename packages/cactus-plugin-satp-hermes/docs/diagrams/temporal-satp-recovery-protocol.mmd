@@ -1,0 +1,39 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46', 'clusterBkg':'#f0fdf4', 'clusterBorder':'#22c55e', 'edgeLabelBackground':'#ffffff', 'mainBkg':'#ffffff'}}}%%
+flowchart TD
+  A(["Transfer in progress"]) --> B{"Crash detected?"}
+  B -->|"No"| A
+  B -->|"Yes"| C{"Recovery model?"}
+
+  C -->|"Self-healing"| D["Gateway restarts<br/>retains keys"]
+  C -->|"Primary-backup"| E["Backup detects timeout<br/>heartbeat timeout exceeded"]
+
+  E --> F["Session Resumption<br/>X.509 chain validation"]
+  F --> G["Backup takes over as new primary"]
+  D --> H["Send RECOVER to counterparty"]
+  G --> H
+
+  H --> I["Counterparty calls getLogDiff<br/>fetches missing entries"]
+  I --> J["Send RECOVER-UPDATE<br/>with log diff"]
+  J --> K["Apply diff<br/>writeLogEntry for each missing entry"]
+  K --> L{"Log consistent?"}
+  L -->|"Yes"| M["Send RECOVER-UPDATE-ACK<br/>success=true"]
+  L -->|"No"| N["Send RECOVER-DISPUTE"]
+  M --> O["Counterparty sends RECOVER-SUCCESS"]
+  O --> P(["Resume SATP protocol<br/>from last confirmed step"])
+
+  B -->|"Counterparty crash detected"| Q["Timeout on phase 2/3"]
+  Q --> R["Execute rollback actions<br/>UNLOCK / BURN"]
+  R --> S["Send ROLLBACK to recovered counterparty"]
+  S --> T["Counterparty executes own rollback"]
+  T --> U["Counterparty sends ROLLBACK-ACK"]
+  U --> V(["Transfer aborted<br/>assets restored"])
+
+  classDef startEnd fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#ffffff,rx:10,ry:10
+  classDef decisionNode fill:#fbbf24,stroke:#f59e0b,stroke-width:3px,color:#1a1a1a
+  classDef processNode fill:#4ade80,stroke:#22c55e,stroke-width:3px,color:#065f46,rx:10,ry:10
+  classDef errorNode fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#ffffff,rx:10,ry:10
+
+  class A,P,V startEnd
+  class B,C,L decisionNode
+  class D,E,F,G,H,I,J,K,M,O,Q,R,S,T,U processNode
+  class N errorNode

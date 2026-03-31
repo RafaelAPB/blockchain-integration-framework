@@ -140,30 +140,6 @@ export interface ExecutionPointAdapterPayload {
 }
 
 /**
- * @deprecated Use ExecutionPointAdapterPayload instead
- * Input for session-aware adapter execution from stage handlers.
- * Uses Stage enum for type safety.
- */
-export interface SessionAdapterExecutionRequest {
-  /** SATP protocol stage (SatpStageKey.Stage0, SatpStageKey.Stage1, etc.) */
-  stage: SatpStageKey;
-  /** Step identifier within the stage */
-  stepTag: string;
-  /** Execution order: before, after, during, rollback */
-  order: StageExecutionStep;
-  /** Session identifier */
-  sessionId: string;
-  /** Gateway identifier */
-  gatewayId: string;
-  /** Optional transfer context identifier */
-  contextId?: string;
-  /** Optional metadata to pass to adapters */
-  metadata?: Record<string, unknown>;
-  /** Optional payload to pass to adapters */
-  payload?: Record<string, unknown>;
-}
-
-/**
  * Input for processing an inbound webhook decision.
  */
 export interface InboundWebhookDecisionInput {

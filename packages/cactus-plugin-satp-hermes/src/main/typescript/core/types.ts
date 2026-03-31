@@ -34,24 +34,9 @@
 import { LogLevelDesc } from "@hyperledger/cactus-common";
 import { BLODispatcher } from "../api1/dispatcher";
 import { SATPSession } from "./satp-session";
-import { ConnectRouter } from "@connectrpc/connect";
-import { SATPGateway } from "../plugin-satp-hermes-gateway";
-import { SATPService } from "../types/satp-protocol";
 import { Client as ConnectClient } from "@connectrpc/connect";
 import { SATPServiceInstance } from "./stage-services/satp-service";
 import { NetworkId } from "../public-api";
-
-/**
- * Function signature for SATP Connect protocol handlers.
- *
- * @description
- * Defines the structure for Connect protocol handlers that integrate
- * SATP gateways with services and routing infrastructure.
- */
-export type SATPConnectHandler = (
-  gateway: SATPGateway,
-  service: SATPService,
-) => (router: ConnectRouter) => void;
 
 /**
  * Enumeration of current SATP draft specifications.
@@ -257,17 +242,6 @@ export type GatewayIdentity = {
 export type Immutable<T> = {
   readonly [K in keyof T]: Immutable<T[K]>;
 };
-
-export interface keyable {
-  [key: string]: unknown;
-}
-
-export function isOfType<T>(
-  obj: any,
-  type: new (...args: any[]) => T,
-): obj is T {
-  return obj instanceof type;
-}
 
 export interface LocalLog {
   sessionId: string;

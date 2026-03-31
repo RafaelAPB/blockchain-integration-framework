@@ -8,6 +8,9 @@ services:
     environment:
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4318
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: satp-recovery
+      TEMPORAL_TASK_QUEUE: satp-crash-recovery
 
     ports:
       - 3010:3010/tcp # SERVER_PORT
@@ -15,6 +18,57 @@ services:
       - 3012:4010/tcp # API_PORT
     depends_on:
       - otel-lgtm
+      - temporal
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: satp-temporal-postgres
+    environment:
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  temporal:
+    image: temporalio/auto-setup:1.27.0
+    container_name: satp-temporal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgres
+    ports:
+      - "7233:7233"   # Temporal frontend gRPC
+      - "8233:8233"   # Temporal Web UI
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  temporal-ui:
+    image: temporalio/ui:2.34.0
+    container_name: satp-temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: "http://localhost:3000"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
 
   #https://grafana.com/blog/2024/03/13/an-opentelemetry-backend-in-a-docker-image-introducing-grafana/otel-lgtm/
   otel-lgtm:

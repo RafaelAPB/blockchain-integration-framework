@@ -38,6 +38,7 @@ import {
   SupportedSigningAlgorithms,
   type GatewayIdentity,
   type ShutdownHook,
+  GatewayKeyPurpose,
 } from "./core/types";
 import {
   GatewayOrchestrator,
@@ -45,6 +46,8 @@ import {
 } from "./services/gateway/gateway-orchestrator";
 import express, { type Express } from "express";
 import http from "node:http";
+import https from "node:https";
+import fs from "node:fs";
 import {
   DEFAULT_PORT_GATEWAY_CLIENT,
   DEFAULT_PORT_GATEWAY_OAPI,
@@ -107,6 +110,129 @@ import { SATPManager } from "./services/gateway/satp-manager";
 import { ExtensionConfig } from "./services/validation/config-validating-functions/validate-extensions";
 import { AdapterManager } from "./adapters/adapter-manager";
 import type { AdapterLayerConfiguration } from "./adapters/adapter-config";
+
+/**
+ * Security configuration for the SATP gateway.
+ *
+ * @description
+ * All security enforcement features are **opt-in and disabled by default**.
+ * This allows the gateway to run in development or test environments without
+ * TLS certificates or cryptographic key infrastructure, while production
+ * deployments can enable individual features as needed.
+ *
+ * **Defaults**: every flag defaults to `false` (disabled) when not specified.
+ *
+ * @example
+ * // Development/test — all security disabled (default)
+ * const config: SATPGatewayConfig = { ..., security: undefined };
+ *
+ * @example
+ * // Production — enable all security
+ * const config: SATPGatewayConfig = {
+ *   ...,
+ *   security: {
+ *     requireTLS: true,
+ *     requireJWS: true,
+ *     requireClassifiedKeys: true,
+ *     requireOAuth2: true,
+ *   },
+ * };
+ *
+ * @see {@link https://www.ietf.org/archive/id/draft-ietf-satp-core-13.txt} SATP v13 §5
+ */
+export interface ISATPSecurityOptions {
+  /**
+   * Enforce TLS 1.3 on the gateway HTTP server and all ConnectRPC transports.
+   *
+   * When `true`, the GOL server starts as HTTPS (requires TLS certificate
+   * files) and outbound ConnectRPC transports use `nodeOptions` with the
+   * configured CA, cert, and key.  Reads PEM paths from environment
+   * variables `GATEWAY_TLS_CERT_PATH`, `GATEWAY_TLS_KEY_PATH`,
+   * `GATEWAY_TLS_CA_CERT_PATH` when the gateway-level `tlsCertPath`,
+   * `tlsKeyPath`, and `tlsCaPath` options are not set.
+   *
+   * **Default**: `false`.
+   *
+   * @see SEC-001-gw in upgrade plan
+   * @see https://www.rfc-editor.org/rfc/rfc8446 TLS 1.3
+   */
+  requireTLS?: boolean;
+
+  /**
+   * Filesystem path to the PEM-encoded TLS certificate for the GOL server.
+   *
+   * Only used when `requireTLS` is `true`.  Falls back to the
+   * `GATEWAY_TLS_CERT_PATH` environment variable when not set.
+   */
+  tlsCertPath?: string;
+
+  /**
+   * Filesystem path to the PEM-encoded TLS private key for the GOL server.
+   *
+   * Only used when `requireTLS` is `true`.  Falls back to the
+   * `GATEWAY_TLS_KEY_PATH` environment variable when not set.
+   */
+  tlsKeyPath?: string;
+
+  /**
+   * Filesystem path to the PEM-encoded CA certificate used to verify
+   * counterparty gateway TLS certificates.
+   *
+   * Only used when `requireTLS` is `true`.  Falls back to the
+   * `GATEWAY_TLS_CA_CERT_PATH` environment variable when not set.
+   * When omitted after fallback, the Node.js default CA bundle is used.
+   */
+  tlsCaPath?: string;
+
+  /**
+   * Require ECDSA P-256 JWS (JSON Web Signature) wrapping on every
+   * gateway-to-gateway message.
+   *
+   * When `true`, outgoing messages are signed with the gateway's
+   * SIGNATURE-purpose key and incoming messages are verified before
+   * processing.  Requires `gid.keys[GatewayKeyPurpose.SIGNATURE]` to
+   * contain a valid P-256 key pair.
+   *
+   * When `false` (default), the JWS utilities are available but wrapping
+   * is skipped and messages are sent and received without verification.
+   *
+   * **Default**: `false`.
+   *
+   * @see SEC-002 in upgrade plan
+   * @see https://www.rfc-editor.org/rfc/rfc7515 JWS
+   */
+  requireJWS?: boolean;
+
+  /**
+   * Enforce the v13 four-key classification model.
+   *
+   * When `true`, the gateway validates that `gid.keys` contains entries for
+   * all four `GatewayKeyPurpose` values (SIGNATURE, SECURE_CHANNEL,
+   * IDENTITY, OWNER_IDENTITY) and rejects configurations that only supply
+   * the legacy `identificationCredential` field.
+   *
+   * **Default**: `false` — the legacy single-key model is accepted.
+   *
+   * @see SEC-003 in upgrade plan
+   * @see https://www.ietf.org/archive/id/draft-ietf-satp-core-13.txt §4.4
+   */
+  requireClassifiedKeys?: boolean;
+
+  /**
+   * Require JWT / OAuth 2.0 authentication for Client Application API calls.
+   *
+   * When `true`, the BLO dispatcher validates a Bearer JWT on every
+   * request from a Client Application before forwarding it to the gateway.
+   * Follows the mandate in v13 §5.3.8.
+   *
+   * **Default**: `false`.
+   *
+   * @see SEC-004 in upgrade plan
+   * @see https://www.rfc-editor.org/rfc/rfc7519 JWT
+   * @see https://www.rfc-editor.org/rfc/rfc6749 OAuth 2.0
+   */
+  requireOAuth2?: boolean;
+}
 
 /**
  * SATP Gateway Configuration Interface - Complete configuration for fault-tolerant gateway.
@@ -287,16 +413,22 @@ export interface SATPGatewayConfig extends ICactusPluginOptions {
   /**
    * Enable crash recovery mechanisms.
    * @description
-   * **NOT YET SUPPORTED.** Crash recovery and rollback are defined in the
-   * IETF SATP Crash Recovery draft
-   * ({@link https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/})
-   * and will be supported in a future release.
-   *
-   * Setting this option to `true` will throw an error at gateway startup.
-   *
-   * @deprecated Not yet implemented — will throw if set to `true`.
+   * When set to `true`, the gateway activates the IETF SATP Crash Recovery
+   * sub-protocols (draft-belchior-satp-gateway-recovery-04).  Requires
+   * {@link temporalAddress} to be set — Temporal orchestrates the durable
+   * recovery and rollback workflows.
    */
   enableCrashRecovery?: boolean;
+
+  /**
+   * Temporal frontend gRPC address.
+   * @description
+   * Required when {@link enableCrashRecovery} is `true`.  The gateway uses
+   * this address to connect to the Temporal server that orchestrates crash
+   * recovery workflows (e.g. `"temporal:7233"` or `"localhost:7233"`).
+   * Also readable from the `TEMPORAL_ADDRESS` environment variable.
+   */
+  temporalAddress?: string;
 
   /**
    * Monitoring service for observability and tracing.
@@ -371,6 +503,22 @@ export interface SATPGatewayConfig extends ICactusPluginOptions {
    * @see {@link LogLevelDesc} for available logging levels
    */
   logLevel?: LogLevelDesc;
+
+  /**
+   * Optional security enforcement flags.
+   *
+   * @description
+   * Controls which v13 security features are actively enforced at runtime.
+   * **All flags default to `false` (disabled)** — the gateway functions
+   * fully without TLS, JWS, or OAuth2 infrastructure, making it suitable
+   * for local development and integration tests.
+   *
+   * Enable individual flags when deploying to environments that have the
+   * required key material and certificate infrastructure in place.
+   *
+   * @see {@link ISATPSecurityOptions} for individual flag descriptions
+   */
+  security?: ISATPSecurityOptions;
 }
 
 /**
@@ -660,6 +808,23 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
     this.connectedDLTs = this.config.gid.connectedDLTs || [];
 
+    // TASK-065-followup / SEC-003: v13 four-key classification validation.
+    // Gated behind security.requireClassifiedKeys (default: false).
+    if (this.config.security?.requireClassifiedKeys) {
+      const keys = this.config.gid.keys;
+      const missingPurposes = Object.values(GatewayKeyPurpose).filter(
+        (p) => !keys?.[p],
+      );
+      if (missingPurposes.length > 0) {
+        throw new Error(
+          `security.requireClassifiedKeys is true but gid.keys is missing ` +
+            `entries for: ${missingPurposes.join(", ")}. ` +
+            `All four GatewayKeyPurpose values must be present ` +
+            `(SIGNATURE, SECURE_CHANNEL, IDENTITY, OWNER_IDENTITY).`,
+        );
+      }
+    }
+
     this.OAS = OAS;
 
     this.initialSpanContext = this.monitorService.startSpan(
@@ -676,6 +841,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             signer: this.signer,
             enableCrashRecovery: this.config.enableCrashRecovery,
             monitorService: this.monitorService,
+            security: this.config.security,
           };
           this.logger.info(
             "Initializing gateway connection manager with seed gateways",
@@ -752,11 +918,9 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
         this.BLODispatcher = new BLODispatcher(dispatcherOps);
 
         if (this.config.enableCrashRecovery) {
-          throw new Error(
-            "Crash recovery and rollback are not yet supported. " +
-              "They are defined in the IETF SATP Crash Recovery draft " +
-              "(https://datatracker.ietf.org/doc/draft-belchior-satp-gateway-recovery/) " +
-              "and will be supported in a future release.",
+          this.logger.info(
+            "CrashManager is enabled — Temporal-based crash recovery" +
+              " and rollback workflows are active.",
           );
         } else {
           this.logger.info("CrashManager is disabled!");
@@ -1135,10 +1299,13 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
         const addressInfoApi = httpApiA.address() as AddressInfo;
 
-        //TODO FIX THIS WHEN DOING AUTH CONFIG
+        //SEC-004: OAuth2 / JWT auth for Client Application API calls (opt-in).
         const configService = new ConfigService();
         const apiServerOptions = await configService.newExampleConfig();
-        apiServerOptions.authorizationProtocol = AuthorizationProtocol.NONE;
+        apiServerOptions.authorizationProtocol = this.config.security
+          ?.requireOAuth2
+          ? AuthorizationProtocol.JSON_WEB_TOKEN
+          : AuthorizationProtocol.NONE;
         apiServerOptions.configFile = "";
         apiServerOptions.apiCorsDomainCsv = "*";
         apiServerOptions.apiPort = addressInfoApi.port;
@@ -1241,7 +1408,33 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             this.gatewayOrchestrator?.addGOLServer(this.GOLApplication);
             this.gatewayOrchestrator?.startServices();
 
-            this.GOLServer = http.createServer(this.GOLApplication);
+            // SEC-001-gw: TLS enforcement (opt-in, disabled by default).
+            if (this.config.security?.requireTLS) {
+              const certPath =
+                this.config.security.tlsCertPath ||
+                process.env["GATEWAY_TLS_CERT_PATH"];
+              const keyPath =
+                this.config.security.tlsKeyPath ||
+                process.env["GATEWAY_TLS_KEY_PATH"];
+              if (!certPath || !keyPath) {
+                throw new Error(
+                  "security.requireTLS is true but TLS certificate paths are " +
+                    "not configured. Set tlsCertPath and tlsKeyPath in " +
+                    "security options, or set GATEWAY_TLS_CERT_PATH and " +
+                    "GATEWAY_TLS_KEY_PATH environment variables.",
+                );
+              }
+              this.GOLServer = https.createServer(
+                {
+                  cert: fs.readFileSync(certPath),
+                  key: fs.readFileSync(keyPath),
+                  minVersion: "TLSv1.3",
+                },
+                this.GOLApplication,
+              );
+            } else {
+              this.GOLServer = http.createServer(this.GOLApplication);
+            }
             const address =
               this.options.gid?.address?.includes("localhost") || // When running a gateway in localhost we don't want to bind it to 0.0.0.0 because if we do it will be accessible from the outside network
               this.options.gid?.address?.includes("127.0.0.1")

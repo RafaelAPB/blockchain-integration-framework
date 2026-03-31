@@ -1,9 +1,8 @@
 import type { ConnectRouter } from "@connectrpc/connect";
+import type { WorkflowClient as TemporalWorkflowClient } from "@temporalio/client";
 import type { SATPLogger as Logger } from "../../core/satp-logger";
-import {
-  CrashRecoveryService,
-  type RecoverSuccessResponse,
-} from "../../generated/proto/cacti/satp/v13/service/crash_recovery_pb";
+import { CrashRecoveryService } from "../../generated/proto/cacti/satp/v13/service/crash_recovery_pb";
+import type { RecoverSuccessResponse } from "../../generated/proto/cacti/satp/v13/service/crash_recovery_pb";
 import type { CrashRecoveryServerService } from "./server-service";
 import type { CrashRecoveryClientService } from "./client-service";
 import type {
@@ -19,16 +18,24 @@ import type { SessionData } from "../../generated/proto/cacti/satp/v13/session/s
 import { context, SpanStatusCode } from "@opentelemetry/api";
 import { MonitorService } from "../../services/monitoring/monitor";
 
+// Signal name constants — mirrors definitions in temporal/workflows/satp-transfer-workflow.ts
+// Defined locally to avoid importing from the Temporal workflow sandbox.
+const RECOVER_REQUEST_SIGNAL = "recoverRequest";
+const ROLLBACK_REQUEST_SIGNAL = "rollbackRequest";
+
 export class CrashRecoveryHandler implements SATPHandler {
   private readonly log: Logger;
+  private readonly workflowClient: TemporalWorkflowClient | undefined;
 
   constructor(
     private readonly serverService: CrashRecoveryServerService,
     private readonly clientService: CrashRecoveryClientService,
     log: Logger,
     private readonly monitorService: MonitorService,
+    workflowClient?: TemporalWorkflowClient,
   ) {
     this.log = log;
+    this.workflowClient = workflowClient;
     this.log.trace(`Initialized ${CrashRecoveryHandler.name}`);
     this.monitorService = monitorService;
   }
@@ -56,7 +63,18 @@ export class CrashRecoveryHandler implements SATPHandler {
       try {
         this.log.debug(`${fnTag} - Handling RecoverRequest: ${req}`);
         try {
-          return await this.serverService.handleRecover(req);
+          const response = await this.serverService.handleRecover(req);
+          if (this.workflowClient) {
+            const handle = this.workflowClient.getHandle(req.sessionId);
+            handle
+              .signal(RECOVER_REQUEST_SIGNAL, { sessionId: req.sessionId })
+              .catch((err: unknown) => {
+                this.log.warn(
+                  `${fnTag} - Could not signal workflow for session ${req.sessionId}: ${err}`,
+                );
+              });
+          }
+          return response;
         } catch (error) {
           this.log.error(`${fnTag} - Error:`, error);
           throw error;
@@ -104,7 +122,18 @@ export class CrashRecoveryHandler implements SATPHandler {
       try {
         this.log.debug(`${fnTag} - Handling RollbackRequest: ${req}`);
         try {
-          return await this.serverService.handleRollback(req);
+          const response = await this.serverService.handleRollback(req);
+          if (this.workflowClient) {
+            const handle = this.workflowClient.getHandle(req.sessionId);
+            handle
+              .signal(ROLLBACK_REQUEST_SIGNAL, { sessionId: req.sessionId })
+              .catch((err: unknown) => {
+                this.log.warn(
+                  `${fnTag} - Could not signal workflow for session ${req.sessionId}: ${err}`,
+                );
+              });
+          }
+          return response;
         } catch (error) {
           this.log.error(`${fnTag} - Error:`, error);
           throw error;
@@ -126,17 +155,24 @@ export class CrashRecoveryHandler implements SATPHandler {
       try {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const that = this;
-        router.service(CrashRecoveryService, {
-          async recover(req) {
+        // The generated CrashRecoveryService uses the older protoc-gen-connect-es v1.4
+        // ServiceType API (MethodKind-based). @connectrpc/connect v2 expects DescService.
+        // The type cast is safe at runtime: the generated object shape is compatible.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const svc = CrashRecoveryService as any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.service(svc, {
+          async recover(req: RecoverRequest) {
             return await that.recoverImplementation(req);
           },
-          async recoverSuccess(req) {
+          async recoverSuccess(req: RecoverSuccessRequest) {
             return await that.recoverSuccessImplementation(req);
           },
-          async rollback(req) {
+          async rollback(req: RollbackRequest) {
             return await that.rollbackImplementation(req);
           },
-        });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
 
         this.log.info("Router setup completed for CrashRecoveryHandler");
       } catch (err) {

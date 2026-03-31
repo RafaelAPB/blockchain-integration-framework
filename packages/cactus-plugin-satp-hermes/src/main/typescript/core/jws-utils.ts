@@ -31,6 +31,7 @@
  */
 
 import { stringify as safeStableStringify } from "safe-stable-stringify";
+import * as nodeCrypto from "node:crypto";
 
 /**
  * Supported JWS algorithms.
@@ -60,7 +61,13 @@ export interface IJWSVerificationResult {
 export interface IJWSSignOptions {
   /** The algorithm to use. Defaults to ES256. */
   algorithm?: JWSAlgorithm;
-  /** The private key in JWK or PEM format. Currently unused (stub). */
+  /**
+   * Private key for signing.
+   *
+   * When this is a `node:crypto` `KeyObject` of type `"private"` (EC P-256),
+   * the JWS is signed using ECDSA P-256 with SHA-256 per RFC 7518 §3.4.
+   * Otherwise, the stub signature `STUB_SIGNATURE` is used.
+   */
   privateKey?: unknown;
 }
 
@@ -70,20 +77,34 @@ export interface IJWSSignOptions {
 export interface IJWSVerifyOptions {
   /** The expected algorithm. Defaults to ES256. */
   algorithm?: JWSAlgorithm;
-  /** The public key in JWK or PEM format. Currently unused (stub). */
+  /**
+   * Public key for verification.
+   *
+   * When this is a `node:crypto` `KeyObject` of type `"public"` (EC P-256),
+   * ECDSA P-256 verification is performed. Otherwise, verification is
+   * skipped and `verified: true` is returned (stub behaviour).
+   */
   publicKey?: unknown;
 }
 
 /**
  * Produce a JWS Compact Serialization for the given SATP message.
  *
- * **STUB**: Returns a dot-separated placeholder token with the
- * structure `header.payload.signature` where each part is
- * base64url-encoded. The signature segment is a static placeholder.
+ * When `options.privateKey` is a `node:crypto` `KeyObject` of type
+ * `"private"` (EC P-256), a real ECDSA P-256 / SHA-256 signature is
+ * produced in IEEE P1363 format (64 bytes, base64url-encoded) as required
+ * by RFC 7518 §3.4 for `ES256`.
+ *
+ * When no compatible private key is supplied (the default), the stub
+ * signature `STUB_SIGNATURE` is used so that existing tests and development
+ * workflows continue to work without key infrastructure.
  *
  * @param message - The SATP protobuf message object to sign
  * @param options - Signing options (algorithm, private key)
  * @returns A JWS Compact Serialization string
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc7515 JWS specification
+ * @see https://www.rfc-editor.org/rfc/rfc7518#section-3.4 ES256 algorithm
  */
 export function jwsSign(message: unknown, options?: IJWSSignOptions): string {
   const alg = options?.algorithm ?? JWSAlgorithm.ES256;
@@ -98,21 +119,45 @@ export function jwsSign(message: unknown, options?: IJWSSignOptions): string {
     "base64url",
   );
 
-  // TODO(TASK-064-followup): Replace with real ECDSA P-256 signature
-  const signature = "STUB_SIGNATURE";
+  // JWS signing input: ASCII(BASE64URL(header) || "." || BASE64URL(payload))
+  const signingInput = `${header}.${payload}`;
 
-  return `${header}.${payload}.${signature}`;
+  // Real ECDSA P-256 signing when a compatible private key is supplied.
+  if (
+    options?.privateKey instanceof nodeCrypto.KeyObject &&
+    options.privateKey.type === "private"
+  ) {
+    const sign = nodeCrypto.createSign("SHA256");
+    sign.update(signingInput, "ascii");
+    // ieee-p1363 produces the 64-byte (r||s) format required by ES256
+    const sig = sign.sign({
+      key: options.privateKey,
+      dsaEncoding: "ieee-p1363",
+    });
+    return `${signingInput}.${sig.toString("base64url")}`;
+  }
+
+  // Stub fallback — no key supplied (development / test mode).
+  const signature = "STUB_SIGNATURE";
+  return `${signingInput}.${signature}`;
 }
 
 /**
  * Verify a JWS Compact Serialization and extract the payload.
  *
- * **STUB**: Always returns `{ verified: true }` with the decoded
- * payload. No cryptographic verification is performed.
+ * When `options.publicKey` is a `node:crypto` `KeyObject` of type `"public"`
+ * (EC P-256), ECDSA P-256 / SHA-256 signature verification is performed
+ * using the IEEE P1363 signature format required by ES256.
+ *
+ * When no compatible public key is supplied, verification is skipped and
+ * `{ verified: true }` is returned (stub behaviour) so that development
+ * and test workflows continue without key infrastructure.
  *
  * @param jws - The JWS Compact Serialization string to verify
  * @param options - Verification options (algorithm, public key)
  * @returns Verification result with decoded payload
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc7515 JWS specification
  */
 export function jwsVerify(
   jws: string,
@@ -126,8 +171,28 @@ export function jwsVerify(
   }
 
   const payload = Buffer.from(parts[1], "base64url").toString("utf-8");
+  const signingInput = `${parts[0]}.${parts[1]}`;
 
-  // TODO(TASK-064-followup): Replace with real ECDSA P-256 verification
+  // Real ECDSA P-256 verification when a compatible public key is supplied.
+  if (
+    options?.publicKey instanceof nodeCrypto.KeyObject &&
+    options.publicKey.type === "public"
+  ) {
+    try {
+      const verify = nodeCrypto.createVerify("SHA256");
+      verify.update(signingInput, "ascii");
+      const valid = verify.verify(
+        { key: options.publicKey, dsaEncoding: "ieee-p1363" },
+        parts[2],
+        "base64url",
+      );
+      return { verified: valid, payload: valid ? payload : "", algorithm: alg };
+    } catch {
+      return { verified: false, payload: "", algorithm: alg };
+    }
+  }
+
+  // Stub fallback: skip verification (development / test mode).
   return {
     verified: true,
     payload,

@@ -385,6 +385,8 @@ export const RollbackStateSchema: GenMessage<RollbackState> = /*@__PURE__*/
  */
 export const CrashRecoveryService: GenService<{
   /**
+   * @deprecated Use CrashRecoverySubProtocolService.Recover instead.
+   *
    * @generated from rpc cacti.satp.v13.service.CrashRecoveryService.Recover
    */
   recover: {
@@ -393,6 +395,8 @@ export const CrashRecoveryService: GenService<{
     output: typeof RecoverResponseSchema;
   },
   /**
+   * @deprecated Use CrashRecoverySubProtocolService.RecoverSuccess instead.
+   *
    * @generated from rpc cacti.satp.v13.service.CrashRecoveryService.RecoverSuccess
    */
   recoverSuccess: {
@@ -401,6 +405,8 @@ export const CrashRecoveryService: GenService<{
     output: typeof RecoverSuccessResponseSchema;
   },
   /**
+   * @deprecated Use RollbackSubProtocolService.Rollback instead.
+   *
    * @generated from rpc cacti.satp.v13.service.CrashRecoveryService.Rollback
    */
   rollback: {

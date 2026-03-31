@@ -1,0 +1,91 @@
+syntax = "proto3";
+package cacti.satp.v13.service;
+
+import "cacti/satp/v13/common/crash_recovery_log.proto";
+
+// Crash Recovery Sub-Protocol — draft-belchior-satp-gateway-recovery-04 §5.3.1–5.3.3.
+//
+// Both gateways expose this service; each acts as client or server depending
+// on role at runtime.  The V2 suffix distinguishes these messages from the
+// legacy CrashRecoveryService messages until Phase 3 removal.
+service CrashRecoverySubProtocolService {
+  // Step 1 — crashed gateway → non-crashed (draft §5.3.1)
+  rpc Recover(RecoverV2Request) returns (RecoverV2Response);
+
+  // Step 2 — non-crashed gateway → crashed; carries log diff (draft §5.3.2)
+  rpc RecoverUpdate(RecoverUpdateRequest) returns (RecoverUpdateResponse);
+
+  // Step 3 — crashed gateway → non-crashed; applies diff (draft §5.3.3)
+  rpc RecoverUpdateAck(RecoverUpdateAckRequest) returns (RecoverUpdateAckResponse);
+
+  // Step 4 — non-crashed gateway → crashed; final confirmation (draft §5.3.3)
+  rpc RecoverSuccess(RecoverSuccessV2Request) returns (RecoverSuccessV2Response);
+}
+
+// RECOVER (draft §5.3.1) — sent by the crashed gateway.
+message RecoverV2Request {
+  string session_id              = 1; // REQUIRED — SATP session identifier
+  string context_id              = 2; // REQUIRED — transfer context (absent in legacy RecoverRequest)
+  string message_type            = 3; // MSG_TYPE URN
+  string satp_phase              = 4; // last phase reached before crash
+  int64  sequence_number         = 5; // last known sequence number (int64, not int32)
+  bool   is_backup               = 6; // true if primary-backup model §6.1
+  string new_identity_public_key = 7; // non-empty when is_backup = true
+  int64  last_entry_timestamp    = 8; // Unix epoch ms of last known log entry
+  string sender_signature        = 9; // JWS of this message
+}
+
+message RecoverV2Response {
+  string session_id       = 1;
+  bool   received         = 2;
+  string server_signature = 3;
+}
+
+// RECOVER-UPDATE (draft §5.3.2) — sent by the non-crashed gateway with log diff.
+message RecoverUpdateRequest {
+  string  session_id           = 1;
+  string  context_id           = 2;
+  string  message_type         = 3;
+  string  hash_recover_message = 4; // SHA-256 of the RECOVER message
+  cacti.satp.v13.common.LogDiff recovered_logs = 5; // entries since last known seq
+  string  sender_signature     = 6;
+}
+
+message RecoverUpdateResponse {
+  string session_id       = 1;
+  bool   received         = 2;
+  string server_signature = 3;
+}
+
+// RECOVER-UPDATE-ACK (draft §5.3.3) — sent by crashed gateway after applying diff.
+message RecoverUpdateAckRequest {
+  string session_id                  = 1;
+  string context_id                  = 2;
+  string message_type                = 3;
+  string hash_recover_update_message = 4;
+  bool   success                     = 5;
+  string sender_signature            = 6;
+}
+
+message RecoverUpdateAckResponse {
+  string session_id       = 1;
+  bool   received         = 2;
+  string server_signature = 3;
+}
+
+// RECOVER-SUCCESS (draft §5.3.3) — sent by non-crashed gateway as final step.
+message RecoverSuccessV2Request {
+  string          session_id                  = 1;
+  string          context_id                  = 2;
+  string          message_type                = 3;
+  string          hash_recover_update_message = 4;
+  bool            success                     = 5;
+  repeated string entries_changed             = 6; // hashes of changed log entries
+  string          sender_signature            = 7;
+}
+
+message RecoverSuccessV2Response {
+  string session_id       = 1;
+  bool   received         = 2;
+  string server_signature = 3;
+}

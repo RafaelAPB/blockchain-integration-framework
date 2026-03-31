@@ -47,6 +47,7 @@ import {
 } from "../../core/stage-services/satp-service";
 import { Stage2SATPHandler } from "../../core/stage-handlers/stage2-handler";
 import { Stage3SATPHandler } from "../../core/stage-handlers/stage3-handler";
+import { ProtocolMessageHandler } from "../../core/stage-handlers/protocol-message-handler";
 import { SATPCrossChainManager } from "../../cross-chain-mechanisms/satp-cc-manager";
 import { GatewayOrchestrator } from "./gateway-orchestrator";
 import { State } from "../../generated/proto/cacti/satp/v13/session/session_pb";
@@ -239,6 +240,18 @@ export class SATPManager {
         );
 
         this.initializeHandlers(handlersClasses, handlersOptions);
+
+        // Register the cross-stage protocol message handler separately because
+        // it has a different constructor signature from stage handlers.
+        const protocolHandler = new ProtocolMessageHandler({
+          sessions: this.sessions,
+          logLevel: level,
+          monitorService: this.monitorService,
+        });
+        this.satpHandlers.set(
+          protocolHandler.getHandlerIdentifier(),
+          protocolHandler,
+        );
 
         this.orchestrator.addHandlers(this.satpHandlers);
 

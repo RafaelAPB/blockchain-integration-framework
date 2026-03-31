@@ -1,0 +1,30 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'14px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'actorBkg':'#22c55e','actorTextColor':'#ffffff','actorBorder':'#16a34a','activationBkgColor':'#d1fae5','activationBorderColor':'#22c55e','signalColor':'#065f46','labelBoxBkgColor':'#f0fdf4','labelBoxBorderColor':'#22c55e','noteBkgColor':'#d1fae5','noteTextColor':'#065f46'}}}%%
+sequenceDiagram
+  participant G1 as G1:Primary<br/>(crashed — silent)
+  participant B as B:BackupReadinessWorkflow<br/>(Temporal Child Workflow)
+  participant G2_WF as G2:SatpTransferWorkflow
+  participant CA as Certificate Authority
+
+  loop Every heartbeatInterval
+    G1 ->> B: heartbeat() — primary is alive
+  end
+
+  Note over G1: CRASH — heartbeats stop
+
+  Note over B: heartbeatTimeout fires<br/>CancellationScope.withTimeout resolves
+
+  B ->> B: Activity: ValidateBackupCertActivity<br/>[1] Run certification path algorithm on B's cert
+  B ->> CA: Validate certificate chain to root
+  CA -->> B: chain valid
+  B ->> B: [2] B.parentCert == G1.parentCert<br/>(same legal authority / VASP CA)
+  B ->> B: [3] hash(B.cert) in G1.cert.extensions.authorizedBackups
+
+  Note over B: All 3 checks pass — B is authorized
+
+  B ->> G2_WF: Signal: SESSION-RESUMPTION<br/>{ newGatewayPubkey: B.pubkey }
+  G2_WF ->> G2_WF: Validate signal against cert checks (Query mode)
+  G2_WF -->> B: Acknowledge new TLS session
+
+  B ->> G2_WF: Signal: RECOVER<br/>{ isBackup: true, newIdentityPublicKey: B.pubkey, seqNum=N }
+
+  Note over B,G2_WF: Resume standard crash recovery<br/>sub-protocol with B as G1

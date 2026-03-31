@@ -1,0 +1,58 @@
+syntax = "proto3";
+package cacti.satp.v13.service;
+
+// Rollback Sub-Protocol — draft-belchior-satp-gateway-recovery-04 §5.3.4–5.3.5.
+//
+// Separate from CrashRecoverySubProtocolService to allow independent Temporal
+// routing and to model the two-step rollback exchange as a distinct service.
+service RollbackSubProtocolService {
+  // Step 1 — non-crashed gateway announces rollback completion (draft §5.3.4)
+  rpc Rollback(RollbackV2Request) returns (RollbackV2Response);
+
+  // Step 2 — peer acknowledges the rollback notification (draft §5.3.5)
+  rpc RollbackAck(RollbackAckRequest) returns (RollbackAckResponse);
+}
+
+// Typed proof of a single rollback action — replaces repeated string proofs
+// in the legacy RollbackRequest.
+message RollbackProof {
+  string action     = 1; // e.g. "unlock-asset", "burn-asset", "mint-revert"
+  string stage      = 2; // SATPStage at which the action occurred
+  string proof_hash = 3; // hash of on-chain evidence, if available
+  string tx_id      = 4; // optional DLT transaction identifier
+  int64  timestamp  = 5; // Unix epoch ms
+}
+
+// ROLLBACK (draft §5.3.4) — non-crashed gateway announces it has rolled back.
+message RollbackV2Request {
+  string                session_id        = 1;
+  string                context_id        = 2; // ADDED — absent in legacy RollbackRequest
+  string                message_type      = 3;
+  bool                  success           = 4;
+  repeated string       actions_performed = 5; // human-readable summary
+  repeated RollbackProof proofs           = 6; // typed — replaces repeated string
+  string                sender_signature  = 7;
+}
+
+message RollbackV2Response {
+  string session_id       = 1;
+  bool   received         = 2;
+  string server_signature = 3;
+}
+
+// ROLLBACK-ACK (draft §5.3.5) — peer confirms receipt of the rollback.
+message RollbackAckRequest {
+  string                session_id        = 1;
+  string                context_id        = 2;
+  string                message_type      = 3;
+  bool                  success           = 4;
+  repeated string       actions_performed = 5;
+  repeated RollbackProof proofs           = 6;
+  string                sender_signature  = 7;
+}
+
+message RollbackAckResponse {
+  string session_id       = 1;
+  bool   received         = 2;
+  string server_signature = 3;
+}

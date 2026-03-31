@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package cacti.satp.v13.service;
+
+import "cacti/satp/v13/common/message.proto";
+
+// Acknowledgement for an incoming Reject Message (v13 §8.5).
+message RejectSessionAck {
+  // Session ID that was terminated.
+  string session_id = 1;
+  // true if the rejection was accepted and the session has been closed.
+  bool accepted = 2;
+  // Human-readable reason or IANA error code string.
+  string reason = 3;
+}
+
+// Acknowledgement for an incoming Error Message (v13 §10.6).
+message ErrorSessionAck {
+  // Session ID on which the error was received.
+  string session_id = 1;
+  // true if the error was accepted and the session has been marked as errored.
+  bool accepted = 2;
+  // Human-readable reason or IANA error code string.
+  string reason = 3;
+}
+
+// Acknowledgement for an incoming Session Abort Message (v13 §10.7).
+message AbortSessionAck {
+  // Session ID that was aborted.
+  string session_id = 1;
+  // true if the abort was accepted and effective per v13 §11.4.
+  bool accepted = 2;
+  // Human-readable reason or effectiveness verdict.
+  string reason = 3;
+}
+
+// Cross-stage protocol control message service (v13 §8.5, §10.6, §10.7).
+//
+// These messages may be sent at any point during a SATP session and are
+// not bound to a single protocol stage. The receiving gateway MUST
+// process them immediately and respond with the corresponding Ack.
+service ProtocolMessageService {
+  // Handle an incoming Reject Message per v13 §8.5.
+  rpc RejectSession(cacti.satp.v13.common.RejectMessage) returns (RejectSessionAck) {}
+  // Handle an incoming Error Message per v13 §10.6.
+  rpc ErrorSession(cacti.satp.v13.common.ErrorMessage) returns (ErrorSessionAck) {}
+  // Handle an incoming Session Abort Message per v13 §10.7.
+  rpc AbortSession(cacti.satp.v13.common.SessionAbortMessage) returns (AbortSessionAck) {}
+}

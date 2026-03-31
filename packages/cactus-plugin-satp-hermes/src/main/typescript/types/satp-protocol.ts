@@ -59,10 +59,11 @@ import type { AdapterManager } from "../adapters/adapter-manager";
 import { SatpStageKey } from "../generated/gateway-client/typescript-axios";
 
 /**
- * SATP protocol handler type derived from SatpStageKey.
- * Each handler type is the stage key suffixed with "-handler".
+ * SATP protocol handler type derived from SatpStageKey, plus cross-stage
+ * protocol-handler for Reject/Error/Abort messages (v13 §8.5, §10.6, §10.7).
+ * Each stage handler type is the stage key suffixed with "-handler".
  */
-export type SATPHandlerType = `${SatpStageKey}-handler`;
+export type SATPHandlerType = `${SatpStageKey}-handler` | "protocol-handler";
 
 /**
  * SATPHandlerType constants for each stage.
@@ -79,6 +80,8 @@ export const SATPHandlerType = {
   STAGE3: `${SatpStageKey.Stage3}-handler` as SATPHandlerType,
   /** Crash recovery handler for fault-tolerant operations */
   CRASH: `${SatpStageKey.Crash}-handler` as SATPHandlerType,
+  /** Cross-stage handler for Reject/Error/Abort control messages (v13 §8.5) */
+  PROTOCOL: "protocol-handler" as SATPHandlerType,
 } as const;
 
 /**

@@ -1,0 +1,24 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46', 'clusterBkg':'#f0fdf4', 'clusterBorder':'#22c55e', 'edgeLabelBackground':'#ffffff', 'mainBkg':'#ffffff'}}}%%
+graph LR
+  subgraph SatpCore["SATP Core — draft-ietf-satp-core"]
+    P1["Phase 1:<br/>Transfer Initiation"]
+    P2["Phase 2:<br/>Lock-Evidence"]
+    P3["Phase 3:<br/>Commitment Establishment"]
+  end
+  subgraph CrashRecovery["Crash Recovery — draft-belchior-satp-gateway-recovery-04"]
+    CR["Crash Recovery<br/>Sub-Protocol"]
+    RB["Rollback<br/>Sub-Protocol"]
+    SR["Session<br/>Resumption"]
+  end
+
+  P1 -->|"logged at each step"| CR
+  P2 -->|"logged at each step"| CR
+  P3 -->|"logged at each step"| CR
+  CR -->|"if unrecoverable in time"| RB
+  SR -->|"primary-backup only"| CR
+
+  classDef coreNode fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#ffffff,rx:10,ry:10
+  classDef recoveryNode fill:#fbbf24,stroke:#f59e0b,stroke-width:3px,color:#1a1a1a,rx:10,ry:10
+
+  class P1,P2,P3 coreNode
+  class CR,RB,SR recoveryNode

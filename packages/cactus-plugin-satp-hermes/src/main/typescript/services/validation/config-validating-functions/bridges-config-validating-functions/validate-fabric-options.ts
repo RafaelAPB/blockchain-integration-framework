@@ -1,6 +1,5 @@
 import {
   ConnectionProfile,
-  ConnectionProfileClient,
   DefaultEventHandlerStrategy,
   FabricSigningCredentialType,
   GatewayDiscoveryOptions,
@@ -23,98 +22,6 @@ export interface FabricOptionsJSON {
   webSocketConfig?: IWebSocketConfig;
   signCallback?: SignPayloadCallback;
   dockerNetworkName?: string;
-}
-
-// Type guard for ConnectionProfileClient
-function isConnectionProfileClient(
-  obj: unknown,
-  log: Logger,
-): obj is ConnectionProfileClient {
-  const objRecord = obj as Record<string, unknown>;
-  if (typeof obj !== "object" || obj === null) {
-    log.error("ConnectionProfileClient is not an object:", obj);
-    return false;
-  }
-  if ("organization" in obj && typeof objRecord.organization !== "object") {
-    log.error(
-      "ConnectionProfileClient invalid 'organization':",
-      objRecord.organization,
-    );
-    return false;
-  }
-  return true;
-}
-
-// Type guard for ConnectionProfile
-export function isConnectionProfile(
-  obj: unknown,
-  log: Logger,
-): obj is ConnectionProfile {
-  const objRecord = obj as Record<string, unknown>;
-  if (typeof obj !== "object" || obj === null) {
-    log.error("ConnectionProfile is not an object:", obj);
-    return false;
-  }
-
-  if (!("name" in obj) || typeof objRecord.name !== "string") {
-    log.error("ConnectionProfile missing or invalid 'name':", objRecord.name);
-    return false;
-  }
-  if (!("version" in obj) || typeof objRecord.version !== "string") {
-    log.error(
-      "ConnectionProfile missing or invalid 'version':",
-      objRecord.version,
-    );
-    return false;
-  }
-  if (
-    !("organizations" in obj) ||
-    typeof objRecord.organizations !== "object"
-  ) {
-    log.error(
-      "ConnectionProfile missing or invalid 'organizations':",
-      objRecord.organizations,
-    );
-    return false;
-  }
-  if (!("peers" in obj) || typeof objRecord.peers !== "object") {
-    log.error("ConnectionProfile missing or invalid 'peers':", objRecord.peers);
-    return false;
-  }
-  if ("x-type" in obj && typeof objRecord["x-type"] !== "string") {
-    log.error("ConnectionProfile invalid 'x-type':", objRecord["x-type"]);
-    return false;
-  }
-  if ("description" in obj && typeof objRecord.description !== "string") {
-    log.error(
-      "ConnectionProfile invalid 'description':",
-      objRecord.description,
-    );
-    return false;
-  }
-  if ("client" in obj && !isConnectionProfileClient(objRecord.client, log)) {
-    log.error("ConnectionProfile invalid 'client':", objRecord.client);
-    return false;
-  }
-  if ("channels" in obj && typeof objRecord.channels !== "object") {
-    log.error("ConnectionProfile invalid 'channels':", objRecord.channels);
-    return false;
-  }
-  if ("orderers" in obj && typeof objRecord.orderers !== "object") {
-    log.error("ConnectionProfile invalid 'orderers':", objRecord.orderers);
-    return false;
-  }
-  if (
-    "certificateAuthorities" in obj &&
-    typeof objRecord.certificateAuthorities !== "object"
-  ) {
-    log.error(
-      "ConnectionProfile invalid 'certificateAuthorities':",
-      objRecord.certificateAuthorities,
-    );
-    return false;
-  }
-  return true;
 }
 
 // Type guard for GatewayDiscoveryOptions

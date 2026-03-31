@@ -4,10 +4,18 @@ package cacti.satp.v13.service;
 // Crash Recovery — preserved as non-standard extension per CON-003.
 // v13 states: "Session recovery and resumption is not supported in the
 // current version of the SATP protocol" (Section 10.8).
+//
+// @deprecated Phase 1 — use CrashRecoverySubProtocolService and
+// RollbackSubProtocolService instead.  These RPCs will be removed in Phase 3
+// once all callers have migrated to the V2 sub-protocol services.
+// See crash_recovery_subprotocol.proto and rollback_subprotocol.proto.
 
 service CrashRecoveryService {
+  // @deprecated Use CrashRecoverySubProtocolService.Recover instead.
   rpc Recover(RecoverRequest) returns (RecoverResponse);
+  // @deprecated Use CrashRecoverySubProtocolService.RecoverSuccess instead.
   rpc RecoverSuccess(RecoverSuccessRequest) returns (RecoverSuccessResponse);
+  // @deprecated Use RollbackSubProtocolService.Rollback instead.
   rpc Rollback(RollbackRequest) returns (RollbackResponse);
 }
 

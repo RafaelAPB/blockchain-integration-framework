@@ -1,0 +1,50 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46', 'clusterBkg':'#f0fdf4', 'clusterBorder':'#22c55e', 'edgeLabelBackground':'#ffffff', 'mainBkg':'#ffffff'}}}%%
+graph TD
+  subgraph SatpCrashRecovery["SatpCrashRecoveryWorkflow — G1"]
+    ROOT["<b>SatpTransferWorkflow</b><br/>Parent / Orchestrator"]
+    P1["<b>Phase1Workflow</b><br/>Transfer Initiation"]
+    P2["<b>Phase2Workflow</b><br/>Lock-Evidence"]
+    P3["<b>Phase3Workflow</b><br/>Commitment Establishment"]
+    REC["<b>RecoveryWorkflow</b><br/>Crash Recovery Sub-Protocol"]
+    RB_WF["<b>RollbackWorkflow</b><br/>Rollback Sub-Protocol"]
+    BACKUP_WF["<b>BackupReadinessWorkflow</b><br/>Primary-Backup Mode"]
+  end
+
+  ROOT --> P1
+  P1 --> P2
+  P2 --> P3
+  ROOT --> REC
+  ROOT --> RB_WF
+  ROOT --> BACKUP_WF
+
+  ROOT -->|"heartbeat to"| BACKUP_WF
+
+  subgraph Activities["Activities"]
+    WLE["<b>WriteLogEntryActivity</b>"]
+    GLD["<b>GetLogDiffActivity</b>"]
+    LOCK["<b>LockAssetActivity</b>"]
+    MINT["<b>MintAssetActivity</b>"]
+    UNLOCK["<b>UnlockAssetActivity</b>"]
+    BURN["<b>BurnAssetActivity</b>"]
+    CERT["<b>ValidateBackupCertActivity</b>"]
+  end
+
+  P2 --> WLE
+  P2 --> LOCK
+  P3 --> WLE
+  P3 --> MINT
+  REC --> WLE
+  REC --> GLD
+  RB_WF --> UNLOCK
+  RB_WF --> BURN
+  BACKUP_WF --> CERT
+
+  classDef parentNode fill:#22c55e,stroke:#16a34a,stroke-width:4px,color:#ffffff,rx:10,ry:10
+  classDef phaseNode fill:#4ade80,stroke:#22c55e,stroke-width:3px,color:#065f46,rx:10,ry:10
+  classDef recoveryNode fill:#fbbf24,stroke:#f59e0b,stroke-width:3px,color:#1a1a1a,rx:10,ry:10
+  classDef activityNode fill:#bbf7d0,stroke:#86efac,stroke-width:3px,color:#065f46,rx:10,ry:10
+
+  class ROOT parentNode
+  class P1,P2,P3 phaseNode
+  class REC,RB_WF,BACKUP_WF recoveryNode
+  class WLE,GLD,LOCK,MINT,UNLOCK,BURN,CERT activityNode

@@ -6882,7 +6882,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grpc/grpc-js@npm:^1.10.9, @grpc/grpc-js@npm:^1.7.1":
+"@grpc/grpc-js@npm:^1.10.9, @grpc/grpc-js@npm:^1.12.4, @grpc/grpc-js@npm:^1.7.1":
   version: 1.14.3
   resolution: "@grpc/grpc-js@npm:1.14.3"
   dependencies:
@@ -8918,6 +8918,11 @@ __metadata:
     "@opentelemetry/sdk-trace-node": "npm:1.30.1"
     "@openzeppelin/contracts": "npm:5.0.2"
     "@quobix/vacuum": "npm:0.20.2"
+    "@temporalio/activity": "npm:1.15.0"
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/testing": "npm:1.15.0"
+    "@temporalio/worker": "npm:1.15.0"
+    "@temporalio/workflow": "npm:1.15.0"
     "@types/bn.js": "npm:5.2.0"
     "@types/body-parser": "npm:1.19.4"
     "@types/crypto-js": "npm:4.0.1"
@@ -9189,6 +9194,7 @@ __metadata:
     "@hyperledger/aries-askar-nodejs": "npm:0.2.3"
     "@hyperledger/cactus-common": "npm:2.1.0"
     "@hyperledger/indy-vdr-nodejs": "npm:0.2.3"
+    "@temporalio/testing": "npm:1.15.0"
     "@types/dockerode": "npm:3.2.7"
     "@types/esm": "npm:3.2.0"
     "@types/fs-extra": "npm:11.0.4"
@@ -10623,6 +10629,20 @@ __metadata:
   peerDependencies:
     tslib: 2
   checksum: 10/191b9d9a63f0ad30342da7ab37a45bbe84c935ae204e3780d69acf2fb12fdf07f7da8c3ade38255207de72fdb3b64a30e8dcc2ad93cfe424e77697d3cd419166
+  languageName: node
+  linkType: hard
+
+"@jsonjoy.com/fs-snapshot@npm:4.57.1":
+  version: 4.57.1
+  resolution: "@jsonjoy.com/fs-snapshot@npm:4.57.1"
+  dependencies:
+    "@jsonjoy.com/buffers": "npm:^17.65.0"
+    "@jsonjoy.com/fs-node-utils": "npm:4.57.1"
+    "@jsonjoy.com/json-pack": "npm:^17.65.0"
+    "@jsonjoy.com/util": "npm:^17.65.0"
+  peerDependencies:
+    tslib: 2
+  checksum: 10/071dccfe618e26183f95c5651d9b84b676dde37460b7a9d6dfbdd9d5675e830d89f3ecca0f60f6c8b2cfa2c7d4777e6bd6f66beb233dce8dbb1a87d5f3f95115
   languageName: node
   linkType: hard
 
@@ -15801,12 +15821,164 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@swc/core-darwin-arm64@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-darwin-arm64@npm:1.15.21"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@swc/core-darwin-x64@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-darwin-x64@npm:1.15.21"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm-gnueabihf@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.15.21"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm64-gnu@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-linux-arm64-gnu@npm:1.15.21"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm64-musl@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-linux-arm64-musl@npm:1.15.21"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-ppc64-gnu@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-linux-ppc64-gnu@npm:1.15.21"
+  conditions: os=linux & cpu=ppc64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-s390x-gnu@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-linux-s390x-gnu@npm:1.15.21"
+  conditions: os=linux & cpu=s390x & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-x64-gnu@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-linux-x64-gnu@npm:1.15.21"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-x64-musl@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-linux-x64-musl@npm:1.15.21"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-arm64-msvc@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-win32-arm64-msvc@npm:1.15.21"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-ia32-msvc@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-win32-ia32-msvc@npm:1.15.21"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-x64-msvc@npm:1.15.21":
+  version: 1.15.21
+  resolution: "@swc/core-win32-x64-msvc@npm:1.15.21"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@swc/core@npm:^1.3.102":
+  version: 1.15.21
+  resolution: "@swc/core@npm:1.15.21"
+  dependencies:
+    "@swc/core-darwin-arm64": "npm:1.15.21"
+    "@swc/core-darwin-x64": "npm:1.15.21"
+    "@swc/core-linux-arm-gnueabihf": "npm:1.15.21"
+    "@swc/core-linux-arm64-gnu": "npm:1.15.21"
+    "@swc/core-linux-arm64-musl": "npm:1.15.21"
+    "@swc/core-linux-ppc64-gnu": "npm:1.15.21"
+    "@swc/core-linux-s390x-gnu": "npm:1.15.21"
+    "@swc/core-linux-x64-gnu": "npm:1.15.21"
+    "@swc/core-linux-x64-musl": "npm:1.15.21"
+    "@swc/core-win32-arm64-msvc": "npm:1.15.21"
+    "@swc/core-win32-ia32-msvc": "npm:1.15.21"
+    "@swc/core-win32-x64-msvc": "npm:1.15.21"
+    "@swc/counter": "npm:^0.1.3"
+    "@swc/types": "npm:^0.1.25"
+  peerDependencies:
+    "@swc/helpers": ">=0.5.17"
+  dependenciesMeta:
+    "@swc/core-darwin-arm64":
+      optional: true
+    "@swc/core-darwin-x64":
+      optional: true
+    "@swc/core-linux-arm-gnueabihf":
+      optional: true
+    "@swc/core-linux-arm64-gnu":
+      optional: true
+    "@swc/core-linux-arm64-musl":
+      optional: true
+    "@swc/core-linux-ppc64-gnu":
+      optional: true
+    "@swc/core-linux-s390x-gnu":
+      optional: true
+    "@swc/core-linux-x64-gnu":
+      optional: true
+    "@swc/core-linux-x64-musl":
+      optional: true
+    "@swc/core-win32-arm64-msvc":
+      optional: true
+    "@swc/core-win32-ia32-msvc":
+      optional: true
+    "@swc/core-win32-x64-msvc":
+      optional: true
+  peerDependenciesMeta:
+    "@swc/helpers":
+      optional: true
+  checksum: 10/0b3246ef93280d536ddc230e837678da5813e2794b329506bbf03f01f355fd4d84e4e1e3e704bc151405e7606be968dbd937829739d1e9bd7bd8a6fd59e52445
+  languageName: node
+  linkType: hard
+
+"@swc/counter@npm:^0.1.3":
+  version: 0.1.3
+  resolution: "@swc/counter@npm:0.1.3"
+  checksum: 10/df8f9cfba9904d3d60f511664c70d23bb323b3a0803ec9890f60133954173047ba9bdeabce28cd70ba89ccd3fd6c71c7b0bd58be85f611e1ffbe5d5c18616598
+  languageName: node
+  linkType: hard
+
 "@swc/helpers@npm:^0.5.0":
   version: 0.5.21
   resolution: "@swc/helpers@npm:0.5.21"
   dependencies:
     tslib: "npm:^2.8.0"
   checksum: 10/3b637f836282a0a0f2c21e27a2354f09659a4ffa6fad7fbb464a94ff235704b224a578ac04df320cc633471681c61a7316ca02079c90d39e9713ad3422aea0dc
+  languageName: node
+  linkType: hard
+
+"@swc/types@npm:^0.1.25":
+  version: 0.1.26
+  resolution: "@swc/types@npm:0.1.26"
+  dependencies:
+    "@swc/counter": "npm:^0.1.3"
+  checksum: 10/07de03b9da3928cdf69bda70bf2c809dd86f16ef23e357759e577bbd975529cb20218c2e54e72b00585abae2b5e04e39b8947cea7a6f4de2d40a7633be441919
   languageName: node
   linkType: hard
 
@@ -15901,6 +16073,134 @@ __metadata:
   version: 3.14.0
   resolution: "@tanstack/virtual-core@npm:3.14.0"
   checksum: 10/b597c5983b7a17e2ca8ab7be70c982053c018356049f012bed7d185fa4d2a250f386ec9752c576890050dcb145723f6d9e7c995769a4ba0e0a9fc9816239c54a
+  languageName: node
+  linkType: hard
+
+"@temporalio/activity@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/activity@npm:1.15.0"
+  dependencies:
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    abort-controller: "npm:^3.0.0"
+  checksum: 10/cdef141d72b991692cd9c30e819d3f935f57d4c2d686a78d250934d65e54ebb81ab14cc9c03bf001ccb18e75280893f281f8f4aa7bfcfe56d87d4cdc8185f0a1
+  languageName: node
+  linkType: hard
+
+"@temporalio/client@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/client@npm:1.15.0"
+  dependencies:
+    "@grpc/grpc-js": "npm:^1.12.4"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    abort-controller: "npm:^3.0.0"
+    long: "npm:^5.2.3"
+    uuid: "npm:^11.1.0"
+  checksum: 10/6f35bf17391b6452ff5f54ba850ecceb4d98b43d0e77288e93b1d21f6523d16bf6d2f04eadb5288bb159950d597a986396d94d05782ebf1b8bcd7eeb8d09d820
+  languageName: node
+  linkType: hard
+
+"@temporalio/common@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/common@npm:1.15.0"
+  dependencies:
+    "@temporalio/proto": "npm:1.15.0"
+    long: "npm:^5.2.3"
+    ms: "npm:3.0.0-canary.1"
+    nexus-rpc: "npm:^0.0.1"
+    proto3-json-serializer: "npm:^2.0.0"
+  checksum: 10/f9e4b827dcd7929c8f97125f479b33a379829406bf2cc0811ce7d742d8db1ae73d3c1b3a03f69a61d74cb4d04e7e7ae6f2e88b1d44237f9fe4e02b351f3676ec
+  languageName: node
+  linkType: hard
+
+"@temporalio/core-bridge@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/core-bridge@npm:1.15.0"
+  dependencies:
+    "@grpc/grpc-js": "npm:^1.12.4"
+    "@temporalio/common": "npm:1.15.0"
+  checksum: 10/3ca01ddcb1569cf467b285f2e9ddbc8b0865b6302a0de7b82d332ce3a0a2e614de2bb29266d0b154b17352b3e5437467abed85dd2c7468a9186a9c99f50223fa
+  languageName: node
+  linkType: hard
+
+"@temporalio/nexus@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/nexus@npm:1.15.0"
+  dependencies:
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    long: "npm:^5.2.3"
+    nexus-rpc: "npm:^0.0.1"
+  checksum: 10/5fbfb8d6ead61b39f576ecd42c3fe6c73ec8a938d18a3fd47877d343e28645b56579f7c7d910154c4c9b2f0dbada0319b9b5c0685349f5016b31f76512cacb36
+  languageName: node
+  linkType: hard
+
+"@temporalio/proto@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/proto@npm:1.15.0"
+  dependencies:
+    long: "npm:^5.2.3"
+    protobufjs: "npm:^7.2.5"
+  checksum: 10/8a9c63a98c76a2f368450ee73bc95afe9b253d9b42ae1646d2a5872a4ed717c0d1944d20b628ccad1d6d433b674fd5ca7aae1b7445e5e2fb19ac8c458d34cd94
+  languageName: node
+  linkType: hard
+
+"@temporalio/testing@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/testing@npm:1.15.0"
+  dependencies:
+    "@temporalio/activity": "npm:1.15.0"
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/core-bridge": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    "@temporalio/worker": "npm:1.15.0"
+    "@temporalio/workflow": "npm:1.15.0"
+    abort-controller: "npm:^3.0.0"
+  checksum: 10/74ef94c73508a254f92219a475fad9fca352768bee6a7d50cb59506e4e5980c0a1be5395d904f9f6eecaa524ba5bcc144639a7913d42c7ee851ebc3902e8bb2c
+  languageName: node
+  linkType: hard
+
+"@temporalio/worker@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/worker@npm:1.15.0"
+  dependencies:
+    "@grpc/grpc-js": "npm:^1.12.4"
+    "@swc/core": "npm:^1.3.102"
+    "@temporalio/activity": "npm:1.15.0"
+    "@temporalio/client": "npm:1.15.0"
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/core-bridge": "npm:1.15.0"
+    "@temporalio/nexus": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    "@temporalio/workflow": "npm:1.15.0"
+    abort-controller: "npm:^3.0.0"
+    heap-js: "npm:^2.6.0"
+    memfs: "npm:^4.6.0"
+    nexus-rpc: "npm:^0.0.1"
+    proto3-json-serializer: "npm:^2.0.0"
+    protobufjs: "npm:^7.2.5"
+    rxjs: "npm:^7.8.1"
+    source-map: "npm:^0.7.4"
+    source-map-loader: "npm:^4.0.2"
+    supports-color: "npm:^8.1.1"
+    swc-loader: "npm:^0.2.3"
+    unionfs: "npm:^4.5.1"
+    webpack: "npm:^5.104.1"
+  checksum: 10/7d280f241ee8a72c997c249a264da76bfd877ab6e73c95636ee43bfd2fd726a5efb6172273586221c78f8ae3e610a0a3aa274b15240df9904ad7f963521bc487
+  languageName: node
+  linkType: hard
+
+"@temporalio/workflow@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@temporalio/workflow@npm:1.15.0"
+  dependencies:
+    "@temporalio/common": "npm:1.15.0"
+    "@temporalio/proto": "npm:1.15.0"
+    nexus-rpc: "npm:^0.0.1"
+  checksum: 10/8ae8b272d1ce2c35997369ed5fa6f222d8478bddd1d29f39d7eee1a031b4be32696a97d1cf9c0e33575516683fef7d743c0e9243f86bb8ce9434df2b63fb94c8
   languageName: node
   linkType: hard
 
@@ -19755,6 +20055,15 @@ __metadata:
   linkType: hard
 
 "acorn@npm:^8.11.0, acorn@npm:^8.14.0, acorn@npm:^8.15.0, acorn@npm:^8.16.0, acorn@npm:^8.2.4, acorn@npm:^8.4.1, acorn@npm:^8.7.1, acorn@npm:^8.8.2, acorn@npm:^8.9.0":
+  version: 8.16.0
+  resolution: "acorn@npm:8.16.0"
+  bin:
+    acorn: bin/acorn
+  checksum: 10/690c673bb4d61b38ef82795fab58526471ad7f7e67c0e40c4ff1e10ecd80ce5312554ef633c9995bfc4e6d170cef165711f9ca9e49040b62c0c66fbf2dd3df2b
+  languageName: node
+  linkType: hard
+
+"acorn@npm:^8.16.0":
   version: 8.16.0
   resolution: "acorn@npm:8.16.0"
   bin:
@@ -27728,6 +28037,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"enhanced-resolve@npm:^5.20.0":
+  version: 5.20.1
+  resolution: "enhanced-resolve@npm:5.20.1"
+  dependencies:
+    graceful-fs: "npm:^4.2.4"
+    tapable: "npm:^2.3.0"
+  checksum: 10/588afc56de97334e5742faebcf8177a504da08ea817d399f9901f35d8e9e5e6fa86b4c2ce95a99081f947764e09c9991cc0fc0ba5751bae455c329643a709187
+  languageName: node
+  linkType: hard
+
 "enquirer@npm:2.3.6":
   version: 2.3.6
   resolution: "enquirer@npm:2.3.6"
@@ -31536,7 +31855,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fs-monkey@npm:^1.0.4":
+"fs-monkey@npm:^1.0.0, fs-monkey@npm:^1.0.4":
   version: 1.1.0
   resolution: "fs-monkey@npm:1.1.0"
   checksum: 10/1c6da5d07f6c91e31fd9bcd68909666e18fa243c7af6697e9d2ded16d4ee87cc9c2b67889b19f98211006c228d1915e1beb0678b4080778fb52539ef3e4eab6c
@@ -39998,6 +40317,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"memfs@npm:^4.6.0":
+  version: 4.57.1
+  resolution: "memfs@npm:4.57.1"
+  dependencies:
+    "@jsonjoy.com/fs-core": "npm:4.57.1"
+    "@jsonjoy.com/fs-fsa": "npm:4.57.1"
+    "@jsonjoy.com/fs-node": "npm:4.57.1"
+    "@jsonjoy.com/fs-node-builtins": "npm:4.57.1"
+    "@jsonjoy.com/fs-node-to-fsa": "npm:4.57.1"
+    "@jsonjoy.com/fs-node-utils": "npm:4.57.1"
+    "@jsonjoy.com/fs-print": "npm:4.57.1"
+    "@jsonjoy.com/fs-snapshot": "npm:4.57.1"
+    "@jsonjoy.com/json-pack": "npm:^1.11.0"
+    "@jsonjoy.com/util": "npm:^1.9.0"
+    glob-to-regex.js: "npm:^1.0.1"
+    thingies: "npm:^2.5.0"
+    tree-dump: "npm:^1.0.3"
+    tslib: "npm:^2.0.0"
+  peerDependencies:
+    tslib: 2
+  checksum: 10/60e85235a0c9034f64f01e2d2124eb599d4768fe8fe9e013fe3e32ae43987ad2c821ff4f0ce77d917fccf8eede9dd4c18573392be9e03a97ab4cfcf59eccfc0d
+  languageName: node
+  linkType: hard
+
 "memorystream@npm:^0.3.1":
   version: 0.3.1
   resolution: "memorystream@npm:0.3.1"
@@ -40958,6 +41301,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ms@npm:3.0.0-canary.1":
+  version: 3.0.0-canary.1
+  resolution: "ms@npm:3.0.0-canary.1"
+  checksum: 10/5ec76c0932cf83ac3e7f70f1a4c0d4db4dbc91de6ea5f7d336c67b48f513c8cb4c0fce3a07e3d84ee931dbdc9a48f33ed1c485e834279fff8906d385e86684ae
+  languageName: node
+  linkType: hard
+
 "msrcrypto@npm:^1.5.6":
   version: 1.5.8
   resolution: "msrcrypto@npm:1.5.8"
@@ -41392,6 +41742,13 @@ __metadata:
   version: 1.1.0
   resolution: "next-tick@npm:1.1.0"
   checksum: 10/83b5cf36027a53ee6d8b7f9c0782f2ba87f4858d977342bfc3c20c21629290a2111f8374d13a81221179603ffc4364f38374b5655d17b6a8f8a8c77bdea4fe8b
+  languageName: node
+  linkType: hard
+
+"nexus-rpc@npm:^0.0.1":
+  version: 0.0.1
+  resolution: "nexus-rpc@npm:0.0.1"
+  checksum: 10/24467ab6d17db98bcef8cd4f13edbb3291a190967ccc9bf2463bf90b5850abc139590501c6785d994f156deec3b71234d14e6b98bea623a3aae4cbbc4eee9c41
   languageName: node
   linkType: hard
 
@@ -49906,6 +50263,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"source-map-loader@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "source-map-loader@npm:4.0.2"
+  dependencies:
+    iconv-lite: "npm:^0.6.3"
+    source-map-js: "npm:^1.0.2"
+  peerDependencies:
+    webpack: ^5.72.1
+  checksum: 10/9a33adfe21b804b2ac5be05d159dda0dd8e86ac8650816638dcff0aa982e7559ced366ed68800b82c85a48482df9072694482757ab8746633c75bae75da698b6
+  languageName: node
+  linkType: hard
+
 "source-map-resolve@npm:^0.5.0":
   version: 0.5.3
   resolution: "source-map-resolve@npm:0.5.3"
@@ -51325,6 +51694,18 @@ __metadata:
     tar: "npm:^4.0.2"
     xhr-request: "npm:^1.0.1"
   checksum: 10/341bcfef6daadc1904ea87b1781f10dc99ec14e33c9a9041e43e9617dcc3b7d632230e1baf2fafecb8e10e63c2e4eeb7cce7c85592dc0cf0dde935f49c77050b
+  languageName: node
+  linkType: hard
+
+"swc-loader@npm:^0.2.3":
+  version: 0.2.7
+  resolution: "swc-loader@npm:0.2.7"
+  dependencies:
+    "@swc/counter": "npm:^0.1.3"
+  peerDependencies:
+    "@swc/core": ^1.2.147
+    webpack: ">=2"
+  checksum: 10/15cbc3769209f7e2f927e49c19a5ef30fe03663bd34688289c003d966c7dfe782eec39de77c454aa7465ce84138d8bc31257b736b32ff3be10191f1de88cbbf5
   languageName: node
   linkType: hard
 
@@ -53679,6 +54060,15 @@ __metadata:
     is-extendable: "npm:^0.1.1"
     set-value: "npm:^2.0.1"
   checksum: 10/a3464097d3f27f6aa90cf103ed9387541bccfc006517559381a10e0dffa62f465a9d9a09c9b9c3d26d0f4cbe61d4d010e2fbd710fd4bf1267a768ba8a774b0ba
+  languageName: node
+  linkType: hard
+
+"unionfs@npm:^4.5.1":
+  version: 4.6.0
+  resolution: "unionfs@npm:4.6.0"
+  dependencies:
+    fs-monkey: "npm:^1.0.0"
+  checksum: 10/ff27093d1205f46f22b62429caf086374e0ed1cac9fa5fd6e588674d40c9807eb65d9ac0c542edf2390d4598da4a9372386b84240ef6375b7060ba965e31ad3e
   languageName: node
   linkType: hard
 
@@ -56473,6 +56863,13 @@ __metadata:
   version: 3.4.1
   resolution: "webpack-sources@npm:3.4.1"
   checksum: 10/bb6f3fe34b260dd935c8d9b58cc1dd557227e71870661ec12342fa84c49340cc8634b4a0fc4e828e2276e8973cdbca4963dda7dae07b98511ffa1e6a75e4de00
+  languageName: node
+  linkType: hard
+
+"webpack-sources@npm:^3.3.4":
+  version: 3.3.4
+  resolution: "webpack-sources@npm:3.3.4"
+  checksum: 10/714427b235b04c2d7cf229f204b9e65145ea3643da3c7b139ebfa8a51056238d1e3a2a47c3cc3fc8eab71ed4300f66405cdc7cff29cd2f7f6b71086252f81cf1
   languageName: node
   linkType: hard
 

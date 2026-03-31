@@ -1,0 +1,61 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46', 'clusterBkg':'#f0fdf4', 'clusterBorder':'#22c55e', 'edgeLabelBackground':'#ffffff', 'mainBkg':'#ffffff'}}}%%
+graph TB
+  subgraph OriginDomain["Origin Domain — G1"]
+    direction TB
+    G1_CLIENT["<b>G1 API Client</b><br/>Express / gRPC"]
+    G1_WORKER["<b>G1 Temporal Worker</b><br/>Node.js — glibc container"]
+    G1_WF["<b>G1 SatpWorkflow</b><br/>SatpCrashRecoveryWorkflow"]
+    G1_LOG["<b>G1 Log Storage</b><br/>Postgres / Fabric on-chain"]
+  end
+
+  subgraph DestinationDomain["Destination Domain — G2"]
+    direction TB
+    G2_CLIENT["<b>G2 API Client</b><br/>Express / gRPC"]
+    G2_WORKER["<b>G2 Temporal Worker</b><br/>Node.js — glibc container"]
+    G2_WF["<b>G2 SatpWorkflow</b><br/>SatpCrashRecoveryWorkflow"]
+    G2_LOG["<b>G2 Log Storage</b><br/>Postgres / Fabric on-chain"]
+  end
+
+  subgraph TemporalCluster["Temporal Cluster"]
+    TS["<b>Temporal Server</b><br/>Frontend + History<br/>Matching + Worker services"]
+    TDB[("<b>Temporal DB</b><br/>Postgres / Cassandra")]
+    TQ1["<b>Task Queue: satp-g1</b>"]
+    TQ2["<b>Task Queue: satp-g2</b>"]
+  end
+
+  subgraph ExternalNetworks["External Networks"]
+    FABRIC["<b>Hyperledger Fabric</b><br/>Asset source ledger"]
+    ETH["<b>Ethereum / Besu</b><br/>Asset destination ledger"]
+  end
+
+  G1_CLIENT -->|"Start / Signal / Query"| TS
+  G2_CLIENT -->|"Start / Signal / Query"| TS
+
+  TS <-->|"persist event history"| TDB
+  TS -->|"dispatch tasks"| TQ1
+  TS -->|"dispatch tasks"| TQ2
+
+  TQ1 --> G1_WORKER
+  TQ2 --> G2_WORKER
+
+  G1_WORKER -->|"execute Workflow code"| G1_WF
+  G2_WORKER -->|"execute Workflow code"| G2_WF
+
+  G1_WF -->|"Activity: writeLogEntry"| G1_LOG
+  G2_WF -->|"Activity: writeLogEntry"| G2_LOG
+
+  G1_WF -->|"Activity: lockAsset / burnAsset"| FABRIC
+  G2_WF -->|"Activity: mintAsset / createAsset"| ETH
+
+  G1_WF <-->|"Signal: RECOVER / Update: RECOVER-UPDATE"| G2_WF
+  G2_WF <-->|"Signal: ROLLBACK / Update: ROLLBACK-ACK"| G1_WF
+
+  classDef originNode fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#ffffff,rx:10,ry:10
+  classDef destNode fill:#4ade80,stroke:#22c55e,stroke-width:3px,color:#065f46,rx:10,ry:10
+  classDef temporalNode fill:#86efac,stroke:#4ade80,stroke-width:3px,color:#065f46,rx:10,ry:10
+  classDef externalNode fill:#bbf7d0,stroke:#86efac,stroke-width:3px,color:#065f46,rx:10,ry:10
+
+  class G1_CLIENT,G1_WORKER,G1_WF,G1_LOG originNode
+  class G2_CLIENT,G2_WORKER,G2_WF,G2_LOG destNode
+  class TS,TDB,TQ1,TQ2 temporalNode
+  class FABRIC,ETH externalNode

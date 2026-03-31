@@ -631,57 +631,6 @@ export function saveSignature(
   }
 }
 
-export function getPreviousMessageType(
-  sessionData: SessionData | undefined,
-  type: MessageType,
-): MessageType {
-  if (sessionData == undefined) {
-    throw new Error("No session data provided");
-  }
-
-  switch (type) {
-    case MessageType.NEW_SESSION_REQUEST:
-      return MessageType.UNSPECIFIED;
-    case MessageType.NEW_SESSION_RESPONSE:
-      return MessageType.NEW_SESSION_REQUEST;
-    case MessageType.PRE_SATP_TRANSFER_REQUEST:
-      return MessageType.NEW_SESSION_RESPONSE;
-    case MessageType.PRE_SATP_TRANSFER_RESPONSE:
-      return MessageType.PRE_SATP_TRANSFER_REQUEST;
-    case MessageType.INIT_PROPOSAL:
-      return MessageType.PRE_SATP_TRANSFER_RESPONSE;
-    case MessageType.INIT_RECEIPT:
-      return MessageType.INIT_PROPOSAL;
-    case MessageType.INIT_REJECT:
-      return MessageType.INIT_PROPOSAL;
-    case MessageType.TRANSFER_COMMENCE_REQUEST:
-      if (sessionData.hashes?.stage1?.transferProposalRejectMessageHash) {
-        return MessageType.INIT_REJECT;
-      }
-      return MessageType.INIT_RECEIPT;
-    case MessageType.TRANSFER_COMMENCE_RESPONSE:
-      return MessageType.TRANSFER_COMMENCE_REQUEST;
-    case MessageType.LOCK_ASSERT:
-      return MessageType.TRANSFER_COMMENCE_RESPONSE;
-    case MessageType.ASSERTION_RECEIPT:
-      return MessageType.LOCK_ASSERT;
-    case MessageType.COMMIT_PREPARE:
-      return MessageType.ASSERTION_RECEIPT;
-    case MessageType.COMMIT_READY:
-      return MessageType.COMMIT_PREPARE;
-    case MessageType.COMMIT_FINAL:
-      return MessageType.COMMIT_READY;
-    case MessageType.ACK_COMMIT_FINAL:
-      return MessageType.COMMIT_FINAL;
-    case MessageType.COMMIT_TRANSFER_COMPLETE:
-      return MessageType.ACK_COMMIT_FINAL;
-    case MessageType.COMMIT_TRANSFER_COMPLETE_RESPONSE:
-      return MessageType.COMMIT_TRANSFER_COMPLETE;
-    default:
-      throw new Error("Message type not found");
-  }
-}
-
 export function getMessageHash(
   sessionData: SessionData | undefined,
   messageType: MessageType,

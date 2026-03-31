@@ -48,11 +48,18 @@ export interface IGatewayOrchestratorOptions {
   signer: JsObjectSigner;
   enableCrashRecovery?: boolean;
   monitorService: MonitorService;
+  /**
+   * Optional security enforcement flags forwarded from {@link SATPGatewayConfig}.
+   * All flags default to `false` (disabled) when absent.
+   */
+  security?: import("../../plugin-satp-hermes-gateway").ISATPSecurityOptions;
 }
 
 //import { COREDispatcher, COREDispatcherOptions } from "../../core/dispatcher";
 import { createClient } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-node";
+import fs from "node:fs";
+import { ProtocolMessageService } from "../../generated/proto/cacti/satp/v13/service/protocol_messages_pb";
 import {
   getGatewaySeeds,
   resolveGatewayID,
@@ -72,6 +79,9 @@ export class GatewayOrchestrator {
   private crashEnabled: boolean = false;
   private bridgeManager?: BridgeManagerClientInterface;
   private readonly monitorService: MonitorService;
+  private readonly security:
+    | import("../../plugin-satp-hermes-gateway").ISATPSecurityOptions
+    | undefined;
 
   // TODO!: add logic to manage sessions (parallelization, user input, freeze, unfreeze, rollback, recovery)
   private channels: Map<string, GatewayChannel> = new Map();
@@ -81,6 +91,7 @@ export class GatewayOrchestrator {
     const fnTag = `${this.label}#constructor()`;
     // add checks
     this.localGateway = options.localGateway;
+    this.security = options.security;
     const level = options.logLevel || "INFO";
     const logOptions: ILoggerOptions = {
       level: level,
@@ -405,22 +416,47 @@ export class GatewayOrchestrator {
     const { span, context: ctx } = this.monitorService.startSpan(fnTag);
     return context.with(ctx, () => {
       try {
+        // SEC-001-gw: TLS nodeOptions for outbound ConnectRPC transports.
+        // Applied when security.requireTLS is true (default: off).
+        const tlsNodeOptions: Record<string, unknown> | undefined = this
+          .security?.requireTLS
+          ? {
+              rejectUnauthorized: true,
+              minVersion: "TLSv1.3",
+              ...(this.security.tlsCaPath ||
+              process.env["GATEWAY_TLS_CA_CERT_PATH"]
+                ? {
+                    ca: fs.readFileSync(
+                      (this.security.tlsCaPath ||
+                        process.env["GATEWAY_TLS_CA_CERT_PATH"])!,
+                    ),
+                  }
+                : {}),
+            }
+          : undefined;
+
+        // When TLS is required, upgrade http:// base URLs to https://.
+        const baseAddress = this.security?.requireTLS
+          ? (identity.address ?? "").replace(/^http:\/\//, "https://")
+          : identity.address ?? "";
+
         // one function for each client type; aggregate in array
         this.logger.debug(
           `Creating clients for gateway ${safeStableStringify(identity)}`,
         );
         const transport0 = createGrpcWebTransport({
           baseUrl:
-            identity.address +
+            baseAddress +
             ":" +
             identity.gatewayServerPort +
             `/${SatpStageKey.Stage0}`,
           httpVersion: "1.1",
+          nodeOptions: tlsNodeOptions,
         });
 
         this.logger.debug(
           "Transport:" +
-            identity.address +
+            baseAddress +
             ":" +
             identity.gatewayServerPort +
             `/${SatpStageKey.Stage0}`,
@@ -428,35 +464,45 @@ export class GatewayOrchestrator {
 
         const transport1 = createGrpcWebTransport({
           baseUrl:
-            identity.address +
+            baseAddress +
             ":" +
             identity.gatewayServerPort +
             `/${SatpStageKey.Stage1}`,
           httpVersion: "1.1",
+          nodeOptions: tlsNodeOptions,
         });
 
         const transport2 = createGrpcWebTransport({
           baseUrl:
-            identity.address +
+            baseAddress +
             ":" +
             identity.gatewayServerPort +
             `/${SatpStageKey.Stage2}`,
           httpVersion: "1.1",
+          nodeOptions: tlsNodeOptions,
         });
 
         const transport3 = createGrpcWebTransport({
           baseUrl:
-            identity.address +
+            baseAddress +
             ":" +
             identity.gatewayServerPort +
             `/${SatpStageKey.Stage3}`,
           httpVersion: "1.1",
+          nodeOptions: tlsNodeOptions,
         });
 
         const transportCrash = createGrpcWebTransport({
           baseUrl:
-            identity.address + ":" + identity.gatewayServerPort + `/${"crash"}`,
+            baseAddress + ":" + identity.gatewayServerPort + `/${"crash"}`,
           httpVersion: "1.1",
+          nodeOptions: tlsNodeOptions,
+        });
+
+        const transportProtocol = createGrpcWebTransport({
+          baseUrl: baseAddress + ":" + identity.gatewayServerPort + `/protocol`,
+          httpVersion: "1.1",
+          nodeOptions: tlsNodeOptions,
         });
 
         const clients: Map<
@@ -472,6 +518,12 @@ export class GatewayOrchestrator {
         if (this.crashEnabled) {
           clients.set("crash", this.createCrashServiceClient(transportCrash));
         }
+        clients.set(
+          "protocol",
+          this.createProtocolServiceClient(
+            transportProtocol,
+          ) as unknown as ConnectClient<SATPServiceInstance>,
+        );
         // todo perform healthcheck on startup; should be in stage 0
         return clients;
       } catch (error) {
@@ -604,6 +656,31 @@ export class GatewayOrchestrator {
         );
         const client = createClient(CrashRecoveryService, transport);
         return client;
+      } catch (error) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: String(error),
+        });
+        span.recordException(error);
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  private createProtocolServiceClient(
+    transport: ConnectTransport,
+  ): ConnectClient<typeof ProtocolMessageService> {
+    const fnTag = `${this.label}#createProtocolServiceClient()`;
+    const { span, context: ctx } = this.monitorService.startSpan(fnTag);
+    return context.with(ctx, () => {
+      try {
+        this.logger.debug(
+          "Creating protocol-message service client, with transport: ",
+          transport,
+        );
+        return createClient(ProtocolMessageService, transport);
       } catch (error) {
         span.setStatus({
           code: SpanStatusCode.ERROR,

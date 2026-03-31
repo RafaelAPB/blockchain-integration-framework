@@ -1,0 +1,31 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'14px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46'}}}%%
+stateDiagram-v2
+  [*] --> INIT : startTransfer()
+
+  INIT --> PHASE1_RUNNING : Phase1Workflow started
+  PHASE1_RUNNING --> PHASE1_DONE : Transfer Initiation agreed
+
+  PHASE1_DONE --> PHASE2_RUNNING : Phase2Workflow started
+  PHASE2_RUNNING --> PHASE2_DONE : Lock-Evidence completed
+  PHASE2_RUNNING --> LOCK_TIMEOUT : CancellationScope timeout
+
+  LOCK_TIMEOUT --> ROLLBACK_RUNNING : lock expired without commit — trigger rollback
+
+  PHASE2_DONE --> PHASE3_RUNNING : Phase3Workflow started
+  PHASE3_RUNNING --> PHASE3_DONE : Commitment Established (mint confirmed)
+  PHASE3_DONE --> [*] : Transfer complete
+
+  PHASE1_RUNNING --> CRASH_DETECTED : heartbeatTimeout / silence
+  PHASE2_RUNNING --> CRASH_DETECTED
+  PHASE3_RUNNING --> CRASH_DETECTED
+
+  CRASH_DETECTED --> RECOVERY_RUNNING : RecoveryWorkflow started (self-healing or backup)
+
+  RECOVERY_RUNNING --> LOG_SYNC : RECOVER-UPDATE received
+  LOG_SYNC --> RECOVERY_DONE : RECOVER-SUCCESS sent
+  RECOVERY_DONE --> PHASE1_RUNNING : Resume from last confirmed step
+  RECOVERY_DONE --> PHASE2_RUNNING
+  RECOVERY_DONE --> PHASE3_RUNNING
+
+  ROLLBACK_RUNNING --> ROLLBACK_DONE : ROLLBACK-ACK received
+  ROLLBACK_DONE --> [*] : Transfer aborted

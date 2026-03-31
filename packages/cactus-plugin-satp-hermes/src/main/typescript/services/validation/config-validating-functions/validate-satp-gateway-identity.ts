@@ -61,14 +61,6 @@ export function isNetworkId(obj: unknown, log: Logger): obj is NetworkId {
   }
 }
 
-export function isSupportedDLT(obj: unknown): obj is LedgerType {
-  try {
-    return Object.values(LedgerType).includes(obj as LedgerType);
-  } catch (error) {
-    return false;
-  }
-}
-
 // Type guard for an array of NetworkId
 function isNetworkIdArray(
   input: unknown,

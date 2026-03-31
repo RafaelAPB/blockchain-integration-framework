@@ -1,0 +1,17 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46', 'clusterBkg':'#f0fdf4', 'clusterBorder':'#22c55e', 'edgeLabelBackground':'#ffffff', 'mainBkg':'#ffffff'}}}%%
+flowchart LR
+  HB["Heartbeat received"] -->|"reset timer"| TIMER["heartbeatTimeout timer"]
+  TIMER -->|"timeout"| DETECT["Timeout exceeded"]
+  DETECT --> CERT["ValidateBackupCertActivity<br/>3-step X.509 validation"]
+  CERT -->|"valid"| SIGNAL["Signal G2:<br/>SESSION-RESUMPTION"]
+  CERT -->|"invalid"| FAIL["ApplicationFailure.nonRetryable<br/>UNAUTHORIZED_BACKUP"]
+  SIGNAL --> RECOVER_SIGNAL["Signal G2:<br/>RECOVER isBackup=true"]
+
+  classDef normalNode fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#ffffff,rx:10,ry:10
+  classDef validationNode fill:#fbbf24,stroke:#f59e0b,stroke-width:3px,color:#1a1a1a,rx:10,ry:10
+  classDef failNode fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#ffffff,rx:10,ry:10
+
+  class HB,TIMER,DETECT normalNode
+  class CERT validationNode
+  class SIGNAL,RECOVER_SIGNAL normalNode
+  class FAIL failNode

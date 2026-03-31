@@ -1,0 +1,44 @@
+%%{init: {'theme':'base', 'themeVariables': { 'fontSize':'16px', 'fontFamily':'Segoe UI, system-ui, sans-serif', 'primaryColor':'#22c55e','primaryTextColor':'#ffffff','primaryBorderColor':'#16a34a','lineColor':'#86efac','secondaryColor':'#4ade80','tertiaryColor':'#86efac', 'noteBkgColor':'#d1fae5', 'noteTextColor':'#065f46', 'clusterBkg':'#f0fdf4', 'clusterBorder':'#22c55e', 'edgeLabelBackground':'#ffffff', 'mainBkg':'#ffffff'}}}%%
+graph TB
+  subgraph ClientProcess["Client Process"]
+    C["<b>Temporal Client</b><br/>workflow.start()<br/>workflow.signal()<br/>workflow.query()"]
+  end
+
+  subgraph TemporalServer["Temporal Server"]
+    TS["<b>Temporal Service</b><br/>:7233 gRPC<br/>Frontend + History<br/>Matching + Worker"]
+    DB[("<b>Postgres / Cassandra</b><br/>Event History")]
+    TQ["<b>Task Queue</b><br/>Workflow Tasks<br/>Activity Tasks"]
+  end
+
+  subgraph WorkerProcess["Worker Process — SATP Gateway"]
+    W["<b>Worker Entity</b><br/>Long-polls Task Queue"]
+    WF["<b>Workflow Executor</b><br/>V8 Sandbox<br/>Deterministic"]
+    AE["<b>Activity Executor</b><br/>Node.js Runtime<br/>I/O Allowed"]
+  end
+
+  subgraph ExternalSystems["External Systems"]
+    BC1["<b>Fabric Ledger</b><br/>Asset source"]
+    BC2["<b>Besu Ledger</b><br/>Asset destination"]
+    LOG["<b>Log Storage API</b><br/>writeLogEntry<br/>getLogDiff"]
+  end
+
+  C -->|"start / signal / query"| TS
+  TS <-->|"persist Events"| DB
+  TS -->|"dispatch tasks"| TQ
+  W -->|"long-poll"| TQ
+  TQ --> W
+  W --> WF
+  W --> AE
+  AE -->|"RPC / HTTP"| BC1
+  AE -->|"RPC / HTTP"| BC2
+  AE -->|"writeLogEntry / getLog"| LOG
+
+  classDef clientNode fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#ffffff,rx:10,ry:10
+  classDef serverNode fill:#4ade80,stroke:#22c55e,stroke-width:3px,color:#065f46,rx:10,ry:10
+  classDef workerNode fill:#86efac,stroke:#4ade80,stroke-width:3px,color:#065f46,rx:10,ry:10
+  classDef externalNode fill:#bbf7d0,stroke:#86efac,stroke-width:3px,color:#065f46,rx:10,ry:10
+
+  class C clientNode
+  class TS,DB,TQ serverNode
+  class W,WF,AE workerNode
+  class BC1,BC2,LOG externalNode

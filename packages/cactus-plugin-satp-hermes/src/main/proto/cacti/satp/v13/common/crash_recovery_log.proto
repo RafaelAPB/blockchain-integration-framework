@@ -1,0 +1,63 @@
+syntax = "proto3";
+package cacti.satp.v13.common;
+
+// draft-belchior-satp-gateway-recovery-04 §4 — Log Storage API and LogEntry
+
+// Lifecycle state of a single logged operation (draft §4.1).
+enum LogOperation {
+  LOG_OPERATION_UNSPECIFIED = 0;
+  LOG_OPERATION_INIT        = 1; // operation started
+  LOG_OPERATION_EXEC        = 2; // operation executing
+  LOG_OPERATION_DONE        = 3; // operation completed successfully
+  LOG_OPERATION_ACK         = 4; // operation acknowledged by counterparty
+  LOG_OPERATION_FAIL        = 5; // operation failed
+}
+
+// Log storage topology as defined in draft §3.3.
+enum LogStorageMode {
+  LOG_STORAGE_MODE_UNSPECIFIED           = 0;
+  LOG_STORAGE_MODE_PUBLIC_DECENTRALIZED  = 1;
+  LOG_STORAGE_MODE_PUBLIC_CENTRALIZED    = 2;
+  LOG_STORAGE_MODE_PRIVATE_CENTRALIZED   = 3;
+  LOG_STORAGE_MODE_PRIVATE_DECENTRALIZED = 4;
+}
+
+// Full log entry as defined in draft §4 — 24 mandatory + 2 optional fields.
+// Used by the Log Storage API (draft §3) and the crash-recovery sub-protocol
+// RECOVER-UPDATE message (draft §5.3.2).
+message LogEntry {
+  string version                  = 1;  // REQUIRED — log format version
+  string session_id               = 2;  // REQUIRED — SATP session identifier
+  string context_id               = 3;  // REQUIRED — transfer context (§5.3.1)
+  int64  sequence_number          = 4;  // REQUIRED — monotonically increasing
+  string satp_phase               = 5;  // REQUIRED — e.g. "transfer-initiation"
+  string resource_url             = 6;  // OPTIONAL — DLT resource URL
+  string developer_urn            = 7;  // OPTIONAL — developer URN
+  string action_response          = 8;  // OPTIONAL — SATP action or response
+  string credential_profile       = 9;  // OPTIONAL
+  string credential_block         = 10; // OPTIONAL — base64-encoded credential
+  string payload_profile          = 11; // OPTIONAL
+  string application_profile      = 12; // OPTIONAL
+  bytes  payload                  = 13; // OPTIONAL — raw payload
+  string payload_hash             = 14; // OPTIONAL — SHA-256 of payload
+  int64  timestamp                = 15; // REQUIRED — Unix epoch ms
+  string origin_gateway_pubkey    = 16; // REQUIRED
+  string origin_gateway_system_id = 17; // REQUIRED
+  string dest_gateway_pubkey      = 18; // REQUIRED
+  string dest_gateway_system_id   = 19; // REQUIRED
+  string logging_profile          = 20; // OPTIONAL — see §3.3
+  string message_signature        = 21; // REQUIRED — JWS of this entry
+  string last_entry_hash          = 22; // REQUIRED — hash of previous LogEntry
+  string access_control_profile   = 23; // OPTIONAL
+  LogOperation operation          = 24; // REQUIRED — lifecycle state
+  string recovery_message         = 25; // OPTIONAL — only in recovery entries
+  string recovery_payload         = 26; // OPTIONAL — only in recovery entries
+}
+
+// Set of LogEntry records spanning from_sequence_number (exclusive) to
+// to_sequence_number (inclusive).  Carried in RECOVER-UPDATE (draft §5.3.2).
+message LogDiff {
+  int64             from_sequence_number = 1; // exclusive lower bound
+  int64             to_sequence_number   = 2; // inclusive upper bound
+  repeated LogEntry entries              = 3;
+}
