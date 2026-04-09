@@ -18,14 +18,15 @@ automatically — no registration step is needed.
 | Code Reviewer | `code-reviewer.agent.md` | read, search | _(none)_ | Reviewing code for convention compliance |
 | Debugger | `debugger.agent.md` | read, edit, search, execute | ci-debugger | Diagnosing and fixing bugs iteratively |
 | Feature Implementer | `feature-implementer.agent.md` | read, edit, search, execute | tdd-implementer, review | Implementing new features end-to-end |
-| Review | `review.agent.md` | read, search, execute | debugger, code-reviewer | Security audit + tech debt + AI slop cleanup |
+| Review | `review.agent.md` | read, search, execute | security-review, debugger, code-reviewer | Tech debt + AI slop cleanup |
+| Security Review | `security-review.agent.md` | read, search, execute, github | debugger, code-reviewer | Security audit + OWASP + supply chain + CI integration |
 | TDD Implementer | `tdd-implementer.agent.md` | read, edit, search, execute | review, code-reviewer | Red-Green-Refactor TDD cycle |
 
 ## Handoff Graph
 
 ```text
-feature-implementer → tdd-implementer → review → code-reviewer
-                                          ↓
+feature-implementer → tdd-implementer → review → security-review → code-reviewer
+                                          ↓               ↓
 debugger ──────────→ ci-debugger ───────→ code-reviewer
 ```
 

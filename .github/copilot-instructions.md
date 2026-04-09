@@ -71,7 +71,8 @@ the agents it can delegate to. The human decides when to trigger a handoff.
 |-------|---------|-------|-------------|
 | `feature-implementer` | Plan and implement new features | read, edit, search, execute | `tdd-implementer`, `review` |
 | `tdd-implementer` | Red-Green-Refactor TDD cycle | read, edit, search, execute | `review`, `code-reviewer` |
-| `review` | Security audit + tech debt + AI slop cleanup | read, search, execute | `debugger`, `code-reviewer` |
+| `review` | Tech debt + AI slop cleanup | read, search, execute | `security-review`, `debugger`, `code-reviewer` |
+| `security-review` | Security audit + OSS best practices + CI pipeline integration | read, search, execute, github | `debugger`, `code-reviewer` |
 | `code-reviewer` | Convention compliance review | read, search | — |
 | `debugger` | Diagnose and fix bugs iteratively | read, edit, search, execute | `ci-debugger` |
 | `ci-debugger` | Debug GitHub Actions CI failures | read, edit, search, execute, github | `code-reviewer` |
@@ -81,16 +82,18 @@ the agents it can delegate to. The human decides when to trigger a handoff.
 #### 1. Feature Development (full lifecycle)
 
 ```
-feature-implementer → tdd-implementer → review → code-reviewer
+feature-implementer → tdd-implementer → review → security-review → code-reviewer
 ```
 
 1. **Start**: `@feature-implementer` — describe the feature or paste a GitHub
    issue link. The agent plans the implementation.
 2. **Handoff → TDD**: Once the plan is confirmed, hand off to
    `tdd-implementer` to run a Red-Green-Refactor cycle.
-3. **Handoff → Review**: After tests pass, hand off to `review` for security
-   and tech debt audit.
-4. **Handoff → Code Reviewer**: Finally, hand off to `code-reviewer` for
+3. **Handoff → Review**: After tests pass, hand off to `review` for tech
+   debt and AI slop audit.
+4. **Handoff → Security Review**: After tech debt review, hand off to
+   `security-review` for comprehensive security audit.
+5. **Handoff → Code Reviewer**: Finally, hand off to `code-reviewer` for
    convention compliance.
 
 #### 2. Bug Fix
@@ -109,14 +112,13 @@ debugger → ci-debugger → code-reviewer
 #### 3. Code Review (standalone)
 
 ```
-review → debugger
-review → code-reviewer
+review → security-review → code-reviewer
 ```
 
 1. **Start**: `@review` — point at a package, file, or PR diff. The agent
-   produces a security + tech debt report.
-2. **Handoff → Debugger**: If critical findings need immediate fixing, hand
-   off to `debugger`.
+   produces a tech debt + AI slop report.
+2. **Handoff → Security Review**: Hand off to `security-review` for
+   comprehensive security audit.
 3. **Handoff → Code Reviewer**: For convention-focused follow-up, hand off
    to `code-reviewer`.
 
@@ -129,6 +131,21 @@ ci-debugger → code-reviewer
 1. **Start**: `@ci-debugger` — paste a failing workflow URL or run ID.
 2. **Handoff → Code Reviewer**: After fixing, hand off to `code-reviewer`
    to confirm the fix follows conventions.
+
+#### 5. Security Audit (standalone)
+
+```
+security-review → debugger → code-reviewer
+```
+
+1. **Start**: `@security-review` — provide a GitHub issue/PR link, DAST/SARIF
+   report URL, package name, or let it default to working branch changes.
+   The agent runs OWASP Top 10 audit, supply chain analysis, and CI security
+   pipeline integration.
+2. **Handoff → Debugger**: If critical security issues need immediate fixing,
+   hand off to `debugger`.
+3. **Handoff → Code Reviewer**: After fixes, hand off to `code-reviewer` to
+   confirm the fix follows conventions.
 
 ### How to Invoke
 
