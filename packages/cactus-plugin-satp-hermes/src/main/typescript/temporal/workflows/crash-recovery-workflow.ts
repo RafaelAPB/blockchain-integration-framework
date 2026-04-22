@@ -11,6 +11,14 @@ import type { CrashRecoveryActivities } from "../activities/crash-recovery-activ
 import type { LogStorageActivities } from "../activities/log-storage-activities";
 import { rollbackWorkflow } from "./rollback-workflow";
 
+// Re-export so that when this module is used as the Temporal workflow bundle
+// root, `rollbackWorkflow` is a top-level named export.  Without this the
+// bundler includes the module's code but does not expose the function by name,
+// causing Temporal to throw
+// `Failed to initialize workflow of type 'rollbackWorkflow': no such function
+// is exported by the workflow bundle`.
+export { rollbackWorkflow } from "./rollback-workflow";
+
 // ---------------------------------------------------------------------------
 // Signal and query definitions
 // ---------------------------------------------------------------------------

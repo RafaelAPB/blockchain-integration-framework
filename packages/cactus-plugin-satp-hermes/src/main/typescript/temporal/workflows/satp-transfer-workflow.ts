@@ -8,6 +8,14 @@ import {
 import { crashRecoveryChildWorkflow } from "./crash-recovery-workflow";
 import { rollbackWorkflow } from "./rollback-workflow";
 
+// Re-export child workflows so the Temporal workflow bundle (rooted at this
+// module) exposes them by name. Without these re-exports the bundler drops the
+// child workflow function names from the top-level namespace and Temporal's
+// `startChild()` calls fail with
+// `Failed to initialize workflow of type 'rollbackWorkflow' / 'crashRecoveryChildWorkflow'`.
+export { crashRecoveryChildWorkflow } from "./crash-recovery-workflow";
+export { rollbackWorkflow } from "./rollback-workflow";
+
 // ---------------------------------------------------------------------------
 // Signal definitions — emitted by crash-handler.ts T19 signal bridge
 // ---------------------------------------------------------------------------
@@ -200,9 +208,11 @@ export async function satpTransferWorkflow(sessionId: string): Promise<void> {
 
     checkpoint("COMPLETED");
   } catch (err) {
-    if (state !== "ROLLBACK_STARTED" && !state.startsWith("ROLLBACK")) {
-      checkpoint("ABORTED");
-    }
+    // Always emit ABORTED on the failure path. Rollback (when started) is a
+    // separate compensating workflow; the parent transfer workflow itself
+    // still reaches an aborted terminal state and that fact must be visible
+    // both via the transferLog and the transferSessionState query.
+    checkpoint("ABORTED");
     throw err;
   }
 }

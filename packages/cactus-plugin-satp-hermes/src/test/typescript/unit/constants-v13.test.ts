@@ -30,8 +30,12 @@ describe("v13 Protocol Constants", () => {
       expect(SATP_ARCHITECTURE_VERSION).toBe("v13");
     });
 
-    it('SATP_CRASH_VERSION is "v13"', () => {
-      expect(SATP_CRASH_VERSION).toBe("v13");
+    // Crash recovery is a non-standard extension versioned independently of
+    // SATP Core (see upgrade plan REQ-004 and IETF
+    // draft-belchior-satp-gateway-recovery, currently at v04).
+    // Its version does NOT track the SATP Core version string.
+    it("SATP_CRASH_VERSION matches the recovery sub-protocol draft version", () => {
+      expect(SATP_CRASH_VERSION).toBe("v04");
     });
 
     it('SATP_PROTOCOL_VERSION is "1.0" per v13 Section 5.3.1', () => {

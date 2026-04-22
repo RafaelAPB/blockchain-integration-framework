@@ -171,19 +171,22 @@ describe("backupGatewayWorkflow", () => {
         args: [sessionId, 10_000],
       });
 
-      // Query initial state before the signal is delivered
-      const initialState = await handle.query(backupSessionStateQuery);
-      expect(initialState).toBe("AWAITING_TAKEOVER");
-
-      // Now send the signal and let the workflow complete
-      await handle.signal(backupTakeoverSignal, {
-        sessionId,
-        backupGatewayId: "gw-backup-002",
-        certChainPem:
-          "-----BEGIN CERTIFICATE-----\nVALID\n-----END CERTIFICATE-----",
+      // The query must run inside worker.runUntil() so that a worker is
+      // actively polling the task queue when the query is dispatched.
+      // Issuing handle.query() before the worker starts polling causes the
+      // call to hang indefinitely under TestWorkflowEnvironment.createTimeSkipping().
+      let initialState: string | undefined;
+      await worker.runUntil(async () => {
+        initialState = await handle.query(backupSessionStateQuery);
+        await handle.signal(backupTakeoverSignal, {
+          sessionId,
+          backupGatewayId: "gw-backup-002",
+          certChainPem:
+            "-----BEGIN CERTIFICATE-----\nVALID\n-----END CERTIFICATE-----",
+        });
+        await handle.result();
       });
-
-      await worker.runUntil(handle.result());
+      expect(initialState).toBe("AWAITING_TAKEOVER");
     });
   });
 });

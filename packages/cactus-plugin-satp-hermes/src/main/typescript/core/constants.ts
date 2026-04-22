@@ -48,7 +48,7 @@ export const SATP_CORE_VERSION = "v13";
 /** SATP Architecture specification version */
 export const SATP_ARCHITECTURE_VERSION = "v13";
 /** SATP Crash Recovery specification version */
-export const SATP_CRASH_VERSION = "v02";
+export const SATP_CRASH_VERSION = "v04";
 
 /**
  * Hardcoded map of ledger types that SATP has implemented support for.

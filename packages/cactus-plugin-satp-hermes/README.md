@@ -989,6 +989,14 @@ docker-compose -f docker-compose-satp.yml ps
 
 See [CHANGELOG.md](./CHANGELOG.md) for breaking changes, migration guides, and release history.
 
+## Further Documentation
+
+- SATP v13 migration guide: [docs/v13/migration-guide.md](./docs/v13/migration-guide.md)
+- v13 breaking-changes quick reference: [docs/v13/breaking-changes.md](./docs/v13/breaking-changes.md)
+- Temporal deployment guide: [docs/temporal/deployment-guide.md](./docs/temporal/deployment-guide.md)
+- Temporal workflows & activities map: [docs/temporal/workflows-and-activities.md](./docs/temporal/workflows-and-activities.md)
+- v13 + Temporal regression sweep: [docs/testing/v13-temporal-regression.md](./docs/testing/v13-temporal-regression.md)
+
 ## Contributing
 We welcome contributions to Hyperledger Cacti in many forms, and there’s always interesting challenges!
 

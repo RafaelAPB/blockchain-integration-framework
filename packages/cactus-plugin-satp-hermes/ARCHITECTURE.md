@@ -4,6 +4,12 @@
 
 The SATP Hermes Plugin implements the IETF Secure Asset Transfer Protocol (SATP) for cross-chain asset transfers between distributed ledgers. This documentation provides comprehensive API references and architectural insights.
 
+> **Related guides**
+> - [docs/v13/migration-guide.md](./docs/v13/migration-guide.md) — v02 → v13 upgrade
+> - [docs/temporal/deployment-guide.md](./docs/temporal/deployment-guide.md) — Temporal infra for crash recovery
+> - [docs/temporal/workflows-and-activities.md](./docs/temporal/workflows-and-activities.md) — Workflow/activity map
+> - [docs/integration-architecture.md](./docs/integration-architecture.md) — SATP↔Temporal integration deep-dive
+
 ## 📊 Architecture Diagrams
 
 ### Complete System Architecture

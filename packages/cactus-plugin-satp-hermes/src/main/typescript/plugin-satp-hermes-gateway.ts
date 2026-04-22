@@ -818,9 +818,9 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
       if (missingPurposes.length > 0) {
         throw new Error(
           `security.requireClassifiedKeys is true but gid.keys is missing ` +
-            `entries for: ${missingPurposes.join(", ")}. ` +
-            `All four GatewayKeyPurpose values must be present ` +
-            `(SIGNATURE, SECURE_CHANNEL, IDENTITY, OWNER_IDENTITY).`,
+          `entries for: ${missingPurposes.join(", ")}. ` +
+          `All four GatewayKeyPurpose values must be present ` +
+          `(SIGNATURE, SECURE_CHANNEL, IDENTITY, OWNER_IDENTITY).`,
         );
       }
     }
@@ -918,9 +918,20 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
         this.BLODispatcher = new BLODispatcher(dispatcherOps);
 
         if (this.config.enableCrashRecovery) {
+          const crashManagerOptions: ICrashRecoveryManagerOptions = {
+            instanceId: this.config.gid.id,
+            logLevel: this.config.logLevel,
+            localRepository: this.localRepository,
+            remoteRepository: this.remoteRepository,
+            ccManager: this.SATPCCManager,
+            orchestrator: this.gatewayOrchestrator,
+            signer: this.signer,
+            monitorService: this.monitorService,
+          };
+          this.crashManager = new CrashManager(crashManagerOptions);
           this.logger.info(
             "CrashManager is enabled — Temporal-based crash recovery" +
-              " and rollback workflows are active.",
+            " and rollback workflows are active.",
           );
         } else {
           this.logger.info("CrashManager is disabled!");
@@ -1288,7 +1299,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
         const address =
           this.options.gid?.address?.includes("localhost") ||
-          this.options.gid?.address?.includes("127.0.0.1")
+            this.options.gid?.address?.includes("127.0.0.1")
             ? "localhost"
             : "0.0.0.0";
 
@@ -1419,9 +1430,9 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
               if (!certPath || !keyPath) {
                 throw new Error(
                   "security.requireTLS is true but TLS certificate paths are " +
-                    "not configured. Set tlsCertPath and tlsKeyPath in " +
-                    "security options, or set GATEWAY_TLS_CERT_PATH and " +
-                    "GATEWAY_TLS_KEY_PATH environment variables.",
+                  "not configured. Set tlsCertPath and tlsKeyPath in " +
+                  "security options, or set GATEWAY_TLS_CERT_PATH and " +
+                  "GATEWAY_TLS_KEY_PATH environment variables.",
                 );
               }
               this.GOLServer = https.createServer(
@@ -1437,7 +1448,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             }
             const address =
               this.options.gid?.address?.includes("localhost") || // When running a gateway in localhost we don't want to bind it to 0.0.0.0 because if we do it will be accessible from the outside network
-              this.options.gid?.address?.includes("127.0.0.1")
+                this.options.gid?.address?.includes("127.0.0.1")
                 ? "localhost"
                 : "0.0.0.0";
 

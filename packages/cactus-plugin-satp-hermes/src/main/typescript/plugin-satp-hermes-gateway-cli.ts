@@ -366,7 +366,8 @@ export async function launchGateway(
       validateSatpEnableCrashRecovery({
         configValue: config.enableCrashRecovery,
         temporalAddress:
-          config.temporalAddress ?? process.env["TEMPORAL_ADDRESS"],
+          (config.temporalAddress as string | undefined) ??
+          process.env["TEMPORAL_ADDRESS"],
       }),
   );
 

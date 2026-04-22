@@ -173,6 +173,9 @@ yarn workspace @hyperledger/cactus-plugin-satp-hermes docker:run:dev
 
 ## Testing
 
+> Before pushing changes on the v13 / Temporal branch, run the
+> regression sweep: [docs/testing/v13-temporal-regression.md](./docs/testing/v13-temporal-regression.md).
+
 ### Test Categories
 
 | Category | Command | Description |

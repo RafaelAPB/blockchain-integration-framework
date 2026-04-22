@@ -204,12 +204,14 @@ describe("satpTransferWorkflow — Saga compensation on Stage 2 failure", () => 
       args: [sessionId],
     });
 
-    // Run until it fails
-    await expect(worker.runUntil(handle.result())).rejects.toThrow();
-
-    // Retrieve the workflow log via query — must include stage progress and
-    // compensation checkpoints in the correct order
-    const log = await handle.query(transferLogQuery);
+    // Run until it fails AND query the log — both must happen while the
+    // worker is still polling, otherwise handle.query() would hang waiting
+    // for a worker to respond after worker.runUntil() has shut it down.
+    let log: string[] = [];
+    await worker.runUntil(async () => {
+      await expect(handle.result()).rejects.toThrow();
+      log = await handle.query(transferLogQuery);
+    });
 
     // Stage 0-1 forward steps must appear
     expect(log).toContain("STAGE0_NEW_SESSION");
@@ -306,10 +308,13 @@ describe("satpTransferWorkflow — Saga compensation on Stage 2 failure", () => 
       args: [sessionId],
     });
 
-    await expect(worker.runUntil(handle.result())).rejects.toThrow();
-
-    // After abort, the sessionState query must reflect the abort state
-    const finalState = await handle.query(transferSessionStateQuery);
+    // Query the session state inside runUntil so the worker is still up to
+    // serve the query after the workflow reaches its terminal ABORTED state.
+    let finalState: string | undefined;
+    await worker.runUntil(async () => {
+      await expect(handle.result()).rejects.toThrow();
+      finalState = await handle.query(transferSessionStateQuery);
+    });
     expect(finalState).toBe("ABORTED");
   });
 });
