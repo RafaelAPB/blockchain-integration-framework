@@ -1,5 +1,6 @@
 ![Cactus Logo Color](./images/HL_Cactus_Logo_Color.png)
 
+
 # Hyperledger Cactus
 
  [![Open in Visual Studio Code](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/hyperledger/cactus)
