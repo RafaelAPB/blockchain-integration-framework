@@ -13,6 +13,7 @@ import {
 import {
   Address,
   GatewayIdentity,
+  SupportedSigningAlgorithms,
 } from "../../../../main/typescript/core/types";
 import {
   setupGatewayDockerFiles,
@@ -395,7 +396,10 @@ describe("2 SATPGateways sending a token from Besu to Ethereum", () => {
       gatewayClientPort: DEFAULT_PORT_GATEWAY_CLIENT,
       gatewayServerPort: DEFAULT_PORT_GATEWAY_SERVER,
       gatewayOapiPort: DEFAULT_PORT_GATEWAY_OAPI,
-      pubKey: Buffer.from(gateway1KeyPair.publicKey).toString("hex"),
+      identificationCredential: {
+        signingAlgorithm: SupportedSigningAlgorithms.SECP256K1,
+        pubKey: Buffer.from(gateway1KeyPair.publicKey).toString("hex"),
+      },
     } as GatewayIdentity;
 
     // gateway setup:
@@ -420,7 +424,10 @@ describe("2 SATPGateways sending a token from Besu to Ethereum", () => {
       gatewayClientPort: DEFAULT_PORT_GATEWAY_CLIENT,
       gatewayServerPort: DEFAULT_PORT_GATEWAY_SERVER,
       gatewayOapiPort: DEFAULT_PORT_GATEWAY_OAPI,
-      pubKey: Buffer.from(gateway2KeyPair.publicKey).toString("hex"),
+      identificationCredential: {
+        signingAlgorithm: SupportedSigningAlgorithms.SECP256K1,
+        pubKey: Buffer.from(gateway2KeyPair.publicKey).toString("hex"),
+      },
     } as GatewayIdentity;
 
     // besuConfig Json object setup:
@@ -655,7 +662,10 @@ describe("2 SATPGateways sending a token from Ethereum to Besu", () => {
       gatewayClientPort: DEFAULT_PORT_GATEWAY_CLIENT,
       gatewayServerPort: DEFAULT_PORT_GATEWAY_SERVER,
       gatewayOapiPort: DEFAULT_PORT_GATEWAY_OAPI,
-      pubKey: Buffer.from(gateway1KeyPair.publicKey).toString("hex"),
+      identificationCredential: {
+        signingAlgorithm: SupportedSigningAlgorithms.SECP256K1,
+        pubKey: Buffer.from(gateway1KeyPair.publicKey).toString("hex"),
+      },
     } as GatewayIdentity;
 
     // gateway setup:
@@ -680,7 +690,10 @@ describe("2 SATPGateways sending a token from Ethereum to Besu", () => {
       gatewayClientPort: DEFAULT_PORT_GATEWAY_CLIENT,
       gatewayServerPort: DEFAULT_PORT_GATEWAY_SERVER,
       gatewayOapiPort: DEFAULT_PORT_GATEWAY_OAPI,
-      pubKey: Buffer.from(gateway2KeyPair.publicKey).toString("hex"),
+      identificationCredential: {
+        signingAlgorithm: SupportedSigningAlgorithms.SECP256K1,
+        pubKey: Buffer.from(gateway2KeyPair.publicKey).toString("hex"),
+      },
     } as GatewayIdentity;
 
     // besuConfig Json object setup:

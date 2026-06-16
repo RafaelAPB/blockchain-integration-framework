@@ -84,7 +84,10 @@ import {
 } from "./services/gateway/crash-manager";
 import { OraclePersistence } from "./database/oracle-persistence";
 import * as OAS from "../json/oapi-api1-bundled.json";
-import { knexLocalInstance } from "./database/knexfile";
+import {
+  knexLocalInstance,
+  createOracleLogKnexConfig,
+} from "./database/knexfile";
 import schedule, { Job } from "node-schedule";
 import { BLODispatcherErraneousError } from "./core/errors/satp-errors";
 import { ClaimFormat } from "./generated/proto/cacti/satp/v02/common/message_pb";
@@ -664,11 +667,9 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
       this.logger.info(
         "Oracle log repository is not defined. Setting up default config...",
       );
-      this.oracleLogRepository = new OracleLogRepository({
-        client: "sqlite3",
-        connection: { filename: ":memory:" },
-        useNullAsDefault: true,
-      });
+      this.oracleLogRepository = new OracleLogRepository(
+        createOracleLogKnexConfig(this.instanceId),
+      );
     }
 
     if (this.config.keyPair === undefined) {
@@ -1176,7 +1177,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
         const address =
           this.options.gid?.address?.includes("localhost") ||
-          this.options.gid?.address?.includes("127.0.0.1")
+            this.options.gid?.address?.includes("127.0.0.1")
             ? "localhost"
             : "0.0.0.0";
 
@@ -1297,7 +1298,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             this.GOLServer = http.createServer(this.GOLApplication);
             const address =
               this.options.gid?.address?.includes("localhost") || // When running a gateway in localhost we don't want to bind it to 0.0.0.0 because if we do it will be accessible from the outside network
-              this.options.gid?.address?.includes("127.0.0.1")
+                this.options.gid?.address?.includes("127.0.0.1")
                 ? "localhost"
                 : "0.0.0.0";
 
