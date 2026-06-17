@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 README.md
 models/cmd_api_server_endpoint_error_response_pb.proto
 models/health_check_response_pb.proto
