@@ -521,6 +521,8 @@ describe.skip("SATPGateway sending a token from Fabric to Besu", () => {
 describe("SATPGateway sending a token from Besu to Ethereum", () => {
   jest.setTimeout(TIMEOUT);
   it("should realize a transfer", async () => {
+    await besuEnv.mintTokens("100", TokenTypeMain.NONSTANDARD_FUNGIBLE);
+
     //setup satp gateway
     const factoryOptions: IPluginFactoryOptions = {
       pluginImportType: PluginImportType.Local,
