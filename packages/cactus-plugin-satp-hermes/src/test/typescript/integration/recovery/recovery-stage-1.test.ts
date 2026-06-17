@@ -44,6 +44,7 @@ import { createMigrationSource } from "../../../../main/typescript/database/knex
 import { knexLocalInstance } from "../../../../main/typescript/database/knexfile";
 import { knexRemoteInstance } from "../../../../main/typescript/database/knexfile-remote";
 import { MonitorService } from "../../../../main/typescript/services/monitoring/monitor";
+import { getFreePorts } from "../../test-utils";
 
 let knexInstanceClient: Knex;
 let knexInstanceSourceRemote: Knex;
@@ -186,6 +187,8 @@ const createMockSession = (
 };
 
 beforeAll(async () => {
+  const [serverPort1, clientPort1, serverPort2, clientPort2] =
+    await getFreePorts(4);
   const factoryOptions: IPluginFactoryOptions = {
     pluginImportType: PluginImportType.Local,
   };
@@ -207,8 +210,8 @@ beforeAll(async () => {
     ],
     proofID: "mockProofID10",
     address: "http://localhost" as Address,
-    gatewayServerPort: 3006,
-    gatewayClientPort: 3001,
+    gatewayServerPort: serverPort1,
+    gatewayClientPort: clientPort1,
   };
 
   const gatewayIdentity2: GatewayIdentity = {
@@ -227,8 +230,8 @@ beforeAll(async () => {
     ],
     proofID: "mockProofID11",
     address: "http://localhost" as Address,
-    gatewayServerPort: 3228,
-    gatewayClientPort: 3211,
+    gatewayServerPort: serverPort2,
+    gatewayClientPort: clientPort2,
   };
 
   const migrationSource = await createMigrationSource();
@@ -329,7 +332,7 @@ afterAll(async () => {
 
 // TODO: Do not re-enable until crash recovery is implemented:
 // https://github.com/hyperledger-cacti/cacti/issues/4042
-describe("Stage 1 Recovery Test", () => {
+describe.skip("Stage 1 Recovery Test", () => {
   it("should recover Stage 1 hashes, timestamps, signatures, and update session state to RECOVERED", async () => {
     crashManager1 = gateway1["crashManager"] as CrashManager;
     expect(crashManager1).toBeInstanceOf(CrashManager);

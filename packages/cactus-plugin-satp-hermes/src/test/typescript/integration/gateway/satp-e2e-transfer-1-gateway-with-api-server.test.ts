@@ -16,10 +16,6 @@ import {
   TokenType,
 } from "../../../../main/typescript";
 import {
-  Address,
-  GatewayIdentity,
-} from "../../../../main/typescript/core/types";
-import {
   IPluginFactoryOptions,
   PluginImportType,
 } from "@hyperledger-cacti/cactus-core-api";
@@ -29,12 +25,8 @@ import {
   EthereumTestEnvironment,
   FabricTestEnvironment,
   getTransactRequest,
+  makeGatewayIdentityWithFreePorts,
 } from "../../test-utils";
-import {
-  SATP_ARCHITECTURE_VERSION,
-  SATP_CORE_VERSION,
-  SATP_CRASH_VERSION,
-} from "../../../../main/typescript/core/constants";
 import { Knex, knex } from "knex";
 import { ApiServer } from "@hyperledger-cacti/cactus-cmd-api-server";
 import { PluginRegistry } from "@hyperledger-cacti/cactus-core";
@@ -211,19 +203,12 @@ describe.skip("SATPGateway sending a token from Besu to Fabric", () => {
     };
     const factory = new PluginFactorySATPGateway(factoryOptions);
 
-    const gatewayIdentity = {
-      id: "mockID",
-      name: "CustomGateway",
-      version: [
-        {
-          Core: SATP_CORE_VERSION,
-          Architecture: SATP_ARCHITECTURE_VERSION,
-          Crash: SATP_CRASH_VERSION,
-        },
-      ],
-      proofID: "mockProofID10",
-      address: "http://localhost" as Address,
-    } as GatewayIdentity;
+    const {
+      identity: gatewayIdentity,
+      serverPort,
+      clientPort,
+      oapiPort,
+    } = await makeGatewayIdentityWithFreePorts();
 
     const migrationSource = await createMigrationSource();
     knexLocalClient = knex({
@@ -266,9 +251,9 @@ describe.skip("SATPGateway sending a token from Besu to Fabric", () => {
 
     const identity = gateway.Identity;
     // default servers
-    expect(identity.gatewayServerPort).toBe(3010);
-    expect(identity.gatewayClientPort).toBe(3011);
-    expect(identity.gatewayOapiPort).toBe(4010);
+    expect(identity.gatewayServerPort).toBe(serverPort);
+    expect(identity.gatewayClientPort).toBe(clientPort);
+    expect(identity.gatewayOapiPort).toBe(oapiPort);
     expect(identity.address).toBe("http://localhost");
 
     const apiServer = await gateway.getOrCreateHttpServer();
@@ -380,19 +365,12 @@ describe.skip("SATPGateway sending a token from Fabric to Besu", () => {
       pluginImportType: PluginImportType.Local,
     };
     const factory = new PluginFactorySATPGateway(factoryOptions);
-    const gatewayIdentity = {
-      id: "mockID",
-      name: "CustomGateway",
-      version: [
-        {
-          Core: SATP_CORE_VERSION,
-          Architecture: SATP_ARCHITECTURE_VERSION,
-          Crash: SATP_CRASH_VERSION,
-        },
-      ],
-      proofID: "mockProofID10",
-      address: "http://localhost" as Address,
-    } as GatewayIdentity;
+    const {
+      identity: gatewayIdentity,
+      serverPort,
+      clientPort,
+      oapiPort,
+    } = await makeGatewayIdentityWithFreePorts();
 
     const migrationSource = await createMigrationSource();
     knexLocalClient = knex({
@@ -434,10 +412,9 @@ describe.skip("SATPGateway sending a token from Fabric to Besu", () => {
     await gateway.onPluginInit();
 
     const identity = gateway.Identity;
-    // default servers
-    expect(identity.gatewayServerPort).toBe(3010);
-    expect(identity.gatewayClientPort).toBe(3011);
-    expect(identity.gatewayOapiPort).toBe(4010);
+    expect(identity.gatewayServerPort).toBe(serverPort);
+    expect(identity.gatewayClientPort).toBe(clientPort);
+    expect(identity.gatewayOapiPort).toBe(oapiPort);
     expect(identity.address).toBe("http://localhost");
 
     const apiServer = await gateway.getOrCreateHttpServer();
@@ -550,19 +527,12 @@ describe("SATPGateway sending a token from Besu to Ethereum", () => {
     };
     const factory = new PluginFactorySATPGateway(factoryOptions);
 
-    const gatewayIdentity = {
-      id: "mockID",
-      name: "CustomGateway",
-      version: [
-        {
-          Core: SATP_CORE_VERSION,
-          Architecture: SATP_ARCHITECTURE_VERSION,
-          Crash: SATP_CRASH_VERSION,
-        },
-      ],
-      proofID: "mockProofID10",
-      address: "http://localhost" as Address,
-    } as GatewayIdentity;
+    const {
+      identity: gatewayIdentity,
+      serverPort,
+      clientPort,
+      oapiPort,
+    } = await makeGatewayIdentityWithFreePorts();
 
     const migrationSource = await createMigrationSource();
     knexLocalClient = knex({
@@ -614,9 +584,9 @@ describe("SATPGateway sending a token from Besu to Ethereum", () => {
 
     const identity = gateway.Identity;
     // default servers
-    expect(identity.gatewayServerPort).toBe(3010);
-    expect(identity.gatewayClientPort).toBe(3011);
-    expect(identity.gatewayOapiPort).toBe(4010);
+    expect(identity.gatewayServerPort).toBe(serverPort);
+    expect(identity.gatewayClientPort).toBe(clientPort);
+    expect(identity.gatewayOapiPort).toBe(oapiPort);
     expect(identity.address).toBe("http://localhost");
 
     const apiServer = await gateway.getOrCreateHttpServer();
@@ -748,19 +718,12 @@ describe("SATPGateway sending a Non Fungible token from Besu to Ethereum", () =>
     };
     const factory = new PluginFactorySATPGateway(factoryOptions);
 
-    const gatewayIdentity = {
-      id: "mockID",
-      name: "CustomGateway",
-      version: [
-        {
-          Core: SATP_CORE_VERSION,
-          Architecture: SATP_ARCHITECTURE_VERSION,
-          Crash: SATP_CRASH_VERSION,
-        },
-      ],
-      proofID: "mockProofID10",
-      address: "http://localhost" as Address,
-    } as GatewayIdentity;
+    const {
+      identity: gatewayIdentity,
+      serverPort,
+      clientPort,
+      oapiPort,
+    } = await makeGatewayIdentityWithFreePorts();
 
     const migrationSource = await createMigrationSource();
     knexLocalClient = knex({
@@ -812,9 +775,9 @@ describe("SATPGateway sending a Non Fungible token from Besu to Ethereum", () =>
 
     const identity = gateway.Identity;
     // default servers
-    expect(identity.gatewayServerPort).toBe(3010);
-    expect(identity.gatewayClientPort).toBe(3011);
-    expect(identity.gatewayOapiPort).toBe(4010);
+    expect(identity.gatewayServerPort).toBe(serverPort);
+    expect(identity.gatewayClientPort).toBe(clientPort);
+    expect(identity.gatewayOapiPort).toBe(oapiPort);
     expect(identity.address).toBe("http://localhost");
 
     const apiServer = await gateway.getOrCreateHttpServer();

@@ -88,6 +88,7 @@ import {
   knexLocalInstance,
   createOracleLogKnexConfig,
 } from "./database/knexfile";
+import { knexAuditInstance } from "./database/knexfile-audit";
 import schedule, { Job } from "node-schedule";
 import { BLODispatcherErraneousError } from "./core/errors/satp-errors";
 import { ClaimFormat } from "./generated/proto/cacti/satp/v02/common/message_pb";
@@ -655,8 +656,9 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
       );
     } else {
       this.logger.info("Audit entries repository is not defined");
+      this.config.auditRepository = knexAuditInstance.default;
       this.auditRepository = new AuditEntryRepository(
-        knexLocalInstance.default,
+        this.config.auditRepository,
       );
     }
     if (this.config.oracleLogRepository) {
@@ -1177,7 +1179,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
         const address =
           this.options.gid?.address?.includes("localhost") ||
-          this.options.gid?.address?.includes("127.0.0.1")
+            this.options.gid?.address?.includes("127.0.0.1")
             ? "localhost"
             : "0.0.0.0";
 
@@ -1301,7 +1303,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             this.GOLServer = http.createServer(this.GOLApplication);
             const address =
               this.options.gid?.address?.includes("localhost") || // When running a gateway in localhost we don't want to bind it to 0.0.0.0 because if we do it will be accessible from the outside network
-              this.options.gid?.address?.includes("127.0.0.1")
+                this.options.gid?.address?.includes("127.0.0.1")
                 ? "localhost"
                 : "0.0.0.0";
 
