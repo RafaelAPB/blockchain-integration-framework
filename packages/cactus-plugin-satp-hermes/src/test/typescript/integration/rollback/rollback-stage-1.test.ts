@@ -117,12 +117,12 @@ const createMockSession = (
     }),
     stage1: isClient
       ? create(Stage1HashesSchema, {
-        transferProposalRequestMessageHash: "h5",
-      })
+          transferProposalRequestMessageHash: "h5",
+        })
       : create(Stage1HashesSchema, {
-        transferProposalRequestMessageHash: "h5",
-        transferProposalReceiptMessageHash: "h6",
-      }),
+          transferProposalRequestMessageHash: "h5",
+          transferProposalReceiptMessageHash: "h6",
+        }),
   });
   if (isClient) {
     sessionData.senderAsset = create(AssetSchema, {

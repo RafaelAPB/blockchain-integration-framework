@@ -126,12 +126,12 @@ const createMockSession = (
   sessionData.hashes = create(MessageStagesHashesSchema, {
     stage0: isClient
       ? create(Stage0HashesSchema, {
-        newSessionRequestMessageHash: "h1",
-      })
+          newSessionRequestMessageHash: "h1",
+        })
       : create(Stage0HashesSchema, {
-        newSessionRequestMessageHash: "h1",
-        newSessionResponseMessageHash: "h2",
-      }),
+          newSessionRequestMessageHash: "h1",
+          newSessionResponseMessageHash: "h2",
+        }),
   });
   if (isClient) {
     sessionData.senderAsset = create(AssetSchema, {

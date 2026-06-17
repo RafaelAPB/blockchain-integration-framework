@@ -148,12 +148,12 @@ const createMockSession = (
     }),
     stage3: isClient
       ? create(Stage3HashesSchema, {
-        commitPreparationRequestMessageHash: "h12",
-      })
+          commitPreparationRequestMessageHash: "h12",
+        })
       : create(Stage3HashesSchema, {
-        commitPreparationRequestMessageHash: "h12",
-        commitReadyResponseMessageHash: "h13",
-      }),
+          commitPreparationRequestMessageHash: "h12",
+          commitReadyResponseMessageHash: "h13",
+        }),
   });
   if (isClient) {
     sessionData.senderAsset = create(AssetSchema, {
