@@ -205,6 +205,16 @@ export class FabricTestEnvironment {
       envVars: new Map([["FABRIC_VERSION", FABRIC_25_LTS_AIO_FABRIC_VERSION]]),
       networkName: this.dockerNetwork,
       logLevel: this.level,
+      hostPortBindings: {
+        "22/tcp": "",
+        "7050/tcp": "",
+        "7051/tcp": "",
+        "7054/tcp": "",
+        "8051/tcp": "",
+        "8054/tcp": "",
+        "9051/tcp": "",
+        "10051/tcp": "",
+      },
     });
 
     const container = await this.ledger.start();
@@ -213,9 +223,6 @@ export class FabricTestEnvironment {
     // even when Jest kills the worker process on a test timeout (SIGTERM) or
     // the user interrupts the run (SIGINT).  The handlers are removed in
     // tearDown() to prevent double-cleanup on a normal afterAll path.
-    // Note: FabricTestLedgerV1 binds fixed host ports (7050, 7051, …) so only
-    // one container can run at a time; any orphaned container blocks new runs.
-    // See: https://github.com/hyperledger-cacti/cacti/issues/3978
     const onSignal = () => {
       void this.tearDown().catch((err) => {
         this.log.warn("FabricTestEnvironment: signal tearDown failed:", err);

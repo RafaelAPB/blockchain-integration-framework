@@ -108,22 +108,7 @@ beforeEach(() => {
 }, TIMEOUT);
 
 beforeAll(async () => {
-  try {
-    const satpContractName = "satp-contract";
-    fabricEnv = await FabricTestEnvironment.setupTestEnvironment({
-      contractName: satpContractName,
-      logLevel,
-      claimFormat: ClaimFormat.BUNGEE,
-    });
-    log.info("Fabric Ledger started successfully");
-    await fabricEnv.deployAndSetupContracts();
-  } catch (err) {
-    log.warn(
-      "Fabric ledger failed to start, non-Fabric tests will proceed.",
-      err,
-    );
-    fabricEnv = undefined as unknown as FabricTestEnvironment;
-  }
+  // Fabric setup skipped — all Fabric describe blocks are describe.skip
 
   {
     const erc20TokenContract = "SATPContract";
@@ -497,7 +482,7 @@ describe.skip("SATPGateway sending a token from Fabric to Besu", () => {
   });
 });
 
-describe.skip("SATPGateway sending a token from Besu to Ethereum", () => {
+describe("SATPGateway sending a token from Besu to Ethereum", () => {
   jest.setTimeout(TIMEOUT);
   it("should realize a transfer", async () => {
     //setup satp gateway
@@ -661,7 +646,7 @@ describe.skip("SATPGateway sending a token from Besu to Ethereum", () => {
   });
 });
 
-describe.skip("SATPGateway sending a non fungible token from Ethereum to Besu", () => {
+describe("SATPGateway sending a non fungible token from Ethereum to Besu", () => {
   jest.setTimeout(TIMEOUT);
 
   it("should mint a non fungible token and transfer it", async () => {
@@ -829,7 +814,7 @@ describe.skip("SATPGateway sending a non fungible token from Ethereum to Besu", 
   });
 });
 
-describe.skip("SATPGateway sending a non fungible token from Besu back to Ethereum", () => {
+describe("SATPGateway sending a non fungible token from Besu back to Ethereum", () => {
   jest.setTimeout(TIMEOUT);
   it("should realize a transfer", async () => {
     const factoryOptions: IPluginFactoryOptions = {

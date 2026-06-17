@@ -75,6 +75,11 @@ export interface IFabricTestLedgerV1ConstructorOptions {
   // Defines the target network for the container.
   // Configuration will be optimized for this specific network.
   networkName?: string;
+  // Override host-side port bindings for the container's exposed ports.
+  // Use an empty string value (e.g. { "22/tcp": "" }) to let Docker assign a
+  // random available host port instead of the default fixed one.
+  // Keys are Docker port specs (e.g. "22/tcp"); values are the host port string.
+  hostPortBindings?: Partial<Record<string, string>>;
 }
 
 export enum STATE_DATABASE {
@@ -1547,14 +1552,32 @@ export class FabricTestLedgerV1 implements ITestLedger {
         Privileged: true,
         NetworkMode: this.networkName,
         PortBindings: {
-          "22/tcp": [{ HostPort: "30022" }],
-          "7050/tcp": [{ HostPort: "7050" }],
-          "7051/tcp": [{ HostPort: "7051" }],
-          "7054/tcp": [{ HostPort: "7054" }],
-          "8051/tcp": [{ HostPort: "8051" }],
-          "8054/tcp": [{ HostPort: "8054" }],
-          "9051/tcp": [{ HostPort: "9051" }],
-          "10051/tcp": [{ HostPort: "10051" }],
+          "22/tcp": [
+            { HostPort: this.options.hostPortBindings?.["22/tcp"] ?? "30022" },
+          ],
+          "7050/tcp": [
+            { HostPort: this.options.hostPortBindings?.["7050/tcp"] ?? "7050" },
+          ],
+          "7051/tcp": [
+            { HostPort: this.options.hostPortBindings?.["7051/tcp"] ?? "7051" },
+          ],
+          "7054/tcp": [
+            { HostPort: this.options.hostPortBindings?.["7054/tcp"] ?? "7054" },
+          ],
+          "8051/tcp": [
+            { HostPort: this.options.hostPortBindings?.["8051/tcp"] ?? "8051" },
+          ],
+          "8054/tcp": [
+            { HostPort: this.options.hostPortBindings?.["8054/tcp"] ?? "8054" },
+          ],
+          "9051/tcp": [
+            { HostPort: this.options.hostPortBindings?.["9051/tcp"] ?? "9051" },
+          ],
+          "10051/tcp": [
+            {
+              HostPort: this.options.hostPortBindings?.["10051/tcp"] ?? "10051",
+            },
+          ],
         },
       },
     };
@@ -1591,10 +1614,16 @@ export class FabricTestLedgerV1 implements ITestLedger {
           createOptions["ExposedPorts"][`${org.port}/tcp`] = {};
           createOptions["ExposedPorts"][`${caPort}/tcp`] = {};
           createOptions["HostConfig"]["PortBindings"][org.port] = [
-            { HostPort: org.port },
+            {
+              HostPort:
+                this.options.hostPortBindings?.[`${org.port}/tcp`] ?? org.port,
+            },
           ];
           createOptions["HostConfig"]["PortBindings"][caPort] = [
-            { HostPort: caPort },
+            {
+              HostPort:
+                this.options.hostPortBindings?.[`${caPort}/tcp`] ?? caPort,
+            },
           ];
         }
       });

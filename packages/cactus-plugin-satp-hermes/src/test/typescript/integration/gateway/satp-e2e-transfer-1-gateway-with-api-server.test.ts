@@ -129,7 +129,7 @@ beforeEach(() => {
 }, TIMEOUT);
 
 beforeAll(async () => {
-  try {
+  /*   try {
     const satpContractName = "satp-contract";
     fabricEnv = await FabricTestEnvironment.setupTestEnvironment({
       contractName: satpContractName,
@@ -144,7 +144,7 @@ beforeAll(async () => {
       err,
     );
     fabricEnv = undefined as unknown as FabricTestEnvironment;
-  }
+  } */
 
   {
     const erc20TokenContract = "SATPContract";
@@ -724,7 +724,7 @@ describe("SATPGateway sending a token from Besu to Ethereum", () => {
     await gateway.shutdown();
   });
 });
-describe.skip("SATPGateway sending a Non Fungible token from Besu to Ethereum", () => {
+describe("SATPGateway sending a Non Fungible token from Besu to Ethereum", () => {
   jest.setTimeout(TIMEOUT);
   const tokenUniqueDescriptor = "1001";
   it("should mint a non fungible token to the owner account", async () => {

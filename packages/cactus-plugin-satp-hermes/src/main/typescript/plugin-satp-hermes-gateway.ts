@@ -1177,7 +1177,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
         const address =
           this.options.gid?.address?.includes("localhost") ||
-            this.options.gid?.address?.includes("127.0.0.1")
+          this.options.gid?.address?.includes("127.0.0.1")
             ? "localhost"
             : "0.0.0.0";
 
@@ -1266,6 +1266,9 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
 
         await database.migrate.latest();
         await this.oracleLogRepository.database.migrate.latest();
+        await (
+          this.auditRepository as AuditEntryRepository
+        ).database.migrate.latest();
       } catch (err) {
         span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
         span.recordException(err);
@@ -1298,7 +1301,7 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
             this.GOLServer = http.createServer(this.GOLApplication);
             const address =
               this.options.gid?.address?.includes("localhost") || // When running a gateway in localhost we don't want to bind it to 0.0.0.0 because if we do it will be accessible from the outside network
-                this.options.gid?.address?.includes("127.0.0.1")
+              this.options.gid?.address?.includes("127.0.0.1")
                 ? "localhost"
                 : "0.0.0.0";
 
@@ -1517,12 +1520,13 @@ export class SATPGateway implements IPluginWebService, ICactusPlugin {
         this.logger.info(`Closed ${connectionsClosed} connections`);
         this.logger.info("Gateway Coordinator shut down");
 
+        this.logger.debug("Shutting down audit repository");
+        await this.auditRepository?.destroy();
+
         if (this.monitorService) {
           this.logger.debug("Shutting down monitor service");
           await this.monitorService.shutdown();
         }
-        this.logger.debug("Shutting down audit repository");
-        await this.auditRepository?.destroy();
 
         return;
       } catch (err) {
